@@ -1,0 +1,23 @@
+# --- qualroteiro monorepo ---
+node_modules/
+dist/
+build/
+coverage/
+.turbo/
+*.tsbuildinfo
+.DS_Store
+*.log
+
+# env / secrets
+.env
+.env.*
+!.env.example
+
+# --- AIPe brain (kept in-repo; this repo IS the AIPe workspace) ---
+# per-machine artifacts — never committed
+/.aipe/toolchain.yaml
+/.aipe/.rehydrate.lock
+/.aipe/locks/
+.aipe/**/.reports/
+# isolated dispatch worktrees
+**/.worktrees/

@@ -1,0 +1,44 @@
+services:
+  postgres:
+    image: postgis/postgis:16-3.4
+    environment:
+      POSTGRES_USER: qualroteiro
+      POSTGRES_PASSWORD: qualroteiro
+      POSTGRES_DB: qualroteiro
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+
+  valhalla:
+    image: ghcr.io/gis-ops/docker-valhalla/valhalla:latest
+    ports:
+      - "8002:8002"
+    environment:
+      # Brazil extract, downloaded + tiled on first run.
+      tile_urls: https://download.geofabrik.de/south-america/brazil-latest.osm.pbf
+      use_tiles_ignore_pbf: "True"
+      build_elevation: "False"
+      build_admins: "True"
+      build_time_zones: "True"
+    volumes:
+      - valhalla:/custom_files
+
+  photon:
+    image: rtuszik/photon-docker:latest
+    ports:
+      - "2322:2322"
+    environment:
+      COUNTRY_CODE: BR
+    volumes:
+      - photon:/photon/photon_data
+
+volumes:
+  pgdata:
+  valhalla:
+  photon:

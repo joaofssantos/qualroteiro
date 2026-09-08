@@ -1,0 +1,26 @@
+harnesses:
+  - id: claude-code
+    bin: claude
+    present: true
+    version: 2.1.263
+    source: probe
+    checkedAt: 2026-09-08T19:08:07.854Z
+  - id: gemini
+    bin: gemini
+    present: false
+    version: null
+    source: probe
+    checkedAt: 2026-09-08T19:08:07.854Z
+  - id: codex
+    bin: codex
+    present: true
+    version: 0.142.0
+    source: probe
+    checkedAt: 2026-09-08T19:08:07.854Z
+  - id: copilot
+    bin: copilot
+    present: true
+    version: null
+    source: probe
+    checkedAt: 2026-09-08T19:08:07.854Z
+confirmed: false
