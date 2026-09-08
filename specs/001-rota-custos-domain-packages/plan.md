@@ -97,11 +97,22 @@ specs/001-rota-custos-domain-packages/{spec,plan,tasks}.md
 ```
 fuel        (no deps)
 geo         (no deps)
-routing     (no deps)
-tolls  ──▶  geo
+routing ──▶ geo
+tolls   ──▶ geo
 ```
 
-`geo` and `routing` never import `tolls` or `fuel`.
+`geo` and `routing` never import `tolls` or `fuel`, which is the constraint the
+brief actually imposes.
+
+**Amended during implementation (D-007).** The plan originally had `routing`
+depend on nothing. It now depends on `geo`, for types only. The alternative was
+to redeclare `LngLat` and `LineString` inside `routing`, which would have given
+the workspace two structurally identical but nominally separate position types —
+exactly the seam where an `apps/api` adapter would end up casting between a
+`geo.LngLat` from a geocode result and a `routing.LngLat` in a `RouteRequest`.
+Since the whole point of the geocode → route → toll pipeline is that those
+values flow into each other, one shared definition is worth the edge. `geo` has
+no runtime dependencies, so this adds nothing to `routing`'s runtime surface.
 
 ---
 
