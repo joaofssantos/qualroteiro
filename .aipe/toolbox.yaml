@@ -1,0 +1,57 @@
+skills:
+  - name: spec-kit
+    description: GitHub Spec Kit — full spec-driven development (/speckit.*).
+    objective: Drive non-trivial tasks from an executable spec to implementation.
+    whenToUse: "Non-trivial tasks: new contracts, new packages/services, migrations."
+    repos:
+      - qualroteiro
+    routing:
+      skipFor:
+        - styling
+        - copy
+        - one-liner
+        - chore
+      minSize: medium
+  - name: sdd-lite
+    description: "Lightweight spec-first floor: short spec + evidence + task doc."
+    objective: Keep every change spec-first with objective evidence, cheaply.
+    whenToUse: Any task not routed to the full spec-kit flow — the default floor.
+    repos:
+      - qualroteiro
+  - name: verify-before-done
+    description: "Evidence gate: prove a unit is done before claiming it (dev + QA)."
+    objective: No done-claim without attached evidence (commands + observed output).
+    whenToUse: Before returning delivered/passed from a dispatched specialist.
+    repos:
+      - qualroteiro
+  - name: review-delivery
+    description: Independent skeptic review of a delivery against the diff (QA gate).
+    objective: Verify a delivery against the diff + acceptance, never the dev's report.
+    whenToUse: When QA gates a dev delivery before it counts as done.
+    repos:
+      - qualroteiro
+  - name: tdd
+    description: "Rigid RED→GREEN: write the failing test first, then make it pass (dev)."
+    objective: Prove behavior by a test that failed then passed — the preferred
+      delivery evidence.
+    whenToUse: For any testable change inside a dispatched dev specialist.
+    repos:
+      - qualroteiro
+  - name: investigate
+    description: Establish the cause before choosing a fix — five gated steps (dev + QA).
+    objective: Reproduce, name the mechanism, rule out the easy explanation, prove
+      the contrafactual, verify the consequence.
+    whenToUse: Before fixing any bug or symptom whose cause is not yet named as a
+      specific line/function/event.
+    repos:
+      - qualroteiro
+  - name: state-the-limit
+    description: Report what was NOT established alongside every result, at equal
+      prominence (dev + QA).
+    objective: Never let a claim (a fix, a verdict, a count) sound stronger than
+      what was actually verified.
+    whenToUse: Whenever reporting a result — a fix, a verification, a measurement, a
+      gate verdict.
+    repos:
+      - qualroteiro
+mcps: []

@@ -1,0 +1,40 @@
+nodes:
+  - fqid: qualroteiro
+    repo: qualroteiro
+    package: null
+    stack:
+      - typescript
+      - node
+      - pnpm
+      - turbo
+  - fqid: qualroteiro/api
+    repo: qualroteiro
+    package: api
+    stack: []
+  - fqid: qualroteiro/root
+    repo: qualroteiro
+    package: root
+    stack: []
+  - fqid: qualroteiro/web
+    repo: qualroteiro
+    package: web
+    stack: []
+edges:
+  - from: qualroteiro/api
+    to: qualroteiro/root
+    type: shares-infra
+    perspectives:
+      - detail: Connects to the shared PostgreSQL/PostGIS database from the root
+          infra/docker-compose.yml via DATABASE_URL.
+        evidence: apps/api/.env.example:1
+      - detail: Uses the shared Redis, Valhalla, and Photon services provisioned by the
+          root infra/docker-compose.yml via REDIS_URL, VALHALLA_URL, and
+          PHOTON_URL.
+        evidence: apps/api/.env.example:2
+  - from: qualroteiro/api
+    to: qualroteiro/web
+    type: consumes
+    perspectives:
+      - detail: Exposes a Fastify HTTP server with CORS enabled on port 3000, an API
+          surface intended to be called by the browser frontend.
+        evidence: apps/api/src/server.ts:5
