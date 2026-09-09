@@ -7,17 +7,25 @@
     "build": "tsc",
     "start": "node dist/server.js",
     "lint": "eslint src",
-    "typecheck": "tsc --noEmit",
+    "typecheck": "tsc -p tsconfig.test.json",
+    "test": "vitest run",
     "prisma:generate": "prisma generate",
     "prisma:migrate": "prisma migrate dev"
   },
   "dependencies": {
     "@fastify/cors": "^10.0.1",
     "@prisma/client": "^5.20.0",
+    "@qualroteiro/fuel": "workspace:*",
+    "@qualroteiro/geo": "workspace:*",
+    "@qualroteiro/routing": "workspace:*",
+    "@qualroteiro/tolls": "workspace:*",
     "fastify": "^5.0.0"
   },
   "devDependencies": {
+    "@types/node": "^20.16.0",
     "prisma": "^5.20.0",
-    "tsx": "^4.19.1"
+    "tsx": "^4.19.1",
+    "typescript": "^5.6.0",
+    "vitest": "^2.1.3"
   }
 }
