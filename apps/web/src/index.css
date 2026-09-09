@@ -1,3 +1,76 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+/**
+ * qualroteiro's visual identity.
+ *
+ * Deliberately not the palette of any incumbent: the reference tools in this
+ * market are near-universally saturated blue-on-white dashboards. qualroteiro is
+ * built on "asfalto e sinalização" — a cool graphite ground that lets a map carry
+ * the colour, a deep petrol blue for structure, and a single signage amber used
+ * only for the route trace and the primary action, so the eye always knows where
+ * the answer is.
+ */
+
+@layer base {
+  :root {
+    --background: 210 20% 98%;
+    --foreground: 209 41% 14%;
+
+    --card: 0 0% 100%;
+    --card-foreground: 209 41% 14%;
+
+    --popover: 0 0% 100%;
+    --popover-foreground: 209 41% 14%;
+
+    /* Petrol blue — structure, nav, headings. */
+    --primary: 202 80% 20%;
+    --primary-foreground: 210 40% 98%;
+
+    --secondary: 210 22% 94%;
+    --secondary-foreground: 202 80% 20%;
+
+    --muted: 210 22% 94%;
+    --muted-foreground: 209 14% 43%;
+
+    /* Signage amber — the route trace and the primary action, nothing else. */
+    --accent: 38 92% 50%;
+    --accent-foreground: 209 45% 12%;
+
+    --destructive: 0 72% 45%;
+    --destructive-foreground: 210 40% 98%;
+
+    --border: 212 18% 88%;
+    --input: 212 18% 86%;
+    --ring: 202 80% 30%;
+
+    --radius: 0.625rem;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+
+  body {
+    @apply bg-background text-foreground antialiased;
+    font-feature-settings: 'cv02', 'cv03', 'cv04', 'cv11';
+  }
+}
+
+/**
+ * MapLibre's stylesheet is imported by `MapCanvas`. These rules restyle the two
+ * pieces of chrome it injects so the map does not look like a different product
+ * bolted onto the page.
+ */
+@layer components {
+  .maplibregl-ctrl-attrib {
+    @apply !bg-white/80 !text-[10px] !text-muted-foreground;
+  }
+
+  .maplibregl-ctrl-group {
+    @apply !rounded-lg !border !border-border !shadow-sm;
+  }
+}
