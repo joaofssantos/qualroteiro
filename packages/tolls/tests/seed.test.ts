@@ -83,10 +83,10 @@ describe('seed dataset', () => {
       }
     });
 
-    it('exposes a reference polyline with more vertices than it has plazas', () => {
+    it('exposes a road-following reference polyline with at least 50 vertices', () => {
       const polyline = corridorPolyline(corridor.id);
       expect(polyline.type).toBe('LineString');
-      expect(polyline.coordinates.length).toBeGreaterThan(corridor.plazas.length);
+      expect(polyline.coordinates.length).toBeGreaterThanOrEqual(50);
     });
   });
 
