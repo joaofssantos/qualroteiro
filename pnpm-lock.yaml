@@ -57,6 +57,9 @@ importers:
 
   apps/web:
     dependencies:
+      '@qualroteiro/fuel':
+        specifier: workspace:*
+        version: link:../../packages/fuel
       '@qualroteiro/geo':
         specifier: workspace:*
         version: link:../../packages/geo
