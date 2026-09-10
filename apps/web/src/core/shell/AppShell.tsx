@@ -4,6 +4,7 @@ import { NavLink } from 'react-router-dom';
 
 import { cn } from '@/lib/utils';
 
+import { isDemoMode } from '../api/demo/mode';
 import { listModules } from '../registry/registry';
 
 /**
@@ -38,6 +39,18 @@ export function AppShell({ children }: { children: ReactNode }) {
             planejamento de viagem
           </span>
         </div>
+
+        {isDemoMode() ? (
+          <div
+            role="status"
+            className={cn(
+              'shrink-0 rounded-md bg-amber-400 px-2 py-1 text-center text-[11px] font-bold uppercase tracking-wide text-amber-950',
+              'md:mb-4',
+            )}
+          >
+            modo demonstração
+          </div>
+        ) : null}
 
         <div className="flex min-w-0 flex-1 gap-1 overflow-x-auto md:flex-col md:overflow-visible">
           {modules.map((module) => {

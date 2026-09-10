@@ -36,6 +36,15 @@ interface ImportMetaEnv {
   readonly VITE_API_BASE_URL?: string;
 
   /**
+   * Build-time demo mode. `"true"` (exact string) makes the fetch layer answer
+   * from bundled fixtures instead of the network, so a static `dist/` works with
+   * no backend. Anything else — including unset — is off, and the app behaves
+   * exactly as in production. A string, per Vite's env convention. See
+   * `apps/web/README.md`, `.env.example` and `src/core/api/demo/`.
+   */
+  readonly VITE_DEMO_MODE?: string;
+
+  /**
    * MapLibre style document URL. Defaults to OpenFreeMap's "liberty" style,
    * which needs no API key. Override to use a paid tile vendor.
    */
