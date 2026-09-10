@@ -52,3 +52,10 @@ export const SAO_PAULO = {
   lng: -46.6333,
   lat: -23.5505,
 } as const;
+
+export const RIO_DE_JANEIRO = {
+  id: 'rio',
+  label: 'Rio de Janeiro, RJ, Brasil',
+  lng: -43.1729,
+  lat: -22.9068,
+} as const;

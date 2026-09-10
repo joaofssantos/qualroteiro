@@ -10,6 +10,7 @@ import type { MapLayerDescriptor } from '@/core/map/layers';
 /** The module's root path. Owned here, not by the shell. */
 export const MODULE_PATH = '/rota-custos';
 
+export const ENDPOINT_LAYER_ID = 'endpoints';
 export const TOLL_LAYER_ID = 'tolls';
 export const FUEL_STATION_LAYER_ID = 'fuel-stations';
 

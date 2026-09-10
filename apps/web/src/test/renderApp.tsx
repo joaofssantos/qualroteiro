@@ -65,6 +65,7 @@ export function resetApp(): void {
     status: 'idle',
     error: null,
     layers: [],
+    endpointMarkers: [],
   });
 }
 

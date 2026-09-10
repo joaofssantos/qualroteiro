@@ -10,7 +10,7 @@ import {
   VehicleProfileForm,
   type VehicleProfileValue,
 } from '@/core/components/VehicleProfileForm';
-import { useRouteStore } from '@/core/store/routeStore';
+import { type EndpointMarker, useRouteStore } from '@/core/store/routeStore';
 
 import { MODULE_PATH } from './module';
 
@@ -42,11 +42,46 @@ function toPlaceInput(field: PlaceFieldValue): PlaceInput {
   return field.place ? { lng: field.place.lng, lat: field.place.lat } : field.text.trim();
 }
 
+function endpointMarkersOf(
+  origin: PlaceFieldValue,
+  destination: PlaceFieldValue,
+  stops: readonly PlaceFieldValue[],
+): readonly EndpointMarker[] {
+  const markers: EndpointMarker[] = [];
+  if (origin.place) {
+    markers.push({
+      id: 'origin',
+      kind: 'origin',
+      label: `Origem: ${origin.place.label}`,
+      place: origin.place,
+    });
+  }
+  for (const [index, stop] of stops.entries()) {
+    if (!stop.place) continue;
+    markers.push({
+      id: `waypoint-${index}`,
+      kind: 'waypoint',
+      label: `Parada ${index + 1}: ${stop.place.label}`,
+      place: stop.place,
+    });
+  }
+  if (destination.place) {
+    markers.push({
+      id: 'destination',
+      kind: 'destination',
+      label: `Destino: ${destination.place.label}`,
+      place: destination.place,
+    });
+  }
+  return markers;
+}
+
 export function NewQueryScreen() {
   const navigate = useNavigate();
   const startPlanning = useRouteStore((s) => s.startPlanning);
   const planSucceeded = useRouteStore((s) => s.planSucceeded);
   const planFailed = useRouteStore((s) => s.planFailed);
+  const setEndpointMarkers = useRouteStore((s) => s.setEndpointMarkers);
 
   const [origin, setOrigin] = useState<PlaceFieldValue>(EMPTY_FIELD);
   const [destination, setDestination] = useState<PlaceFieldValue>(EMPTY_FIELD);
@@ -57,8 +92,30 @@ export function NewQueryScreen() {
   const [formError, setFormError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
 
+  function syncEndpointMarkers(
+    nextOrigin: PlaceFieldValue,
+    nextDestination: PlaceFieldValue,
+    nextStops: readonly PlaceFieldValue[],
+  ): void {
+    setEndpointMarkers(endpointMarkersOf(nextOrigin, nextDestination, nextStops));
+  }
+
+  function setOriginField(value: PlaceFieldValue): void {
+    setOrigin(value);
+    syncEndpointMarkers(value, destination, stops);
+  }
+
+  function setDestinationField(value: PlaceFieldValue): void {
+    setDestination(value);
+    syncEndpointMarkers(origin, value, stops);
+  }
+
   function setStop(index: number, value: PlaceFieldValue): void {
-    setStops((current) => current.map((stop, i) => (i === index ? value : stop)));
+    setStops((current) => {
+      const nextStops = current.map((stop, i) => (i === index ? value : stop));
+      syncEndpointMarkers(origin, destination, nextStops);
+      return nextStops;
+    });
   }
 
   async function handleSubmit(event: React.FormEvent): Promise<void> {
@@ -141,7 +198,7 @@ export function NewQueryScreen() {
             label="Origem"
             placeholder="Cidade, estado ou endereço"
             value={origin}
-            onChange={setOrigin}
+            onChange={setOriginField}
             error={fieldErrors['origin']}
           />
 
@@ -162,7 +219,13 @@ export function NewQueryScreen() {
                 variant="ghost"
                 size="icon"
                 aria-label={`Remover parada ${index + 1}`}
-                onClick={() => setStops((current) => current.filter((_, i) => i !== index))}
+                onClick={() =>
+                  setStops((current) => {
+                    const nextStops = current.filter((_, i) => i !== index);
+                    syncEndpointMarkers(origin, destination, nextStops);
+                    return nextStops;
+                  })
+                }
               >
                 <X />
               </Button>
@@ -174,7 +237,7 @@ export function NewQueryScreen() {
             label="Destino"
             placeholder="Cidade, estado ou endereço"
             value={destination}
-            onChange={setDestination}
+            onChange={setDestinationField}
             error={fieldErrors['destination']}
           />
 

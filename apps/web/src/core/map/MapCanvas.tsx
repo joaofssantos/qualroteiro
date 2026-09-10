@@ -210,6 +210,20 @@ export function MapCanvas({
     }
   }, [layers, ready]);
 
+  // With no trace yet, keep Tela 1 focused on the places the user has picked.
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map || !ready || trace) return;
+
+    const positions = layers.flatMap((layer) =>
+      layer.visible ? layer.markers.map((marker) => [marker.lng, marker.lat] as const) : [],
+    );
+    const bounds = boundsOf(positions);
+    if (bounds) {
+      map.fitBounds(bounds, { padding: 64, duration: 400, maxZoom: 13 });
+    }
+  }, [layers, ready, trace]);
+
   return (
     <div
       ref={containerRef}
