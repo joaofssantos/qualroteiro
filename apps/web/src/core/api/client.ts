@@ -6,6 +6,7 @@
  * component's internals.
  */
 
+import { isDemoMode } from './demo/mode';
 import { ApiError, fieldFromMessage, kindFromStatus } from './errors';
 import type {
   ApiErrorBody,
@@ -68,19 +69,31 @@ function toNetworkError(cause: unknown): never {
   throw new ApiError('network', 0, cause instanceof Error ? cause.message : 'network error');
 }
 
-/** `POST /routes/plan` — the F1 composition endpoint. */
+/**
+ * `POST /routes/plan` — the F1 composition endpoint.
+ *
+ * When `VITE_DEMO_MODE` is on, the request is served from `./demo` fixtures — a
+ * real `Response` that flows through the identical `!response.ok`/`.json()`
+ * handling below, so no calling code changes. The demo module is `import()`ed
+ * lazily so it stays out of a default production bundle.
+ */
 export async function planRoute(
   request: PlanRouteRequest,
   signal?: AbortSignal,
 ): Promise<readonly PlannedRoute[]> {
   let response: Response;
   try {
-    response = await fetch(url('/routes/plan'), {
-      method: 'POST',
-      headers: { 'content-type': 'application/json' },
-      body: JSON.stringify(request),
-      ...(signal ? { signal } : {}),
-    });
+    if (isDemoMode()) {
+      const { demoPlanRoute } = await import('./demo');
+      response = await demoPlanRoute(request, signal);
+    } else {
+      response = await fetch(url('/routes/plan'), {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify(request),
+        ...(signal ? { signal } : {}),
+      });
+    }
   } catch (cause) {
     toNetworkError(cause);
   }
@@ -100,9 +113,14 @@ export async function planRoute(
 export async function searchPlaces(q: string, signal?: AbortSignal): Promise<readonly Place[]> {
   let response: Response;
   try {
-    response = await fetch(url(`/places/search?q=${encodeURIComponent(q)}`), {
-      ...(signal ? { signal } : {}),
-    });
+    if (isDemoMode()) {
+      const { demoSearchPlaces } = await import('./demo');
+      response = await demoSearchPlaces(q, signal);
+    } else {
+      response = await fetch(url(`/places/search?q=${encodeURIComponent(q)}`), {
+        ...(signal ? { signal } : {}),
+      });
+    }
   } catch (cause) {
     toNetworkError(cause);
   }
