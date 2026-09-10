@@ -10,8 +10,14 @@ import { screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { lastMap } from '@/test/maplibre-stub';
-import { ALTERNATIVE_ROUTE, DUTRA_PLAZAS, DUTRA_ROUTE } from '@/test/fixtures';
+import { constructedMaps, lastMap } from '@/test/maplibre-stub';
+import {
+  ALTERNATIVE_ROUTE,
+  DUTRA_PLAZAS,
+  DUTRA_ROUTE,
+  RIO_DE_JANEIRO,
+  SAO_PAULO,
+} from '@/test/fixtures';
 import { type ApiMock, mockApi, renderApp, resetApp } from '@/test/renderApp';
 
 const ORIGIN = 'São Paulo, SP';
@@ -27,6 +33,31 @@ async function planFromForm(mock: ApiMock) {
 
   await user.type(screen.getByLabelText('Origem'), ORIGIN);
   await user.type(screen.getByLabelText('Destino'), DESTINATION);
+  await user.click(screen.getByRole('button', { name: /calcular rota/i }));
+
+  return { user, fetchSpy };
+}
+
+async function pickPlace(label: string, typed: string, option: RegExp) {
+  const input = screen.getByLabelText(label);
+  const user = userEvent.setup();
+  await user.clear(input);
+  await user.type(input, typed);
+  await user.click(await screen.findByRole('option', { name: option }));
+}
+
+async function planFromSelectedPlaces(mock: ApiMock) {
+  const fetchSpy = mockApi({
+    places: [SAO_PAULO, RIO_DE_JANEIRO],
+    ...mock,
+  });
+  const user = userEvent.setup();
+  renderApp();
+
+  await user.type(screen.getByLabelText('Origem'), 'São');
+  await user.click(await screen.findByRole('option', { name: /São Paulo/ }));
+  await user.type(screen.getByLabelText('Destino'), 'Rio');
+  await user.click(await screen.findByRole('option', { name: /Rio de Janeiro/ }));
   await user.click(screen.getByRole('button', { name: /calcular rota/i }));
 
   return { user, fetchSpy };
@@ -70,6 +101,29 @@ afterEach(() => {
 });
 
 describe('Tela 1 — nova consulta', () => {
+  it('shows selected origin and destination markers before submitting', async () => {
+    const fetchSpy = mockApi({ places: [SAO_PAULO, RIO_DE_JANEIRO], routes: [DUTRA_ROUTE] });
+    renderApp();
+
+    expect(screen.getByRole('region', { name: /mapa da rota/i })).toBeInTheDocument();
+
+    await pickPlace('Origem', 'São', /São Paulo/);
+    await pickPlace('Destino', 'Rio', /Rio de Janeiro/);
+
+    expect(map().getByRole('button', { name: /Origem: São Paulo/ })).toBeInTheDocument();
+    expect(map().getByRole('button', { name: /Destino: Rio de Janeiro/ })).toBeInTheDocument();
+    expect(fetchSpy.mock.calls.filter(([url]) => String(url).includes('/routes/plan'))).toHaveLength(
+      0,
+    );
+
+    await waitFor(() => {
+      const data = lastMap().getSource('route')?.data as {
+        geometry: { coordinates: unknown[] };
+      };
+      expect(data.geometry.coordinates).toEqual([]);
+    });
+  });
+
   it('submits the contract body and shows the result screen', async () => {
     const { fetchSpy } = await planFromForm({ routes: [DUTRA_ROUTE] });
 
@@ -99,6 +153,21 @@ describe('Tela 1 — nova consulta', () => {
 });
 
 describe('Tela 2 — resultado', () => {
+  it('keeps the same map container when the result screen opens', async () => {
+    const { fetchSpy } = await planFromSelectedPlaces({ routes: [DUTRA_ROUTE] });
+    const mapContainer = screen.getByTestId('rota-custos-map-container');
+
+    await screen.findByRole('heading', { name: /resultado da rota/i });
+
+    expect(screen.getByTestId('rota-custos-map-container')).toBe(mapContainer);
+    expect(constructedMaps).toHaveLength(1);
+
+    const planCall = fetchSpy.mock.calls.find(([url]) => String(url).includes('/routes/plan'));
+    const body = JSON.parse(String((planCall?.[1] as RequestInit).body));
+    expect(body.origin).toEqual({ lng: SAO_PAULO.lng, lat: SAO_PAULO.lat });
+    expect(body.destination).toEqual({ lng: RIO_DE_JANEIRO.lng, lat: RIO_DE_JANEIRO.lat });
+  });
+
   it('draws the route trace on the map', async () => {
     await planFromForm({ routes: [DUTRA_ROUTE] });
     await screen.findByRole('heading', { name: /resultado da rota/i });

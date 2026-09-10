@@ -22,7 +22,7 @@
 import { create } from 'zustand';
 
 import type { ApiError } from '../api/errors';
-import type { PlaceInput, PlannedRoute, VehicleProfile } from '../api/types';
+import type { Place, PlaceInput, PlannedRoute, VehicleProfile } from '../api/types';
 import type { MapLayerDescriptor } from '../map/layers';
 
 /** What the user asked for. Kept so the result screen can show it and re-run it. */
@@ -44,6 +44,13 @@ export interface LayerState extends MapLayerDescriptor {
   visible: boolean;
 }
 
+export interface EndpointMarker {
+  readonly id: 'origin' | 'destination' | `waypoint-${number}`;
+  readonly kind: 'origin' | 'destination' | 'waypoint';
+  readonly label: string;
+  readonly place: Place;
+}
+
 interface RouteStore {
   query: PlanQuery | null;
   routes: readonly PlannedRoute[];
@@ -57,6 +64,8 @@ interface RouteStore {
 
   /** The layer manager's registrations, in registration order. */
   layers: readonly LayerState[];
+  /** Places picked on Tela 1, kept so the persistent module map can draw them. */
+  endpointMarkers: readonly EndpointMarker[];
 
   startPlanning(query: PlanQuery): void;
   planSucceeded(routes: readonly PlannedRoute[]): void;
@@ -68,6 +77,7 @@ interface RouteStore {
   registerLayer(descriptor: MapLayerDescriptor): void;
   toggleLayer(id: string): void;
   setLayerVisible(id: string, visible: boolean): void;
+  setEndpointMarkers(markers: readonly EndpointMarker[]): void;
 }
 
 export const useRouteStore = create<RouteStore>((set) => ({
@@ -77,6 +87,7 @@ export const useRouteStore = create<RouteStore>((set) => ({
   status: 'idle',
   error: null,
   layers: [],
+  endpointMarkers: [],
 
   startPlanning: (query) => set({ query, status: 'loading', error: null }),
 
@@ -91,7 +102,15 @@ export const useRouteStore = create<RouteStore>((set) => ({
       activeIndex: Math.min(Math.max(index, 0), Math.max(state.routes.length - 1, 0)),
     })),
 
-  reset: () => set({ query: null, routes: [], activeIndex: 0, status: 'idle', error: null }),
+  reset: () =>
+    set({
+      query: null,
+      routes: [],
+      activeIndex: 0,
+      status: 'idle',
+      error: null,
+      endpointMarkers: [],
+    }),
 
   registerLayer: (descriptor) =>
     set((state) => {
@@ -120,6 +139,8 @@ export const useRouteStore = create<RouteStore>((set) => ({
     set((state) => ({
       layers: state.layers.map((layer) => (layer.id === id ? { ...layer, visible } : layer)),
     })),
+
+  setEndpointMarkers: (endpointMarkers) => set({ endpointMarkers }),
 }));
 
 /** The alternative currently selected, or `null` when there is no result. */

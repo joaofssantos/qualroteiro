@@ -7,6 +7,7 @@ import { useRouteStore } from '@/core/store/routeStore';
 
 import { NewQueryScreen } from './NewQueryScreen';
 import { ResultScreen } from './ResultScreen';
+import { RotaCustosLayout } from './RotaCustosLayout';
 import { MODULE_PATH, ROTA_CUSTOS_LAYERS } from './module';
 
 /**
@@ -28,8 +29,10 @@ function RotaCustosPanel() {
 
   return (
     <Routes>
-      <Route index element={<NewQueryScreen />} />
-      <Route path="resultado" element={<ResultScreen />} />
+      <Route element={<RotaCustosLayout />}>
+        <Route index element={<NewQueryScreen />} />
+        <Route path="resultado" element={<ResultScreen />} />
+      </Route>
     </Routes>
   );
 }
