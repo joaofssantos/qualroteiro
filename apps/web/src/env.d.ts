@@ -50,6 +50,12 @@ interface ImportMetaEnv {
    */
   readonly VITE_MAP_STYLE_URL?: string;
 
+  /**
+   * Clerk publishable key used by the web client. Trips are authenticated with
+   * the current Clerk session token before calling `/trips*`.
+   */
+  readonly VITE_CLERK_PUBLISHABLE_KEY?: string;
+
   /** Vite built-ins. */
   readonly MODE: string;
   readonly BASE_URL: string;

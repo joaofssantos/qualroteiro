@@ -20,6 +20,10 @@ export type ApiErrorKind =
   | 'provider'
   /** The request never completed: offline, DNS, CORS, abort. */
   | 'network'
+  /** `401` — the user is not signed in or the session token was rejected. */
+  | 'auth'
+  /** A server-side failure outside the known F1 route-planning contract. */
+  | 'server'
   /** Anything else, including a `500`. */
   | 'unknown';
 
@@ -71,8 +75,10 @@ export function fieldFromMessage(message: string): ErrorField | undefined {
 /** Map an HTTP status onto the taxonomy. */
 export function kindFromStatus(status: number): ApiErrorKind {
   if (status === 400) return 'validation';
+  if (status === 401) return 'auth';
   if (status === 422) return 'unresolved-place';
   if (status === 502) return 'provider';
+  if (status >= 500) return 'server';
   return 'unknown';
 }
 
@@ -92,6 +98,10 @@ export function userMessage(error: ApiError): string {
       return 'O serviço de rotas está indisponível no momento. Tente novamente em instantes.';
     case 'network':
       return 'Não foi possível conectar. Verifique sua conexão e tente novamente.';
+    case 'auth':
+      return 'Entre na sua conta para continuar.';
+    case 'server':
+      return 'O serviço está indisponível no momento. Tente novamente em instantes.';
     default:
       return 'Algo deu errado ao calcular a rota. Tente novamente.';
   }
