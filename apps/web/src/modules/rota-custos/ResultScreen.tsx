@@ -11,6 +11,7 @@ import { AlternativesPanel } from './panels/AlternativesPanel';
 import { FuelPanel } from './panels/FuelPanel';
 import { PointsPanel } from './panels/PointsPanel';
 import { SummaryRow } from './panels/SummaryRow';
+import { SaveRouteToTripDialog } from './SaveRouteToTripDialog';
 import { TollsPanel } from './panels/TollsPanel';
 
 /**
@@ -47,10 +48,18 @@ export function ResultScreen() {
             <ArrowLeft /> Nova consulta
           </Link>
         </Button>
-        <h1 className="text-lg font-bold tracking-tight text-primary">Resultado da rota</h1>
-        <p className="mt-0.5 truncate text-sm text-muted-foreground">
-          {query.originLabel} → {query.destinationLabel}
-        </p>
+        <div className="flex items-start justify-between gap-3">
+          <div className="min-w-0">
+            <h1 className="text-lg font-bold tracking-tight text-primary">Resultado da rota</h1>
+            <p className="mt-0.5 truncate text-sm text-muted-foreground">
+              {query.originLabel} → {query.destinationLabel}
+            </p>
+          </div>
+          <SaveRouteToTripDialog
+            route={route}
+            title={`${query.originLabel} → ${query.destinationLabel}`}
+          />
+        </div>
       </div>
 
       <SummaryRow route={route} />
