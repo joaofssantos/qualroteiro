@@ -1,26 +1,43 @@
 /**
  * Composition root.
  *
- * The ONLY module that constructs concrete providers and binds a port. Every
- * other module depends on WAVE 1's interfaces, which is what lets the whole
- * HTTP surface be tested without a network.
+ * The ONLY module that constructs concrete providers, opens a database
+ * connection, reads a secret, and binds a port. Every other module depends on
+ * an interface, which is what lets the whole HTTP surface — F1's and F2a's —
+ * be tested without a network and without Postgres.
  */
 
+import { PrismaClient } from '@prisma/client';
+
 import { buildApp } from './app.js';
-import { loadDotEnvInto, readOrsEnv } from './env.js';
+import { createClerkAuthVerifier } from './auth/clerk.js';
+import { loadDotEnvInto, readClerkEnv, readOrsEnv } from './env.js';
 import { createOrsGeocodeProvider } from './providers/ors-geocode.js';
 import { createOrsRoutingProvider } from './providers/ors-routing.js';
+import { createPrismaTripStore } from './store/prisma-trips.js';
 
 // Picks up apps/api/.env in dev; a no-op when a real deployment injects
-// ORS_API_KEY directly and no .env file exists.
+// ORS_API_KEY / CLERK_SECRET_KEY directly and no .env file exists.
 loadDotEnvInto(process.env);
 
 const ors = readOrsEnv();
+const clerk = readClerkEnv();
+
+// Reads DATABASE_URL from the environment itself.
+const prisma = new PrismaClient();
 
 const app = buildApp({
   routing: createOrsRoutingProvider({ apiKey: ors.apiKey, baseUrl: ors.baseUrl }),
   geocode: createOrsGeocodeProvider({ apiKey: ors.apiKey, baseUrl: ors.baseUrl }),
+  auth: createClerkAuthVerifier({ secretKey: clerk.secretKey }),
+  trips: createPrismaTripStore(prisma),
   fastifyOptions: { logger: true },
+});
+
+// Close the pool on the way out so a restarting container does not leave
+// connections behind for the next one to contend with.
+app.addHook('onClose', async () => {
+  await prisma.$disconnect();
 });
 
 const port = Number(process.env['PORT'] ?? 3000);
