@@ -1,10 +1,27 @@
-import Fastify from "fastify";
-import cors from "@fastify/cors";
+/**
+ * Composition root.
+ *
+ * The ONLY module that constructs concrete providers and binds a port. Every
+ * other module depends on WAVE 1's interfaces, which is what lets the whole
+ * HTTP surface be tested without a network.
+ */
 
-const app = Fastify({ logger: true });
-await app.register(cors);
+import { buildApp } from './app.js';
+import { loadDotEnvInto, readOrsEnv } from './env.js';
+import { createOrsGeocodeProvider } from './providers/ors-geocode.js';
+import { createOrsRoutingProvider } from './providers/ors-routing.js';
 
-app.get("/health", async () => ({ status: "ok" }));
+// Picks up apps/api/.env in dev; a no-op when a real deployment injects
+// ORS_API_KEY directly and no .env file exists.
+loadDotEnvInto(process.env);
 
-const port = Number(process.env.PORT ?? 3000);
-await app.listen({ port, host: "0.0.0.0" });
+const ors = readOrsEnv();
+
+const app = buildApp({
+  routing: createOrsRoutingProvider({ apiKey: ors.apiKey, baseUrl: ors.baseUrl }),
+  geocode: createOrsGeocodeProvider({ apiKey: ors.apiKey, baseUrl: ors.baseUrl }),
+  fastifyOptions: { logger: true },
+});
+
+const port = Number(process.env['PORT'] ?? 3000);
+await app.listen({ port, host: '0.0.0.0' });

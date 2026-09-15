@@ -3,8 +3,23 @@
   "compilerOptions": {
     "lib": ["ES2022", "DOM", "DOM.Iterable"],
     "jsx": "react-jsx",
-    "types": ["vite/client"],
-    "noEmit": true
+    /*
+     * Deliberately empty. `types` used to be `["vite/client"]`, which is a hard
+     * entry-point type library: when `vite` was not resolvable from this package
+     * TypeScript raised a fatal `TS2688: Cannot find type definition file for
+     * 'vite/client'` and no source file could be checked at all. An empty array
+     * also stops TypeScript auto-including every `@types/*` package it happens
+     * to find, so what this program sees is only what it explicitly imports plus
+     * the ambient declarations in `src/env.d.ts`.
+     *
+     * See src/env.d.ts and specs/003-rota-custos-web/spec.md § Defect.
+     */
+    "types": [],
+    "noEmit": true,
+    "baseUrl": ".",
+    "paths": {
+      "@/*": ["./src/*"]
+    }
   },
   "include": ["src"]
 }
