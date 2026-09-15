@@ -40,6 +40,19 @@ export const bandeirantesCorridor: Corridor = {
     },
   ],
 
+  /**
+   * DEMO DATA — generic brand placeholders, not real stations. Coordinates sit
+   * a couple of hundred metres off `referencePolyline`, same rationale as the
+   * plazas above. See the package README.
+   */
+  fuelStations: [
+    { id: 'bandeirantes-fuel-ipiranga-40', name: 'Posto Ipiranga — km 40', lat: -23.504925, lng: -46.74956 },
+    { id: 'bandeirantes-fuel-shell-55', name: 'Posto Shell — km 55', lat: -23.377597, lng: -46.840145 },
+    { id: 'bandeirantes-fuel-ale-65', name: 'Posto Ale — km 65', lat: -23.32879, lng: -46.792661 },
+    { id: 'bandeirantes-fuel-br-mania-72', name: 'Posto BR Mania — km 72', lat: -23.217779, lng: -46.885287 },
+    { id: 'bandeirantes-fuel-shell-79', name: 'Posto Shell — km 79', lat: -23.012963, lng: -46.977489 },
+  ],
+
   /** OSRM-derived reference trace, São Paulo → Campinas. */
   referencePolyline: {
     type: 'LineString',

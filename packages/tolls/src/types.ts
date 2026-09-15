@@ -61,6 +61,16 @@ export interface TollPlaza {
   readonly tariffByAxleCategory: TariffByAxleCategory;
 }
 
+/** A fuel station along a corridor. */
+export interface FuelStationSeed {
+  /** Stable, human-readable identifier, unique across the whole seed. */
+  readonly id: string;
+  /** The station's common name, as signposted. */
+  readonly name: string;
+  readonly lat: number;
+  readonly lng: number;
+}
+
 /** The corridors carried by the seed dataset. */
 export type CorridorId =
   | 'sp-rj-dutra'
@@ -83,4 +93,11 @@ export interface Corridor {
   readonly referencePolyline: LineString;
   /** The corridor's plazas, ordered by increasing {@link TollPlaza.km}. */
   readonly plazas: readonly TollPlaza[];
+  /**
+   * The corridor's fuel stations, if any are seeded.
+   *
+   * Optional so it is additive over the existing plaza-only corridors — a
+   * corridor with no seeded stations behaves as if this were `[]`.
+   */
+  readonly fuelStations?: readonly FuelStationSeed[];
 }
