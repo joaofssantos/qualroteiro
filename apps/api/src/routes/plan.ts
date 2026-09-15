@@ -9,11 +9,24 @@
 import type { FastifyInstance } from 'fastify';
 import type { GeocodeProvider, LineString, LngLat } from '@qualroteiro/geo';
 import type { RouteAlternative, RoutingProvider } from '@qualroteiro/routing';
-import { type TollPlaza, matchTolls } from '@qualroteiro/tolls';
+import {
+  type FuelStationSeed,
+  type TollPlaza,
+  matchFuelStations,
+  matchTolls,
+} from '@qualroteiro/tolls';
 import { estimateFuel } from '@qualroteiro/fuel';
 
 import { ProviderError, UnresolvedPlaceError } from '../errors.js';
 import { type PlaceInput, type PlanRequestInput, parsePlanRequest } from '../http/validate.js';
+
+/**
+ * A fuel station on the "points on route" panel — `{id, name, lng, lat}`.
+ * Alias of `@qualroteiro/tolls`'s `FuelStationSeed`, which already carries
+ * exactly this shape; kept as a local name so `apps/api`'s public surface
+ * doesn't leak the tolls package's internal naming.
+ */
+export type FuelStation = FuelStationSeed;
 
 /** One route alternative plus its costs — the unit `apps/web` renders. */
 export interface PlannedRoute {
@@ -25,12 +38,12 @@ export interface PlannedRoute {
   readonly points: {
     readonly tolls: readonly TollPlaza[];
     /**
-     * Always empty in F1: the WAVE 1 toll seed carries corridors and plazas
-     * only, and station ingestion is explicitly out of scope. The field ships
-     * so `apps/web` can build the panel and populating it later is not a
-     * contract change. See spec.md "Deliberate limitations".
+     * Real-matched against `@qualroteiro/tolls`'s seeded stations, same
+     * geometric approach as `points.tolls`. Still demo-seed data, not
+     * real-world — empty for a route matching no seeded corridor. See
+     * spec.md "Deliberate limitations".
      */
-    readonly fuelStations: readonly never[];
+    readonly fuelStations: readonly FuelStation[];
   };
 }
 
@@ -69,6 +82,8 @@ function planOne(alt: RouteAlternative, req: PlanRequestInput): PlannedRoute {
     axleCategory: req.vehicle.axleCategory,
   });
 
+  const fuelStations = matchFuelStations({ routeGeometry: alt.geometry });
+
   const fuel = estimateFuel({
     distanceKm: alt.distanceKm,
     consumptionKmPerL: req.vehicle.consumptionKmPerL,
@@ -81,7 +96,7 @@ function planOne(alt: RouteAlternative, req: PlanRequestInput): PlannedRoute {
     durationMin: alt.durationMin,
     tolls: { plazas: tolls.plazas, total: tolls.total },
     fuel: { liters: fuel.liters, cost: fuel.cost },
-    points: { tolls: tolls.plazas, fuelStations: [] },
+    points: { tolls: tolls.plazas, fuelStations: fuelStations.stations },
   };
 }
 
