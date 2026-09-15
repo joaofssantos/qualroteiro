@@ -13,6 +13,7 @@ import {
   fakeGeocodeProvider,
   fakeRoutingProvider,
   failingRoutingProvider,
+  offCorridorRoutingProvider,
 } from './helpers/fakes.js';
 
 const VALID_BODY = {
@@ -56,9 +57,32 @@ describe('POST /routes/plan', () => {
     expect(route.geometry.type).toBe('LineString');
     expect(route.durationMin).toBeGreaterThan(0);
 
-    // points panel: tolls mirrored, fuelStations wired but empty in F1.
+    // points panel: tolls mirrored; fuelStations real-matched against the
+    // seeded Dutra corridor, same geometric approach as tolls.
     expect(route.points.tolls.length).toBe(route.tolls.plazas.length);
+    expect(route.points.fuelStations.length).toBeGreaterThan(0);
+    for (const station of route.points.fuelStations) {
+      expect(station).toEqual({
+        id: expect.any(String),
+        name: expect.any(String),
+        lng: expect.any(Number),
+        lat: expect.any(Number),
+      });
+    }
+  });
+
+  it('returns no fuel stations for a route matching no seeded corridor', async () => {
+    const app = buildApp({
+      routing: offCorridorRoutingProvider(),
+      geocode: fakeGeocodeProvider(),
+    });
+
+    const res = await app.inject({ method: 'POST', url: '/routes/plan', payload: VALID_BODY });
+
+    expect(res.statusCode).toBe(200);
+    const route = res.json().routes[0];
     expect(route.points.fuelStations).toEqual([]);
+    expect(route.points.tolls).toEqual([]);
   });
 
   it('geocodes string endpoints and passes resolved coordinates to the router', async () => {

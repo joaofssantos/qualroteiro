@@ -57,6 +57,39 @@ export function failingRoutingProvider(error: Error): RoutingProvider {
   };
 }
 
+/**
+ * Somewhere in the Atlantic, well away from any seeded corridor — mirrors the
+ * fixture `@qualroteiro/tolls` itself uses to prove a "no match" route.
+ */
+const OFF_CORRIDOR_GEOMETRY: LineString = {
+  type: 'LineString',
+  coordinates: [
+    [-30, -20],
+    [-29, -19],
+    [-28, -18],
+  ],
+};
+
+/**
+ * A `RoutingProvider` whose one alternative passes no seeded corridor, so
+ * `matchTolls`/`matchFuelStations` both legitimately return empty.
+ */
+export function offCorridorRoutingProvider(): RoutingProvider {
+  return {
+    async route(): Promise<RouteResult> {
+      return {
+        routes: [
+          {
+            geometry: OFF_CORRIDOR_GEOMETRY,
+            distanceKm: 250,
+            durationMin: 200,
+          },
+        ],
+      };
+    },
+  };
+}
+
 export interface FakeGeocode extends GeocodeProvider {
   readonly queries: string[];
 }

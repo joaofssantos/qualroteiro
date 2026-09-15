@@ -109,7 +109,7 @@ with coordinates, so the app can resolve what I typed.
       "fuel":   { "liters": 42.97, "cost": 257.82 },
       "points": {
         "tolls":        [ /* same TollPlaza[] */ ],
-        "fuelStations": []
+        "fuelStations": [ /* FuelStation[] = {id,name,lng,lat}[], from @qualroteiro/tolls */ ]
       }
     }
   ]
@@ -176,9 +176,12 @@ with coordinates, so the app can resolve what I typed.
 
 ## Deliberate limitations *(carried into `/state-the-limit`)*
 
-- `points.fuelStations` is **always `[]`**. The WAVE 1 toll seed carries corridors and plazas
-  only — it has no fuel-station data — and the brief forbids ingestion in F1. The field exists
-  so WAVE 3 can render the panel and so populating it later is not a contract change.
+- `points.fuelStations` is real-matched against `@qualroteiro/tolls`'s seeded fuel stations
+  (same 500 m geometric buffer as `points.tolls`), so it is non-empty when the route follows a
+  seeded corridor closely and `[]` when it matches none. The underlying data is still WAVE 1's
+  hand-curated DEMO seed (generic brand names, a handful of stations per corridor) — not a
+  real-world fuel-station directory. See `@qualroteiro/tolls`'s own README for the seed's
+  provenance and limits.
 - Toll figures inherit the WAVE 1 seed's DEMO status (three corridors, approximate 2024–2025
   fares). A route outside those corridors legitimately returns `tolls.total: 0`.
 - No persistence, no rate limiting, no auth — F1 is anonymous and stateless.
