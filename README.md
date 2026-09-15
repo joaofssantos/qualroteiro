@@ -1,5 +1,7 @@
 # qualroteiro
 
+[![CI](https://github.com/joaofssantos/qualroteiro/actions/workflows/ci.yml/badge.svg)](https://github.com/joaofssantos/qualroteiro/actions/workflows/ci.yml)
+
 Planejador de rotas e viagens rodoviárias no Brasil. Junta o cálculo de custo de
 estrada (pedágio, combustível, frete ANTT) com o planejamento completo da viagem
 (roteiro dia a dia, lugares, atividades, orçamento, conversões).
