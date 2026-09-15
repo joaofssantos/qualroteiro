@@ -1,5 +1,10 @@
 generator client {
-  provider = "prisma-client-js"
+  provider        = "prisma-client-js"
+  // Required for the `extensions` property on the datasource below. Its
+  // absence made `prisma validate` fail with P1012 on every commit so far
+  // (see specs/005-f2a-trips/plan.md D-511) — which meant `prisma migrate`
+  // had never been runnable. F2a is the first feature that needs a table.
+  previewFeatures = ["postgresqlExtensions"]
 }
 
 datasource db {
@@ -10,3 +15,81 @@ datasource db {
 
 // Spatial columns are managed via raw SQL migrations (Kysely) in the
 // geo / routing / pois packages — Prisma models cover the relational schema.
+
+/// F2a "Planejamento de Viagem": a saved plan owned by one Clerk user.
+///
+/// Mirrors the frozen `Trip` type in `@qualroteiro/trips` and
+/// `F2-COORDINATION.md` §3.
+///
+/// `userId` is the Clerk user id as a plain string with NO foreign key and no
+/// local `User` table: Clerk is the user store, and mirroring its users into
+/// Postgres would create a second copy to keep in sync for no gain here.
+model Trip {
+  id     String @id @default(uuid())
+  userId String
+
+  title String @db.VarChar(200)
+
+  /// ISO `YYYY-MM-DD`, stored as text rather than `DateTime`/`@db.Date` on
+  /// purpose: the contract types these `string | null`, and
+  /// `@qualroteiro/trips` compares them lexicographically. A timestamp column
+  /// would round-trip a date-only value through a timezone, which is how
+  /// "2026-10-01" becomes the 30th for a user west of UTC. See plan.md.
+  startDate String?
+  endDate   String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  days TripDay[]
+
+  /// "List my trips" — the only way `GET /trips` ever reads this table, and
+  /// also the filter every ownership check applies (plan.md D-508).
+  @@index([userId])
+}
+
+/// An ordered bucket inside a trip. A null `date` is a deliberately
+/// UNSCHEDULED day, not a missing value.
+model TripDay {
+  id     String @id @default(uuid())
+  tripId String
+
+  /// ISO `YYYY-MM-DD` or null. Deliberately NOT constrained to the parent
+  /// trip's range — see plan.md D-503 for why that invariant cannot be held.
+  date  String?
+  order Int
+
+  trip  Trip       @relation(fields: [tripId], references: [id], onDelete: Cascade)
+  items TripItem[]
+
+  /// "Days for a trip", plus the cascade's own lookup.
+  @@index([tripId])
+}
+
+/// One module's saved result placed on a day.
+model TripItem {
+  id        String @id @default(uuid())
+  tripDayId String
+
+  order Int
+
+  /// Which module produced this item (`rota-custos`, and F2b–d as they ship).
+  /// Free-form by design — no enum and no allow-list, so a new module needs no
+  /// API release and no migration. See plan.md D-502.
+  moduleId String @db.VarChar(64)
+  kind     String @db.VarChar(64)
+  title    String @db.VarChar(200)
+
+  /// The owning module's result, opaque here. `Json` rather than a typed
+  /// column is the seam that lets the timeline render and sum items without
+  /// knowing what any module produces.
+  payload Json
+
+  /// Feeds the consolidated budget. Nullable, and negative is allowed — a
+  /// refund or a credit is a real line item (plan.md D-504).
+  costEstimate Float?
+
+  day TripDay @relation(fields: [tripDayId], references: [id], onDelete: Cascade)
+
+  @@index([tripDayId])
+}

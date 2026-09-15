@@ -36,6 +36,35 @@ export function readOrsEnv(env: NodeJS.ProcessEnv = process.env): OrsEnv {
   };
 }
 
+export interface ClerkEnv {
+  readonly secretKey: string;
+}
+
+/**
+ * Read the Clerk backend configuration.
+ *
+ * Only called by `server.ts`. The returned key is passed straight to the Clerk
+ * adapter and must never be logged, echoed in an error, or included in a
+ * response — the thrown message below deliberately names the variable and not
+ * its value.
+ *
+ * @throws {Error} at startup if `CLERK_SECRET_KEY` is absent. Same reasoning
+ * as {@link readOrsEnv}: failing in the composition root beats every `/trips*`
+ * request failing later with a confusing 401.
+ */
+export function readClerkEnv(env: NodeJS.ProcessEnv = process.env): ClerkEnv {
+  const secretKey = env['CLERK_SECRET_KEY']?.trim();
+
+  if (secretKey === undefined || secretKey.length === 0) {
+    throw new Error(
+      'CLERK_SECRET_KEY is not set. Copy apps/api/.env.example and provide the ' +
+        'Clerk backend secret key from the Clerk dashboard.',
+    );
+  }
+
+  return { secretKey };
+}
+
 /**
  * Parse a minimal `.env`-style document: `KEY=VALUE` lines, blank lines and
  * `#`-comments ignored, optional matching single/double quotes stripped from
