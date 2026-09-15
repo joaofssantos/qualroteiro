@@ -7,9 +7,13 @@
  */
 
 import { buildApp } from './app.js';
-import { readOrsEnv } from './env.js';
+import { loadDotEnvInto, readOrsEnv } from './env.js';
 import { createOrsGeocodeProvider } from './providers/ors-geocode.js';
 import { createOrsRoutingProvider } from './providers/ors-routing.js';
+
+// Picks up apps/api/.env in dev; a no-op when a real deployment injects
+// ORS_API_KEY directly and no .env file exists.
+loadDotEnvInto(process.env);
 
 const ors = readOrsEnv();
 
