@@ -79,7 +79,7 @@ async function authHeaders(getToken: TokenProvider): Promise<HeadersInit> {
   const token = await getToken();
   if (!token) throw new ApiError('auth', 401, 'Faça login para acessar suas viagens.');
   return {
-    authorization: `Bearer ${token}`,
+    Authorization: `Bearer ${token}`,
     'content-type': 'application/json',
   };
 }
