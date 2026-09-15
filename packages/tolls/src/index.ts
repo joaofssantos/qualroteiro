@@ -10,6 +10,7 @@ export type {
   AxleCategory,
   Corridor,
   CorridorId,
+  FuelStationSeed,
   TariffByAxleCategory,
   TollPlaza,
 } from './types.js';
@@ -17,8 +18,13 @@ export { AXLE_CATEGORIES } from './types.js';
 
 export { AXLE_MULTIPLIERS, tariffTable } from './tariff.js';
 
-export type { MatchTollsInput, MatchTollsResult } from './match.js';
-export { TOLL_MATCH_BUFFER_METERS, matchTolls } from './match.js';
+export type {
+  MatchFuelStationsInput,
+  MatchFuelStationsResult,
+  MatchTollsInput,
+  MatchTollsResult,
+} from './match.js';
+export { TOLL_MATCH_BUFFER_METERS, matchFuelStations, matchTolls } from './match.js';
 
 export {
   SEED_VERSION,

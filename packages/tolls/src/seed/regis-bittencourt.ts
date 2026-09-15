@@ -84,6 +84,20 @@ export const regisBittencourtCorridor: Corridor = {
     },
   ],
 
+  /**
+   * DEMO DATA — generic brand placeholders, not real stations. Coordinates sit
+   * a couple of hundred metres off `referencePolyline`, same rationale as the
+   * plazas above. See the package README.
+   */
+  fuelStations: [
+    { id: 'regis-fuel-ipiranga-60', name: 'Posto Ipiranga — km 60', lat: -23.863481, lng: -46.947924 },
+    { id: 'regis-fuel-shell-120', name: 'Posto Shell — km 120', lat: -24.286015, lng: -47.459739 },
+    { id: 'regis-fuel-ale-175', name: 'Posto Ale — km 175', lat: -24.778597, lng: -48.209579 },
+    { id: 'regis-fuel-br-mania-220', name: 'Posto BR Mania — km 220', lat: -24.897549, lng: -48.480048 },
+    { id: 'regis-fuel-ipiranga-265', name: 'Posto Ipiranga — km 265', lat: -24.937046, lng: -48.460795 },
+    { id: 'regis-fuel-shell-350', name: 'Posto Shell — km 350', lat: -25.299008, lng: -48.94102 },
+  ],
+
   /** OSRM-derived reference trace, São Paulo → Curitiba. */
   referencePolyline: {
     type: 'LineString',

@@ -82,6 +82,20 @@ export const dutraCorridor: Corridor = {
   ],
 
   /**
+   * DEMO DATA — generic brand placeholders, not real stations. Coordinates sit
+   * a couple of hundred metres off `referencePolyline`, same rationale as the
+   * plazas above. See the package README.
+   */
+  fuelStations: [
+    { id: 'dutra-fuel-ipiranga-45', name: 'Posto Ipiranga — km 45', lat: -23.381606, lng: -46.261292 },
+    { id: 'dutra-fuel-shell-95', name: 'Posto Shell — km 95', lat: -23.019572, lng: -45.538306 },
+    { id: 'dutra-fuel-ale-155', name: 'Posto Ale — km 155', lat: -22.545922, lng: -44.784295 },
+    { id: 'dutra-fuel-br-mania-200', name: 'Posto BR Mania — km 200', lat: -22.557757, lng: -44.130074 },
+    { id: 'dutra-fuel-ipiranga-270', name: 'Posto Ipiranga — km 270', lat: -22.666841, lng: -43.825401 },
+    { id: 'dutra-fuel-shell-305', name: 'Posto Shell — km 305', lat: -22.890381, lng: -43.224019 },
+  ],
+
+  /**
    * OSRM-derived reference trace, São Paulo → Rio de Janeiro.
    *
    * Vertices sit a couple of hundred metres off each plaza rather than exactly

@@ -7,7 +7,7 @@
 import type { LineString } from '@qualroteiro/geo';
 import { nearestPointOnLine } from '@qualroteiro/geo';
 
-import type { AxleCategory, Corridor, CorridorId, TollPlaza } from './types.js';
+import type { AxleCategory, Corridor, CorridorId, FuelStationSeed, TollPlaza } from './types.js';
 import { getCorridor, listCorridors } from './seed/index.js';
 
 /**
@@ -101,5 +101,73 @@ export function matchTolls(input: MatchTollsInput): MatchTollsResult {
   return {
     plazas: matched.map(({ plaza }) => plaza),
     total: totalCentavos / 100,
+  };
+}
+
+/** Input to {@link matchFuelStations}. */
+export interface MatchFuelStationsInput {
+  /** The route to test, as a GeoJSON LineString. */
+  readonly routeGeometry: LineString;
+  /**
+   * Restrict the search to a single corridor.
+   *
+   * An optimisation and a disambiguator, not a filter on the result: without
+   * it, every seeded station is tested against the route.
+   */
+  readonly corridorHint?: CorridorId;
+  /** Override the matching buffer. Defaults to {@link TOLL_MATCH_BUFFER_METERS}. */
+  readonly bufferMeters?: number;
+}
+
+/** Result of {@link matchFuelStations}. */
+export interface MatchFuelStationsResult {
+  /** The matched stations, ordered by their position along the route. */
+  readonly stations: readonly FuelStationSeed[];
+}
+
+/**
+ * Find the fuel stations a route passes.
+ *
+ * A station belongs to the route when its point lies within
+ * {@link TOLL_MATCH_BUFFER_METERS} of the route polyline — the same buffer and
+ * approach as {@link matchTolls}, reused here rather than diverged from since
+ * nothing about this demo dataset calls for a different tolerance. Matched
+ * stations are returned in the order the route meets them, which is what the
+ * "points on route" panel renders. A corridor with no seeded `fuelStations`
+ * (or none matched) contributes nothing.
+ *
+ * @throws {RangeError} for an empty route geometry, a non-positive buffer, or
+ * an unknown `corridorHint`.
+ */
+export function matchFuelStations(input: MatchFuelStationsInput): MatchFuelStationsResult {
+  const { routeGeometry, corridorHint, bufferMeters = TOLL_MATCH_BUFFER_METERS } = input;
+
+  if (routeGeometry.coordinates.length === 0) {
+    throw new RangeError('matchFuelStations: routeGeometry has no coordinates');
+  }
+  if (!Number.isFinite(bufferMeters) || bufferMeters <= 0) {
+    throw new RangeError(
+      `matchFuelStations: bufferMeters must be a positive finite number, received ${bufferMeters}`,
+    );
+  }
+
+  const candidates: readonly Corridor[] =
+    corridorHint === undefined ? listCorridors() : [getCorridor(corridorHint)];
+
+  const matched: { station: FuelStationSeed; fractionAlong: number }[] = [];
+
+  for (const corridor of candidates) {
+    for (const station of corridor.fuelStations ?? []) {
+      const nearest = nearestPointOnLine({ lng: station.lng, lat: station.lat }, routeGeometry);
+      if (nearest.distanceMeters <= bufferMeters) {
+        matched.push({ station, fractionAlong: nearest.fractionAlong });
+      }
+    }
+  }
+
+  matched.sort((a, b) => a.fractionAlong - b.fractionAlong);
+
+  return {
+    stations: matched.map(({ station }) => station),
   };
 }
