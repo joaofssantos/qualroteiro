@@ -206,6 +206,13 @@ export function MapCanvas({
       const marker = new maplibregl.Marker({ element })
         .setLngLat([spec.lng, spec.lat])
         .addTo(map);
+      // MapLibre's own `addTo()` stomps the element's `aria-label` with a
+      // generic "Marker.Title" string (see `Marker.addTo` in
+      // `maplibre-gl/src/ui/marker.ts`), *after* the element we built with
+      // the real label was handed in — it mutates the very element we
+      // passed (`getElement()` returns that same node, not a wrapper), so
+      // the fix has to run after `.addTo()`, not before it.
+      marker.getElement().setAttribute('aria-label', spec.label);
       markersRef.current.set(key, marker);
     }
   }, [layers, ready]);
