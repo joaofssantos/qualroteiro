@@ -10,12 +10,19 @@
 import { registerModule } from '@/core/registry/registry';
 import type { ModuleDefinition } from '@/core/registry/types';
 
+import { atividadesModule } from './atividades';
+import { hospedagemModule } from './hospedagem';
+import { planejamentoViagemModule } from './planejamento-viagem';
+import { restaurantesModule } from './restaurantes';
 import { rotaCustosModule } from './rota-custos';
 
 /** Every module this build ships, in nav order. */
 export const appModules: readonly ModuleDefinition[] = [
   rotaCustosModule,
-  // Next: planejamento de viagem, roteiro, frete. One entry each.
+  planejamentoViagemModule,
+  hospedagemModule,
+  atividadesModule,
+  restaurantesModule,
 ];
 
 /** Called once at startup by `App`. */

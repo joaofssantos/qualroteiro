@@ -9,7 +9,31 @@ import { join } from 'node:path';
 
 import { afterEach, describe, expect, it } from 'vitest';
 
-import { DEFAULT_ORS_BASE_URL, loadDotEnvInto, readOrsEnv } from '../src/env.js';
+import { DEFAULT_ORS_BASE_URL, loadDotEnvInto, readClerkEnv, readOrsEnv } from '../src/env.js';
+
+describe('readClerkEnv', () => {
+  it('reads and trims CLERK_SECRET_KEY', () => {
+    expect(readClerkEnv({ CLERK_SECRET_KEY: '  sk_test_fixture  ' })).toEqual({
+      secretKey: 'sk_test_fixture',
+    });
+  });
+
+  it.each([
+    ['absent', {}],
+    ['empty', { CLERK_SECRET_KEY: '' }],
+    ['blank', { CLERK_SECRET_KEY: '   ' }],
+  ])('throws at startup when the key is %s', (_label, env) => {
+    expect(() => readClerkEnv(env)).toThrow(/CLERK_SECRET_KEY/);
+  });
+
+  it('names the variable without quoting its value', () => {
+    // The message reaches a log; a partially-set key must not be echoed there.
+    const env = { CLERK_SECRET_KEY: '   ' };
+    expect(() => readClerkEnv(env)).toThrow(
+      expect.objectContaining({ message: expect.not.stringContaining('   ') }) as Error,
+    );
+  });
+});
 
 describe('readOrsEnv', () => {
   it('reads the key and defaults the base URL', () => {

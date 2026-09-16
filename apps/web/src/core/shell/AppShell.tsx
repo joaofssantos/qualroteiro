@@ -2,6 +2,7 @@ import { Map as MapIcon } from 'lucide-react';
 import type { ReactNode } from 'react';
 import { NavLink } from 'react-router-dom';
 
+import { AuthActions } from '@/core/auth/AuthProvider';
 import { cn } from '@/lib/utils';
 
 import { isDemoMode } from '../api/demo/mode';
@@ -72,6 +73,10 @@ export function AppShell({ children }: { children: ReactNode }) {
               </NavLink>
             );
           })}
+        </div>
+
+        <div className="ml-auto shrink-0 md:ml-0 md:mt-auto">
+          <AuthActions />
         </div>
       </nav>
 

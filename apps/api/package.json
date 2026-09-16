@@ -4,7 +4,8 @@
   "type": "module",
   "scripts": {
     "dev": "tsx watch src/server.ts",
-    "build": "tsc",
+    "postinstall": "prisma generate",
+    "build": "prisma generate && tsc",
     "start": "node dist/server.js",
     "lint": "eslint src",
     "typecheck": "tsc -p tsconfig.test.json",
@@ -13,12 +14,14 @@
     "prisma:migrate": "prisma migrate dev"
   },
   "dependencies": {
+    "@clerk/backend": "^3.18.1",
     "@fastify/cors": "^10.0.1",
     "@prisma/client": "^5.20.0",
     "@qualroteiro/fuel": "workspace:*",
     "@qualroteiro/geo": "workspace:*",
     "@qualroteiro/routing": "workspace:*",
     "@qualroteiro/tolls": "workspace:*",
+    "@qualroteiro/trips": "workspace:*",
     "fastify": "^5.0.0"
   },
   "devDependencies": {

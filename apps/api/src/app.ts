@@ -15,10 +15,19 @@ import cors from '@fastify/cors';
 import type { GeocodeProvider } from '@qualroteiro/geo';
 import type { RoutingProvider } from '@qualroteiro/routing';
 
-import { ProviderError, UnresolvedPlaceError, ValidationError } from './errors.js';
+import type { AuthVerifier } from './auth/verifier.js';
+import {
+  NotFoundError,
+  ProviderError,
+  UnauthorizedError,
+  UnresolvedPlaceError,
+  ValidationError,
+} from './errors.js';
 import { registerHealthRoute } from './routes/health.js';
 import { registerPlacesRoute } from './routes/places.js';
 import { registerPlanRoute } from './routes/plan.js';
+import { registerTripRoutes } from './routes/trips.js';
+import type { TripStore } from './store/trips.js';
 
 /** Read a `statusCode` off an unknown thrown value, defaulting to 500. */
 function statusCodeOf(error: unknown): number {
@@ -37,6 +46,14 @@ function messageOf(error: unknown): string {
 export interface AppDeps {
   readonly routing: RoutingProvider;
   readonly geocode: GeocodeProvider;
+  /**
+   * The F2a ports. Both or neither (see {@link buildApp}) — an app given
+   * neither serves F1 alone and exposes no `/trips*` surface, which is a real
+   * configuration: "F1 funciona sozinho, sem login" (`F2-COORDINATION.md` §1),
+   * and every F1 test builds exactly that app.
+   */
+  readonly auth?: AuthVerifier;
+  readonly trips?: TripStore;
   /** Passed straight to Fastify — tests silence the logger with `{ logger: false }`. */
   readonly fastifyOptions?: FastifyServerOptions;
 }
@@ -49,14 +66,35 @@ export interface AppDeps {
  * needs no `await app.ready()` boilerplate.
  */
 export function buildApp(deps: AppDeps): FastifyInstance {
+  // Both F2a ports or neither. Half-wiring would produce an app whose
+  // `/trips*` routes exist but cannot authenticate (or vice versa), and the
+  // failure would surface as a confusing 500 on a user's first save rather
+  // than here, at the composition root, where it is a one-line fix.
+  if ((deps.auth === undefined) !== (deps.trips === undefined)) {
+    throw new Error(
+      'buildApp: `auth` and `trips` must be provided together — an app with one ' +
+        'but not the other cannot serve /trips*',
+    );
+  }
+
   const app = Fastify(deps.fastifyOptions ?? { logger: false });
 
   // The web app is cross-origin; F1 is anonymous, so no credentials are needed.
   void app.register(cors);
 
+  // Declared for every request so the property has a stable shape; only the
+  // authenticated `/trips*` scope ever assigns to it.
+  app.decorateRequest('authUserId', null);
+
   app.setErrorHandler((error, request, reply) => {
     if (error instanceof ValidationError) {
       return reply.status(400).send({ error: error.message });
+    }
+    if (error instanceof UnauthorizedError) {
+      return reply.status(401).send({ error: error.message });
+    }
+    if (error instanceof NotFoundError) {
+      return reply.status(404).send({ error: error.message });
     }
     if (error instanceof UnresolvedPlaceError) {
       return reply.status(422).send({ error: error.message });
@@ -79,6 +117,10 @@ export function buildApp(deps: AppDeps): FastifyInstance {
   registerHealthRoute(app);
   registerPlacesRoute(app, { geocode: deps.geocode });
   registerPlanRoute(app, { routing: deps.routing, geocode: deps.geocode });
+
+  if (deps.auth !== undefined && deps.trips !== undefined) {
+    registerTripRoutes(app, { auth: deps.auth, trips: deps.trips });
+  }
 
   return app;
 }
