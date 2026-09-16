@@ -155,4 +155,46 @@ describe('mapa persistente — extensibilidade', () => {
     expect(await screen.findByRole('button', { name: /Origem: São Paulo/ })).toBeInTheDocument();
     expect(screen.queryByRole('button', { name: 'Marcador fake' })).not.toBeInTheDocument();
   });
+
+  it('resets the store itself (asserted via useMapStore.getState(), not another module republishing over it) when a showMap:true module unmounts', async () => {
+    // Regression coverage for the cleanup *contract* mapStore's module doc
+    // describes — not for a specific module's business logic. The other tests
+    // in this file navigate straight from one showMap:true module to another,
+    // and that next module republishes its own `layers` synchronously on
+    // mount, which overwrites any leftover state before any assertion runs —
+    // so a module silently missing its `clearMap()` cleanup call would pass
+    // every one of those tests too. Landing on a module with no map at all
+    // (nothing to republish, no `MapCanvas` even rendered) and reading
+    // `useMapStore.getState()` directly is the only way to see whether the
+    // store itself was actually cleared.
+    const user = userEvent.setup();
+    registerAppModules(); // real rotaCustosModule (showMap: true) — the module whose cleanup this guards
+    registerModule(noMapModule);
+
+    const endpointMarker: EndpointMarker = {
+      id: 'origin',
+      kind: 'origin',
+      label: `Origem: ${SAO_PAULO.label}`,
+      place: SAO_PAULO,
+    };
+    useRouteStore.getState().setEndpointMarkers([endpointMarker]);
+
+    render(
+      <MemoryRouter initialEntries={['/rota-custos']}>
+        <AppRouter />
+      </MemoryRouter>,
+    );
+
+    expect(await screen.findByRole('button', { name: /Origem: São Paulo/ })).toBeInTheDocument();
+    expect(useMapStore.getState().layers.length).toBeGreaterThan(0);
+
+    await user.click(screen.getByRole('link', { name: 'Sem Mapa' }));
+
+    expect(await screen.findByRole('heading', { name: 'Painel sem mapa' })).toBeInTheDocument();
+    expect(mapRegion()).not.toBeInTheDocument();
+
+    expect(useMapStore.getState().layers).toEqual([]);
+    expect(useMapStore.getState().trace).toBeNull();
+    expect(useMapStore.getState().onMarkerClick).toBeUndefined();
+  });
 });
