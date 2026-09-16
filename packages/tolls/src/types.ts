@@ -58,7 +58,16 @@ export interface TollPlaza {
   readonly km: number;
   readonly lat: number;
   readonly lng: number;
-  readonly tariffByAxleCategory: TariffByAxleCategory;
+  /**
+   * The plaza's fare table, by {@link AxleCategory}.
+   *
+   * Optional: real-world plazas ingested from the ANTT dataset (Wave 3) carry
+   * location and identity but not yet a tariff — per-concessionaire fare
+   * scraping is a separate, future phase. A plaza with no tariff still
+   * matches and appears in {@link TollPlaza} results; it is simply excluded
+   * from the cost total. Every plaza in the in-package demo seed carries one.
+   */
+  readonly tariffByAxleCategory?: TariffByAxleCategory;
 }
 
 /** A fuel station along a corridor. */
