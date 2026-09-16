@@ -95,6 +95,24 @@ export interface SearchPlacesResponse {
   readonly places: readonly Place[];
 }
 
+/** Categories accepted by `GET /places/nearby`. */
+export type PlaceCategory = 'hospedagem' | 'restaurantes' | 'atividades';
+
+/** One establishment returned by Google Places through our API. */
+export interface PlaceResult {
+  readonly id: string;
+  readonly name: string;
+  readonly address: string;
+  readonly lat: number;
+  readonly lng: number;
+  readonly category: PlaceCategory;
+}
+
+/** `200` body of `GET /places/nearby`. */
+export interface SearchNearbyPlacesResponse {
+  readonly places: readonly PlaceResult[];
+}
+
 /** Uniform error body across `400`, `422` and `502`. */
 export interface ApiErrorBody {
   readonly error: string;

@@ -1,10 +1,14 @@
 import { Utensils } from 'lucide-react';
-import { useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { searchNearbyPlaces } from '@/core/api/client';
+import type { PlaceResult } from '@/core/api/types';
+import { PlaceSearch, type PlaceFieldValue } from '@/core/components/PlaceSearch';
+import { useMapStore } from '@/core/map/mapStore';
 import type { ModuleDefinition } from '@/core/registry/types';
 import { formatCurrency } from '@/lib/format';
 
@@ -22,6 +26,77 @@ function RestaurantPanel() {
   const [date, setDate] = useState('');
   const [pricePerPerson, setPricePerPerson] = useState('80');
   const [people, setPeople] = useState('2');
+  const [reference, setReference] = useState<PlaceFieldValue>({ text: '', place: null });
+  const [nearbyPlaces, setNearbyPlaces] = useState<readonly PlaceResult[] | null>(null);
+  const [nearbyError, setNearbyError] = useState<string | null>(null);
+  const [nearbyLoading, setNearbyLoading] = useState(false);
+  const [selectedPlaceId, setSelectedPlaceId] = useState<string | null>(null);
+  const setMapLayers = useMapStore((state) => state.setMapLayers);
+  const setOnMarkerClick = useMapStore((state) => state.setOnMarkerClick);
+  const clearMap = useMapStore((state) => state.clearMap);
+
+  const selectNearbyPlace = useCallback((place: PlaceResult) => {
+    setSelectedPlaceId(place.id);
+    setPlaceName(place.name);
+    setAddress(place.address);
+  }, []);
+
+  useEffect(() => {
+    const point = reference.place;
+    if (point === null) {
+      setNearbyPlaces(null);
+      setNearbyError(null);
+      setNearbyLoading(false);
+      return;
+    }
+
+    const controller = new AbortController();
+    setNearbyLoading(true);
+    setNearbyError(null);
+    setNearbyPlaces(null);
+    setSelectedPlaceId(null);
+
+    searchNearbyPlaces(point.lat, point.lng, 'restaurantes', undefined, controller.signal)
+      .then(setNearbyPlaces)
+      .catch((cause: unknown) => {
+        if (cause instanceof DOMException && cause.name === 'AbortError') return;
+        setNearbyError('Não foi possível buscar restaurantes agora. Tente novamente em instantes.');
+      })
+      .finally(() => setNearbyLoading(false));
+
+    return () => controller.abort();
+  }, [reference.place]);
+
+  useEffect(() => {
+    if (nearbyPlaces === null) {
+      setMapLayers([]);
+      setOnMarkerClick(undefined);
+      return;
+    }
+
+    const places = nearbyPlaces;
+    setMapLayers([
+      {
+        id: 'restaurant-results',
+        label: 'Restaurantes encontrados',
+        visible: true,
+        markers: places.map((place) => ({
+          id: place.id,
+          lat: place.lat,
+          lng: place.lng,
+          label: place.name,
+          kind: 'restaurant',
+        })),
+      },
+    ]);
+    setOnMarkerClick((layerId, markerId) => {
+      if (layerId !== 'restaurant-results') return;
+      const place = places.find((result) => result.id === markerId);
+      if (place !== undefined) selectNearbyPlace(place);
+    });
+  }, [nearbyPlaces, selectNearbyPlace, setMapLayers, setOnMarkerClick]);
+
+  useEffect(() => () => clearMap(), [clearMap]);
 
   const visit: RestaurantVisit = useMemo(
     () => ({
@@ -55,6 +130,44 @@ function RestaurantPanel() {
               Calcule refeições por pessoa e salve o custo no planejamento da viagem.
             </p>
           </div>
+
+          <Card>
+            <CardHeader>
+              <CardTitle>Buscar perto de</CardTitle>
+            </CardHeader>
+            <CardContent className="grid gap-4">
+              <PlaceSearch
+                id="restaurant-reference"
+                label="Ponto de referência"
+                placeholder="Cidade, bairro ou endereço"
+                value={reference}
+                onChange={setReference}
+              />
+
+              {nearbyLoading ? <p className="text-sm text-muted-foreground">Buscando restaurantes…</p> : null}
+              {nearbyError ? <p role="alert" className="text-sm text-destructive">{nearbyError}</p> : null}
+              {nearbyPlaces !== null && nearbyPlaces.length === 0 ? (
+                <p className="text-sm text-muted-foreground">Nenhum restaurante encontrado nessa região.</p>
+              ) : null}
+              {nearbyPlaces !== null && nearbyPlaces.length > 0 ? (
+                <ul aria-label="Restaurantes encontrados" className="grid gap-2">
+                  {nearbyPlaces.map((place) => (
+                    <li key={place.id}>
+                      <button
+                        type="button"
+                        aria-pressed={selectedPlaceId === place.id}
+                        onClick={() => selectNearbyPlace(place)}
+                        className="w-full rounded-md border border-border px-3 py-2 text-left hover:bg-secondary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                      >
+                        <span className="block font-medium text-foreground">{place.name}</span>
+                        <span className="block text-sm text-muted-foreground">{place.address}</span>
+                      </button>
+                    </li>
+                  ))}
+                </ul>
+              ) : null}
+            </CardContent>
+          </Card>
 
           <Card>
             <CardHeader>
@@ -177,4 +290,5 @@ export const restaurantesModule: ModuleDefinition = {
   icon: Utensils,
   path: MODULE_PATH,
   Panel: RestaurantPanel,
+  showMap: true,
 };

@@ -14,6 +14,9 @@ import type {
   PlanRouteRequest,
   PlanRouteResponse,
   PlannedRoute,
+  PlaceCategory,
+  PlaceResult,
+  SearchNearbyPlacesResponse,
   SearchPlacesResponse,
 } from './types';
 
@@ -128,5 +131,36 @@ export async function searchPlaces(q: string, signal?: AbortSignal): Promise<rea
   if (!response.ok) throw await toApiError(response);
 
   const body = (await response.json()) as SearchPlacesResponse;
+  return body.places ?? [];
+}
+
+/**
+ * `GET /places/nearby` — establishments near a resolved reference place.
+ *
+ * The category is deliberately a closed union shared with the API contract so a
+ * module cannot accidentally ask Google for a category the product does not show.
+ */
+export async function searchNearbyPlaces(
+  lat: number,
+  lng: number,
+  category: PlaceCategory,
+  radiusMeters?: number,
+  signal?: AbortSignal,
+): Promise<readonly PlaceResult[]> {
+  const params = new URLSearchParams({ lat: String(lat), lng: String(lng), category });
+  if (radiusMeters !== undefined) params.set('radiusMeters', String(radiusMeters));
+
+  let response: Response;
+  try {
+    response = await fetch(url(`/places/nearby?${params.toString()}`), {
+      ...(signal ? { signal } : {}),
+    });
+  } catch (cause) {
+    toNetworkError(cause);
+  }
+
+  if (!response.ok) throw await toApiError(response);
+
+  const body = (await response.json()) as SearchNearbyPlacesResponse;
   return body.places ?? [];
 }
