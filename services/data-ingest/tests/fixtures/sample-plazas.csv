@@ -1,0 +1,6 @@
+concessionaria;praca_de_pedagio;ano_do_pnv_snv;rodovia;uf;km_m;municipal;tipo_de_pista;sentido;situacao;data_da_inativacao;latitude;longitude
+AUTOPISTA FLUMINENSE;Conselheiro Josino;2019;BR-101;RJ;40.5;Campos dos Goytacazes;Principal;Crescente/Decrescente;Ativo;;-21.552594;-41.331597
+AUTOPISTA FLUMINENSE;Serrinha;2019;BR-101;RJ;123.07;Campos dos Goytacazes;Principal;Crescente/Decrescente;Ativo;;-22.04975;-41.685157
+AUTOPISTA FLUMINENSE;São Gonçalo;2019;BR-101;RJ;299.69;São Gonçalo;Principal;Crescente;Ativo;;-22.774713;-42.9455
+CONCEBRA;P1 ALEXÂNIA;2017;BR-60;GO;43.1;Alexânia;Principal;Crescente/Decrescente;Ativo;;-16.115707;-48.58924
+CONCESSIONARIA TESTE;Praça Teste Inativa;2020;BR-999;XX;10.0;Cidade Teste;Principal;Crescente;Inativo;2024-01-01;-10.0;-50.0
