@@ -11,6 +11,7 @@ import type { LngLat } from '@qualroteiro/geo';
 import { AXLE_CATEGORIES, type AxleCategory } from '@qualroteiro/tolls';
 
 import { ValidationError } from '../errors.js';
+import { PLACE_CATEGORIES, type PlaceCategory } from '../providers/google-places.js';
 
 /** A place the client gave us: either coordinates already, or text to geocode. */
 export type PlaceInput = { readonly kind: 'coords'; readonly value: LngLat } | {
@@ -158,4 +159,75 @@ export function parseSearchQuery(query: unknown): string {
   }
 
   return raw.trim();
+}
+
+export interface NearbyQueryInput {
+  readonly lat: number;
+  readonly lng: number;
+  readonly category: PlaceCategory;
+  readonly radiusMeters: number;
+}
+
+const DEFAULT_NEARBY_RADIUS_METERS = 3000;
+
+/**
+ * A query-string value, coerced from Fastify's raw string. Fastify hands
+ * every query param back as a string (or `string[]` when repeated); a bare
+ * `Number(undefined)` is `NaN` but `Number('')` is `0`, so blank is rejected
+ * explicitly rather than trusted to fail the finiteness check below it.
+ */
+function parseNumberParam(raw: unknown, field: string): number {
+  if (typeof raw !== 'string' || raw.trim().length === 0) {
+    throw new ValidationError(field, `${field} is required and must be a number`);
+  }
+  const value = Number(raw);
+  if (!Number.isFinite(value)) {
+    throw new ValidationError(field, `${field} must be a finite number, got '${raw}'`);
+  }
+  return value;
+}
+
+function isPlaceCategory(value: string): value is PlaceCategory {
+  return (PLACE_CATEGORIES as readonly string[]).includes(value);
+}
+
+/**
+ * Validate the query of `GET /places/nearby`.
+ *
+ * @throws {ValidationError} naming `lat`, `lng`, `category` or `radiusMeters`.
+ */
+export function parseNearbyQuery(query: unknown): NearbyQueryInput {
+  const q = isRecord(query) ? query : {};
+
+  const lat = parseNumberParam(q['lat'], 'lat');
+  if (lat < -90 || lat > 90) {
+    throw new ValidationError('lat', `lat must be between -90 and 90, got ${lat}`);
+  }
+
+  const lng = parseNumberParam(q['lng'], 'lng');
+  if (lng < -180 || lng > 180) {
+    throw new ValidationError('lng', `lng must be between -180 and 180, got ${lng}`);
+  }
+
+  const rawCategory = q['category'];
+  if (typeof rawCategory !== 'string' || !isPlaceCategory(rawCategory)) {
+    throw new ValidationError(
+      'category',
+      `category must be one of: ${PLACE_CATEGORIES.join(', ')}`,
+    );
+  }
+
+  let radiusMeters = DEFAULT_NEARBY_RADIUS_METERS;
+  const rawRadius = q['radiusMeters'];
+  if (rawRadius !== undefined) {
+    radiusMeters = parseNumberParam(rawRadius, 'radiusMeters');
+    if (radiusMeters <= 0) {
+      throw new ValidationError(
+        'radiusMeters',
+        `radiusMeters must be a positive number, got ${radiusMeters}`,
+      );
+    }
+  }
+
+  return { lat, lng, category: rawCategory, radiusMeters };
 }

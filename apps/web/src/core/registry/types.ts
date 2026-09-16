@@ -32,4 +32,12 @@ export interface ModuleDefinition {
    * manager can list and toggle them before any data has been fetched.
    */
   readonly mapLayers?: readonly MapLayerDescriptor[];
+  /**
+   * Whether the shell should render the persistent map panel (`core/map/mapStore`
+   * + `MapCanvas`) alongside this module while it is active. Defaults to `false`
+   * when absent — a module that omits this keeps today's full-width layout with
+   * no map at all, so adding the field to `ModuleDefinition` is a no-op for every
+   * existing module until it opts in.
+   */
+  readonly showMap?: boolean;
 }

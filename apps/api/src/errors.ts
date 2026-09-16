@@ -71,12 +71,32 @@ export class NotFoundError extends Error {
  * out → `502`.
  */
 export class ProviderError extends Error {
-  /** Which provider, for logs: `'routing'` | `'geocode'`. */
+  /** Which provider, for logs: `'routing'` | `'geocode'` | `'places'`. */
   readonly provider: string;
 
   constructor(provider: string, message: string, options?: { cause?: unknown }) {
     super(message, options);
     this.name = 'ProviderError';
     this.provider = provider;
+  }
+}
+
+/**
+ * OUR OWN circuit breaker refused to call an external API because the
+ * configured monthly cap for this SKU has already been reached → `503`.
+ *
+ * Deliberately distinct from {@link ProviderError}: nothing was called and
+ * nothing failed upstream — this is qualroteiro actively protecting itself
+ * from a real bill, checked and thrown BEFORE the network call, not logged
+ * after one. See `ApiUsageCounter` in `prisma/schema.prisma`.
+ */
+export class QuotaExceededError extends Error {
+  /** Which SKU tripped the breaker, e.g. `places-nearby-search`. */
+  readonly sku: string;
+
+  constructor(sku: string, message: string) {
+    super(message);
+    this.name = 'QuotaExceededError';
+    this.sku = sku;
   }
 }

@@ -93,3 +93,41 @@ model TripItem {
 
   @@index([tripDayId])
 }
+
+/// G1 "Google Places: busca real + guarda de custo" — a persisted monthly call
+/// counter, one row per (SKU, calendar month), that the circuit breaker reads
+/// BEFORE calling an external API and increments only AFTER a call actually
+/// completes.
+///
+/// `sku` names the specific paid operation (`places-nearby-search`), not the
+/// vendor broadly: Nearby Search, Place Details and Autocomplete are three
+/// different Google Places operations with three different prices and three
+/// different free tiers, so one shared counter would either over- or
+/// under-count each of them. `yearMonth` is `YYYY-MM` (UTC) text rather than a
+/// `DateTime`, for the same reason `Trip.startDate` is (see above): it is
+/// compared and matched as a whole calendar-month key, never as a point in
+/// time, and a timestamp column would invite exactly the timezone bug that
+/// text avoids.
+///
+/// See `apps/api/specs/006-g1-google-places/plan.md` for why the increment is
+/// a `count: { increment: 1 }` upsert and never a read-then-write: two
+/// concurrent requests in the same month must not race past each other and
+/// both land on the count the first one read.
+model ApiUsageCounter {
+  /// The paid operation this row counts, e.g. `places-nearby-search`.
+  sku String
+
+  /// The calendar month (UTC) this count belongs to, as `YYYY-MM`.
+  yearMonth String
+
+  /// Calls completed for `sku` in `yearMonth`. Only a call that finished
+  /// (success OR a Google-side failure after the request left this process)
+  /// counts here — a call the circuit breaker itself refused never reaches
+  /// this column, and neither does one that failed before the adapter's
+  /// request finished (see the adapter for the exact boundary).
+  count Int @default(0)
+
+  /// One counter per SKU per month — the row the breaker reads and the
+  /// upsert's own conflict target.
+  @@unique([sku, yearMonth])
+}
