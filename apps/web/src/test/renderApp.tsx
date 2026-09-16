@@ -16,13 +16,16 @@ import { AppRouter } from '@/core/shell/AppRouter';
 import { useMapStore } from '@/core/map/mapStore';
 import { resetRegistry } from '@/core/registry/registry';
 import { useRouteStore } from '@/core/store/routeStore';
-import type { PlannedRoute } from '@/core/api/types';
-import type { Place } from '@/core/api/types';
+import type { Place, PlaceResult, PlannedRoute } from '@/core/api/types';
 import { registerAppModules } from '@/modules';
 
 export interface ApiMock {
   /** Hits returned by `GET /places/search`. */
   places?: readonly Place[];
+  /** Results returned by `GET /places/nearby`. */
+  nearbyPlaces?: readonly PlaceResult[];
+  /** Override a nearby response entirely — used for availability failures. */
+  nearbyResponse?: () => Response;
   /** Alternatives returned by `POST /routes/plan`. */
   routes?: readonly PlannedRoute[];
   /** Override the plan response entirely — used for the error-path tests. */
@@ -45,6 +48,9 @@ export function mockApi(mock: ApiMock = {}) {
 
     if (url.startsWith('/api/places/search')) {
       return jsonResponse({ places: mock.places ?? [] });
+    }
+    if (url.startsWith('/api/places/nearby')) {
+      return mock.nearbyResponse ? mock.nearbyResponse() : jsonResponse({ places: mock.nearbyPlaces ?? [] });
     }
     if (url.startsWith('/api/routes/plan')) {
       return mock.planResponse ? mock.planResponse() : jsonResponse({ routes: mock.routes ?? [] });

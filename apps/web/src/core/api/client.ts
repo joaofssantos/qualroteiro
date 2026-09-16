@@ -139,6 +139,8 @@ export async function searchPlaces(q: string, signal?: AbortSignal): Promise<rea
  *
  * The category is deliberately a closed union shared with the API contract so a
  * module cannot accidentally ask Google for a category the product does not show.
+ * The reference point always comes from a selected `PlaceSearch` hit, so callers
+ * send its precise coordinates rather than asking the API to geocode again.
  */
 export async function searchNearbyPlaces(
   lat: number,
