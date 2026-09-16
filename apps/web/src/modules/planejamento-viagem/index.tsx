@@ -1,4 +1,4 @@
-import { CalendarDays, Plus, WalletCards } from 'lucide-react';
+import { CalendarDays, Plus, Trash2, WalletCards } from 'lucide-react';
 import { type FormEvent, useCallback, useEffect, useMemo, useState } from 'react';
 import { Link, Route, Routes, useParams } from 'react-router-dom';
 
@@ -8,15 +8,18 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import {
   createTrip,
+  deleteTripItem,
   getTrip,
   listTrips,
   type TripDetail,
+  type TripItem,
   type TripSummary,
 } from '@/core/api/trips';
 import { useQualAuth } from '@/core/auth/AuthContext';
 import type { ModuleDefinition } from '@/core/registry/types';
 import { formatCurrency } from '@/lib/format';
 
+import { describeTripItem } from './describeTripItem';
 import { MODULE_PATH } from './module';
 
 function PlanningPanel() {
@@ -160,26 +163,40 @@ function TripListScreen() {
   );
 }
 
-function TripDetailScreen() {
+export function TripDetailScreen() {
   const { tripId } = useParams();
   const auth = useQualAuth();
   const [trip, setTrip] = useState<TripDetail | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [deletingItemId, setDeletingItemId] = useState<string | null>(null);
+
+  const reload = useCallback(async () => {
+    if (!tripId) return;
+    try {
+      setTrip(await getTrip(auth.getToken, tripId));
+    } catch (cause) {
+      setError(cause instanceof Error ? cause.message : 'Viagem não encontrada.');
+    }
+  }, [auth.getToken, tripId]);
 
   useEffect(() => {
+    void reload();
+  }, [reload]);
+
+  async function onDeleteItem(dayId: string, item: TripItem) {
     if (!tripId) return;
-    let cancelled = false;
-    getTrip(auth.getToken, tripId)
-      .then((loaded) => {
-        if (!cancelled) setTrip(loaded);
-      })
-      .catch((cause) => {
-        if (!cancelled) setError(cause instanceof Error ? cause.message : 'Viagem não encontrada.');
-      });
-    return () => {
-      cancelled = true;
-    };
-  }, [auth.getToken, tripId]);
+    if (!window.confirm(`Excluir "${item.title}" desta viagem?`)) return;
+    setDeletingItemId(item.id);
+    setError(null);
+    try {
+      await deleteTripItem(auth.getToken, tripId, dayId, item.id);
+      await reload();
+    } catch (cause) {
+      setError(cause instanceof Error ? cause.message : 'Não foi possível excluir o item.');
+    } finally {
+      setDeletingItemId(null);
+    }
+  }
 
   const total = useMemo(
     () =>
@@ -218,7 +235,9 @@ function TripDetailScreen() {
         </div>
         <div className="flex items-center gap-2 rounded-md border border-border bg-card px-3 py-2 text-sm">
           <WalletCards className="size-4 text-accent" />
-          <span className="font-semibold text-primary">{formatCurrency(total)}</span>
+          <span className="font-semibold text-primary" data-testid="trip-budget-total">
+            {formatCurrency(total)}
+          </span>
         </div>
       </header>
 
@@ -245,11 +264,23 @@ function TripDetailScreen() {
                         <div className="flex items-start justify-between gap-3">
                           <div>
                             <p className="text-sm font-medium text-foreground">{item.title}</p>
-                            <p className="text-xs text-muted-foreground">{item.moduleId} · {item.kind}</p>
+                            <p className="text-xs text-muted-foreground">{describeTripItem(item)}</p>
                           </div>
-                          {item.costEstimate != null ? (
-                            <span className="text-sm font-semibold text-primary">{formatCurrency(item.costEstimate)}</span>
-                          ) : null}
+                          <div className="flex items-center gap-2">
+                            {item.costEstimate != null ? (
+                              <span className="text-sm font-semibold text-primary">{formatCurrency(item.costEstimate)}</span>
+                            ) : null}
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              size="icon"
+                              aria-label={`Excluir ${item.title}`}
+                              disabled={deletingItemId === item.id}
+                              onClick={() => void onDeleteItem(day.id, item)}
+                            >
+                              <Trash2 className="size-4 text-destructive" />
+                            </Button>
+                          </div>
                         </div>
                       </li>
                     ))}

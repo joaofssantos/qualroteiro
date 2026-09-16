@@ -148,3 +148,16 @@ export function createTripItem(
     },
   );
 }
+
+export function deleteTripItem(
+  getToken: TokenProvider,
+  tripId: string,
+  dayId: string,
+  itemId: string,
+): Promise<void> {
+  return request(
+    `/trips/${encodeURIComponent(tripId)}/days/${encodeURIComponent(dayId)}/items/${encodeURIComponent(itemId)}`,
+    getToken,
+    { method: 'DELETE' },
+  );
+}
