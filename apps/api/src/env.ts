@@ -65,6 +65,53 @@ export function readClerkEnv(env: NodeJS.ProcessEnv = process.env): ClerkEnv {
   return { secretKey };
 }
 
+export interface GooglePlacesEnv {
+  readonly apiKey: string;
+  /** The circuit breaker's monthly ceiling for `places-nearby-search`. */
+  readonly searchMonthlyCap: number;
+}
+
+/**
+ * Below Google's free tier (5,000 Nearby Search calls/month) with a safety
+ * margin, so the breaker trips while the month is still free — see
+ * `apps/api/specs/006-g1-google-places/spec.md`.
+ */
+export const DEFAULT_GOOGLE_PLACES_SEARCH_MONTHLY_CAP = 4500;
+
+/**
+ * Read the Google Places configuration.
+ *
+ * @throws {Error} at startup if `GOOGLE_PLACES_API_KEY` is absent, or if
+ * `GOOGLE_PLACES_SEARCH_MONTHLY_CAP` is present but not a positive number.
+ * Same reasoning as {@link readOrsEnv}: failing loudly in the composition
+ * root beats every `/places/nearby` request failing later with a confusing
+ * 502 — or, worse for a cap that silently parsed as `NaN`, a circuit breaker
+ * that never trips.
+ */
+export function readGooglePlacesEnv(env: NodeJS.ProcessEnv = process.env): GooglePlacesEnv {
+  const apiKey = env['GOOGLE_PLACES_API_KEY']?.trim();
+
+  if (apiKey === undefined || apiKey.length === 0) {
+    throw new Error(
+      'GOOGLE_PLACES_API_KEY is not set. Copy apps/api/.env.example and provide a Google Places API key.',
+    );
+  }
+
+  const rawCap = env['GOOGLE_PLACES_SEARCH_MONTHLY_CAP']?.trim();
+  let searchMonthlyCap = DEFAULT_GOOGLE_PLACES_SEARCH_MONTHLY_CAP;
+  if (rawCap !== undefined && rawCap.length > 0) {
+    const parsed = Number(rawCap);
+    if (!Number.isFinite(parsed) || parsed <= 0) {
+      throw new Error(
+        `GOOGLE_PLACES_SEARCH_MONTHLY_CAP must be a positive number, got '${rawCap}'.`,
+      );
+    }
+    searchMonthlyCap = parsed;
+  }
+
+  return { apiKey, searchMonthlyCap };
+}
+
 /**
  * Parse a minimal `.env`-style document: `KEY=VALUE` lines, blank lines and
  * `#`-comments ignored, optional matching single/double quotes stripped from

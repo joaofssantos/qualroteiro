@@ -19,14 +19,19 @@ import type { AuthVerifier } from './auth/verifier.js';
 import {
   NotFoundError,
   ProviderError,
+  QuotaExceededError,
   UnauthorizedError,
   UnresolvedPlaceError,
   ValidationError,
 } from './errors.js';
+import type { GooglePlacesProvider } from './providers/google-places.js';
+import { registerAdminPlacesUsageRoute } from './routes/admin-places-usage.js';
 import { registerHealthRoute } from './routes/health.js';
+import { PLACES_NEARBY_SEARCH_SKU, registerPlacesNearbyRoute } from './routes/places-nearby.js';
 import { registerPlacesRoute } from './routes/places.js';
 import { registerPlanRoute } from './routes/plan.js';
 import { registerTripRoutes } from './routes/trips.js';
+import type { ApiUsageStore } from './store/api-usage.js';
 import type { TripStore } from './store/trips.js';
 
 /** Read a `statusCode` off an unknown thrown value, defaulting to 500. */
@@ -54,6 +59,14 @@ export interface AppDeps {
    */
   readonly auth?: AuthVerifier;
   readonly trips?: TripStore;
+  /**
+   * The G1 ports: all three or none, same "half-wiring is a configuration
+   * bug" reasoning as `auth`/`trips` below. When present, both
+   * `GET /places/nearby` and `GET /admin/places-usage` are registered.
+   */
+  readonly googlePlaces?: GooglePlacesProvider;
+  readonly apiUsage?: ApiUsageStore;
+  readonly placesMonthlyCap?: number;
   /** Passed straight to Fastify — tests silence the logger with `{ logger: false }`. */
   readonly fastifyOptions?: FastifyServerOptions;
 }
@@ -74,6 +87,17 @@ export function buildApp(deps: AppDeps): FastifyInstance {
     throw new Error(
       'buildApp: `auth` and `trips` must be provided together — an app with one ' +
         'but not the other cannot serve /trips*',
+    );
+  }
+
+  // All three G1 ports or none — half-wiring would leave `/places/nearby`
+  // registered with no cap (an unbounded breaker) or no provider (a crash on
+  // first request), rather than failing here at the composition root.
+  const g1Wired = [deps.googlePlaces, deps.apiUsage, deps.placesMonthlyCap];
+  if (g1Wired.some((v) => v !== undefined) && g1Wired.some((v) => v === undefined)) {
+    throw new Error(
+      'buildApp: `googlePlaces`, `apiUsage` and `placesMonthlyCap` must be provided ' +
+        'together — an app with only some of them cannot serve /places/nearby',
     );
   }
 
@@ -103,6 +127,10 @@ export function buildApp(deps: AppDeps): FastifyInstance {
       request.log.error({ err: error, provider: error.provider }, 'upstream provider failed');
       return reply.status(502).send({ error: error.message });
     }
+    if (error instanceof QuotaExceededError) {
+      request.log.warn({ sku: error.sku }, 'circuit breaker refused a call before making it');
+      return reply.status(503).send({ error: error.message });
+    }
 
     // Fastify's own body-parse failures (malformed JSON) are client errors.
     const statusCode = statusCodeOf(error);
@@ -120,6 +148,22 @@ export function buildApp(deps: AppDeps): FastifyInstance {
 
   if (deps.auth !== undefined && deps.trips !== undefined) {
     registerTripRoutes(app, { auth: deps.auth, trips: deps.trips });
+  }
+
+  if (
+    deps.googlePlaces !== undefined &&
+    deps.apiUsage !== undefined &&
+    deps.placesMonthlyCap !== undefined
+  ) {
+    registerPlacesNearbyRoute(app, {
+      googlePlaces: deps.googlePlaces,
+      usage: deps.apiUsage,
+      monthlyCap: deps.placesMonthlyCap,
+    });
+    registerAdminPlacesUsageRoute(app, {
+      usage: deps.apiUsage,
+      caps: { [PLACES_NEARBY_SEARCH_SKU]: deps.placesMonthlyCap },
+    });
   }
 
   return app;
