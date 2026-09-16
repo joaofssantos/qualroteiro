@@ -94,17 +94,12 @@ describe('demoPlanRoute', () => {
     expect(tolls.plazas.map((p) => p.id).sort()).toEqual(
       getCorridor('sp-rj-dutra').plazas.map((p) => p.id).sort(),
     );
-    expect(tolls.total).toBeCloseTo(
-      tolls.plazas.reduce(
-        (sum, p) =>
-          sum +
-          // TODO(Wave 2 — j-20260916-9y): tratar tariffByAxleCategory ausente de verdade (fallback "valor não disponível"), ver spec
-          (getCorridor('sp-rj-dutra').plazas.find((s) => s.id === p.id)!.tariffByAxleCategory!
-            .car),
-        0,
-      ),
-      2,
-    );
+    const expectedTotal = tolls.plazas.reduce((sum, p) => {
+      const plaza = getCorridor('sp-rj-dutra').plazas.find((candidate) => candidate.id === p.id);
+      if (!plaza) throw new Error(`Praça de demonstração ausente: ${p.id}`);
+      return sum + (plaza.tariffByAxleCategory?.car ?? 0);
+    }, 0);
+    expect(tolls.total).toBeCloseTo(expectedTotal, 2);
 
     const expectedFuel = estimateFuel({ distanceKm: 429.7, consumptionKmPerL: 10, pricePerL: 6 });
     expect(route.fuel).toEqual({ liters: expectedFuel.liters, cost: expectedFuel.cost });

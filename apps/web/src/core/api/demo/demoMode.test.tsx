@@ -94,11 +94,13 @@ describe('demo mode — Tela 1 -> Tela 2, no network', () => {
     const items = list.getAllByRole('listitem');
     expect(items.length).toBeGreaterThan(0);
     const first = getCorridor('sp-rj-dutra').plazas[0]!;
+    const firstTariff = first.tariffByAxleCategory?.car;
     expect(within(items[0]!).getByText(first.name)).toBeInTheDocument();
     expect(
       within(items[0]!).getByText(
-        // TODO(Wave 2 — j-20260916-9y): tratar tariffByAxleCategory ausente de verdade (fallback "valor não disponível"), ver spec
-        `R$ ${first.tariffByAxleCategory!.car.toFixed(2).replace('.', ',')}`,
+        firstTariff === undefined
+          ? 'Valor não disponível'
+          : `R$ ${firstTariff.toFixed(2).replace('.', ',')}`,
       ),
     ).toBeInTheDocument();
 

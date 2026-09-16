@@ -19,11 +19,18 @@ import {
   SAO_PAULO,
 } from '@/test/fixtures';
 import { type ApiMock, mockApi, renderApp, resetApp } from '@/test/renderApp';
+import type { PlannedRoute, TollPlaza } from '@/core/api/types';
 
 const ORIGIN = 'São Paulo, SP';
 const DESTINATION = 'Rio de Janeiro, RJ';
 
 const firstPlaza = DUTRA_PLAZAS[0]!;
+const TARIFFLESS_PLAZA: TollPlaza = { ...firstPlaza, tariffByAxleCategory: undefined };
+const TARIFFLESS_ROUTE: PlannedRoute = {
+  ...DUTRA_ROUTE,
+  tolls: { plazas: [TARIFFLESS_PLAZA], total: 0 },
+  points: { ...DUTRA_ROUTE.points, tolls: [TARIFFLESS_PLAZA] },
+};
 
 /** Fill Tela 1 with the acceptance scenario and submit it. */
 async function planFromForm(mock: ApiMock) {
@@ -204,9 +211,26 @@ describe('Tela 2 — resultado', () => {
     expect(entry.getByText(new RegExp(firstPlaza.concessionaire))).toBeInTheDocument();
     expect(entry.getByText(new RegExp(firstPlaza.highway))).toBeInTheDocument();
     // The tariff shown is the car column, because the form's default is "car".
-    // TODO(Wave 2 — j-20260916-9y): tratar tariffByAxleCategory ausente de verdade (fallback "valor não disponível"), ver spec
-    const carTariff = firstPlaza.tariffByAxleCategory!.car;
+    const carTariff = firstPlaza.tariffByAxleCategory?.car;
+    if (carTariff === undefined) throw new Error('A fixture da Dutra deve ter tarifa de carro');
     expect(entry.getByText(`R$ ${carTariff.toFixed(2).replace('.', ',')}`)).toBeInTheDocument();
+  });
+
+  it('keeps a tariffless plaza visible with a fallback in the list and drawer', async () => {
+    const { user } = await planFromForm({ routes: [TARIFFLESS_ROUTE] });
+    await screen.findByRole('heading', { name: /resultado da rota/i });
+
+    await user.click(panel().getByRole('tab', { name: /pedágios/i }));
+    const list = within(await screen.findByRole('list', { name: /praças de pedágio/i }));
+    const item = within(list.getByRole('listitem'));
+    expect(item.getByText(TARIFFLESS_PLAZA.name)).toBeInTheDocument();
+    expect(item.getByText('Valor não disponível')).toBeInTheDocument();
+    expect(item.queryByText(/undefined|NaN/)).not.toBeInTheDocument();
+
+    await user.click(item.getByRole('button'));
+    const drawer = within(await screen.findByRole('dialog'));
+    expect(drawer.getAllByText('Valor não disponível')).toHaveLength(8);
+    expect(drawer.queryByText(/undefined|NaN/)).not.toBeInTheDocument();
   });
 
   it('shows litres, price and cost on the fuel tab, and the cost is litres × price', async () => {
