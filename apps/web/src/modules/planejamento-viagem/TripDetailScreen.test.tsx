@@ -193,6 +193,31 @@ describe('TripDetailScreen — delete item', () => {
 });
 
 describe('TripDetailScreen — reorder timeline', () => {
+  it.each([
+    ['A', 'B', ['B', 'A', 'C']],
+    ['A', 'C', ['B', 'C', 'A']],
+    ['C', 'A', ['C', 'A', 'B']],
+  ] as const)('moves %s onto %s and persists the final order', async (active, over, expected) => {
+    const trips = await import('@/core/api/trips');
+    vi.mocked(trips.getTrip).mockResolvedValueOnce(
+      tripWith(['A', 'B', 'C'].map((title, order) => stayItem({ id: title, title, order }))),
+    );
+
+    await renderTripDetail();
+    await screen.findByText('C');
+
+    dragEnd?.({ active: { id: `item:${active}` }, over: { id: `item:${over}` } });
+
+    await waitFor(() => {
+      expect(screen.getAllByRole('listitem').map((item) =>
+        within(item).getByRole('button', { name: /^Reordenar / }).getAttribute('aria-label'),
+      )).toEqual(expected.map((title) => `Reordenar ${title}`));
+      expect(vi.mocked(trips.updateTripItem).mock.calls).toEqual(expected.map((id, order) => [
+        getToken, 'trip-1', 'day-1', id, { order, tripDayId: 'day-1' },
+      ]));
+    });
+  });
+
   it('reorders an item within a day and persists the new order', async () => {
     const trips = await import('@/core/api/trips');
     vi.mocked(trips.getTrip).mockResolvedValueOnce(

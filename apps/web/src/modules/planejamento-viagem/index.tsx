@@ -129,11 +129,7 @@ function applyDragEnd(trip: TripDetail, event: DragEndEvent): { trip: TripDetail
   if (!moved) return null;
 
   const targetIndex =
-    overLocation === null
-      ? targetDay.items.length
-      : targetDayIndex === activeLocation.dayIndex && overLocation.itemIndex > activeLocation.itemIndex
-        ? overLocation.itemIndex - 1
-        : overLocation.itemIndex;
+    overLocation === null ? targetDay.items.length : overLocation.itemIndex;
 
   targetDay.items.splice(targetIndex, 0, moved);
   const affected = new Set([activeLocation.dayIndex, targetDayIndex]);
