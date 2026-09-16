@@ -36,8 +36,10 @@ describe('seed dataset', () => {
 
     it('gives every plaza a positive tariff in every axle category', () => {
       for (const plaza of corridor.plazas) {
+        // Every seeded demo plaza carries a tariff — see the package README.
+        expect(plaza.tariffByAxleCategory, plaza.id).toBeDefined();
         for (const category of AXLE_CATEGORIES) {
-          const tariff = plaza.tariffByAxleCategory[category];
+          const tariff = plaza.tariffByAxleCategory?.[category];
           expect(tariff, `${plaza.id} / ${category}`).toBeGreaterThan(0);
           expect(Number.isFinite(tariff)).toBe(true);
         }
@@ -46,7 +48,9 @@ describe('seed dataset', () => {
 
     it('prices a motorcycle below a car, and a car below a 6-axle truck', () => {
       for (const plaza of corridor.plazas) {
-        const t = plaza.tariffByAxleCategory;
+        expect(plaza.tariffByAxleCategory, plaza.id).toBeDefined();
+        // Every seeded demo plaza carries a tariff (asserted above) — safe to assert non-null.
+        const t = plaza.tariffByAxleCategory!;
         expect(t.motorcycle).toBeLessThan(t.car);
         expect(t.car).toBeLessThan(t.truck_6_axle);
       }
