@@ -44,4 +44,5 @@ export const rotaCustosModule: ModuleDefinition = {
   path: MODULE_PATH,
   Panel: RotaCustosPanel,
   mapLayers: ROTA_CUSTOS_LAYERS,
+  showMap: true,
 };

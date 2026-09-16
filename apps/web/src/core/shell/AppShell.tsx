@@ -1,11 +1,13 @@
 import { Map as MapIcon } from 'lucide-react';
 import type { ReactNode } from 'react';
-import { NavLink } from 'react-router-dom';
+import { NavLink, useLocation } from 'react-router-dom';
 
 import { AuthActions } from '@/core/auth/AuthProvider';
 import { cn } from '@/lib/utils';
 
 import { isDemoMode } from '../api/demo/mode';
+import { MapCanvas } from '../map/MapCanvas';
+import { useMapStore } from '../map/mapStore';
 import { listModules } from '../registry/registry';
 
 /**
@@ -19,9 +21,29 @@ import { listModules } from '../registry/registry';
  * copy: two copies would put two links with the same accessible name in the
  * document, which is a real problem for assistive technology (and, usefully, is
  * caught immediately by a `getByRole('link', { name })` query in the tests).
+ *
+ * `MapCanvas` is mounted here, once, reading from `core/map/mapStore` — the
+ * *shell* owns the map's lifetime, not any one module, which is what lets it
+ * survive navigation between modules instead of tearing down its WebGL context
+ * every time. It only renders while the active module (matched by URL against
+ * `module.path`) declares `showMap: true`; every other module keeps exactly
+ * today's full-width layout. A module publishes to the store, not to this
+ * component directly — this file still knows nothing about what a toll plaza or
+ * a hotel is.
  */
 export function AppShell({ children }: { children: ReactNode }) {
   const modules = listModules();
+  const location = useLocation();
+
+  const activeModule = modules.find(
+    (module) =>
+      location.pathname === module.path || location.pathname.startsWith(`${module.path}/`),
+  );
+  const showMap = activeModule?.showMap === true;
+
+  const mapLayers = useMapStore((s) => s.layers);
+  const mapTrace = useMapStore((s) => s.trace);
+  const onMarkerClick = useMapStore((s) => s.onMarkerClick);
 
   return (
     <div className="flex min-h-screen flex-col bg-background md:flex-row">
@@ -80,7 +102,26 @@ export function AppShell({ children }: { children: ReactNode }) {
         </div>
       </nav>
 
-      <main className="min-w-0 flex-1">{children}</main>
+      <main
+        className={cn(
+          'min-w-0 flex-1',
+          showMap && 'flex h-[calc(100vh-3.25rem)] flex-col md:h-screen md:flex-row',
+        )}
+      >
+        {showMap ? (
+          <div
+            data-testid="app-map-container"
+            className="relative h-[38vh] min-h-[240px] shrink-0 md:h-auto md:min-h-0 md:flex-1"
+          >
+            <MapCanvas
+              trace={mapTrace?.coordinates ?? null}
+              layers={mapLayers}
+              onMarkerClick={onMarkerClick}
+            />
+          </div>
+        ) : null}
+        {children}
+      </main>
     </div>
   );
 }

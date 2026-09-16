@@ -155,11 +155,11 @@ describe('Tela 1 — nova consulta', () => {
 describe('Tela 2 — resultado', () => {
   it('keeps the same map container when the result screen opens', async () => {
     const { fetchSpy } = await planFromSelectedPlaces({ routes: [DUTRA_ROUTE] });
-    const mapContainer = screen.getByTestId('rota-custos-map-container');
+    const mapContainer = screen.getByTestId('app-map-container');
 
     await screen.findByRole('heading', { name: /resultado da rota/i });
 
-    expect(screen.getByTestId('rota-custos-map-container')).toBe(mapContainer);
+    expect(screen.getByTestId('app-map-container')).toBe(mapContainer);
     expect(constructedMaps).toHaveLength(1);
 
     const planCall = fetchSpy.mock.calls.find(([url]) => String(url).includes('/routes/plan'));

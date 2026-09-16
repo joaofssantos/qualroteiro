@@ -1,9 +1,9 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Outlet, useLocation } from 'react-router-dom';
 
 import type { TollPlaza } from '@/core/api/types';
-import { MapCanvas } from '@/core/map/MapCanvas';
-import type { MapLayerData } from '@/core/map/layers';
+import type { MapLayerData, RouteTrace } from '@/core/map/layers';
+import { useMapStore } from '@/core/map/mapStore';
 import { selectActiveRoute, useRouteStore } from '@/core/store/routeStore';
 import { formatCurrency } from '@/lib/format';
 
@@ -14,6 +14,13 @@ export interface RotaCustosOutletContext {
   onSelectPlaza(plaza: TollPlaza | null): void;
 }
 
+/**
+ * No longer mounts its own `<MapCanvas>` or a divided layout — `AppShell` owns
+ * both now (`rotaCustosModule.showMap === true`). This component computes the
+ * same layers/trace it always did and *publishes* them to `core/map/mapStore`
+ * instead of passing them as props, which is what lets the map survive
+ * navigating to Tela 2 and back without unmounting.
+ */
 export function RotaCustosLayout() {
   const location = useLocation();
   const query = useRouteStore((s) => s.query);
@@ -21,6 +28,11 @@ export function RotaCustosLayout() {
   const activeIndex = useRouteStore((s) => s.activeIndex);
   const layers = useRouteStore((s) => s.layers);
   const endpointMarkers = useRouteStore((s) => s.endpointMarkers);
+
+  const setMapLayers = useMapStore((s) => s.setMapLayers);
+  const setMapTrace = useMapStore((s) => s.setMapTrace);
+  const setOnMarkerClick = useMapStore((s) => s.setOnMarkerClick);
+  const clearMap = useMapStore((s) => s.clearMap);
 
   const [selectedPlaza, setSelectedPlaza] = useState<TollPlaza | null>(null);
 
@@ -75,30 +87,42 @@ export function RotaCustosLayout() {
     return [endpointsLayer, ...routeLayers];
   }, [endpointMarkers, layers, query, route, showingResult]);
 
-  const trace = useMemo(
+  const trace = useMemo<RouteTrace | null>(
     () =>
       showingResult && route
-        ? route.geometry.coordinates.map((coordinate) => [coordinate[0], coordinate[1]] as const)
+        ? {
+            coordinates: route.geometry.coordinates.map(
+              (coordinate) => [coordinate[0], coordinate[1]] as const,
+            ),
+          }
         : null,
     [route, showingResult],
   );
 
-  return (
-    <div className="flex h-[calc(100vh-3.25rem)] flex-col md:h-screen md:flex-row">
-      <div
-        data-testid="rota-custos-map-container"
-        className="relative h-[38vh] min-h-[240px] shrink-0 md:h-auto md:min-h-0 md:flex-1"
-      >
-        <MapCanvas
-          trace={trace}
-          layers={mapLayers}
-          onMarkerClick={(layerId, markerId) => {
-            if (!route || layerId !== TOLL_LAYER_ID) return;
-            setSelectedPlaza(route.points.tolls.find((plaza) => plaza.id === markerId) ?? null);
-          }}
-        />
-      </div>
+  // Publish the computed layers/trace to the shared map store whenever they
+  // change — this replaces passing them as `<MapCanvas>` props directly.
+  useEffect(() => {
+    setMapLayers(mapLayers);
+    setMapTrace(trace);
+  }, [mapLayers, trace, setMapLayers, setMapTrace]);
 
+  // Re-published whenever `route` changes rather than defined once, so a click
+  // always resolves against the alternative currently selected.
+  useEffect(() => {
+    setOnMarkerClick((layerId, markerId) => {
+      if (!route || layerId !== TOLL_LAYER_ID) return;
+      setSelectedPlaza(route.points.tolls.find((plaza) => plaza.id === markerId) ?? null);
+    });
+  }, [route, setOnMarkerClick]);
+
+  // The cleanup contract `mapStore` documents: nothing this module published
+  // should survive navigating away from it.
+  useEffect(() => {
+    return () => clearMap();
+  }, [clearMap]);
+
+  return (
+    <>
       <Outlet context={{ onSelectPlaza: setSelectedPlaza } satisfies RotaCustosOutletContext} />
 
       <PlazaDrawer
@@ -106,6 +130,6 @@ export function RotaCustosLayout() {
         axleCategory={query?.vehicle.axleCategory ?? 'car'}
         onClose={() => setSelectedPlaza(null)}
       />
-    </div>
+    </>
   );
 }
