@@ -26,12 +26,14 @@ import {
 } from './errors.js';
 import type { GooglePlacesProvider } from './providers/google-places.js';
 import { registerAdminPlacesUsageRoute } from './routes/admin-places-usage.js';
+import { registerAdminTollPlazasStatusRoute } from './routes/admin-toll-plazas-status.js';
 import { registerHealthRoute } from './routes/health.js';
 import { PLACES_NEARBY_SEARCH_SKU, registerPlacesNearbyRoute } from './routes/places-nearby.js';
 import { registerPlacesRoute } from './routes/places.js';
 import { registerPlanRoute } from './routes/plan.js';
 import { registerTripRoutes } from './routes/trips.js';
 import type { ApiUsageStore } from './store/api-usage.js';
+import type { TollPlazaStore } from './store/toll-plaza-store.js';
 import type { TripStore } from './store/trips.js';
 
 /** Read a `statusCode` off an unknown thrown value, defaulting to 500. */
@@ -51,6 +53,14 @@ function messageOf(error: unknown): string {
 export interface AppDeps {
   readonly routing: RoutingProvider;
   readonly geocode: GeocodeProvider;
+  /**
+   * T5 Wave 2 (`j-20260916-9y`) — the real-world toll plaza table. Required,
+   * like `routing`/`geocode`: `/routes/plan` is F1's always-on surface, and
+   * `GET /admin/toll-plazas-status` reads the same store, so there is no
+   * "some endpoints registered, some not" configuration to guard against the
+   * way the optional pairs/triples below do.
+   */
+  readonly tollPlazas: TollPlazaStore;
   /**
    * The F2a ports. Both or neither (see {@link buildApp}) — an app given
    * neither serves F1 alone and exposes no `/trips*` surface, which is a real
@@ -144,7 +154,12 @@ export function buildApp(deps: AppDeps): FastifyInstance {
 
   registerHealthRoute(app);
   registerPlacesRoute(app, { geocode: deps.geocode });
-  registerPlanRoute(app, { routing: deps.routing, geocode: deps.geocode });
+  registerPlanRoute(app, {
+    routing: deps.routing,
+    geocode: deps.geocode,
+    tollPlazas: deps.tollPlazas,
+  });
+  registerAdminTollPlazasStatusRoute(app, { tollPlazas: deps.tollPlazas });
 
   if (deps.auth !== undefined && deps.trips !== undefined) {
     registerTripRoutes(app, { auth: deps.auth, trips: deps.trips });
