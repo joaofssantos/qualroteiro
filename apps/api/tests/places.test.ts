@@ -8,11 +8,12 @@ import { buildApp } from '../src/app.js';
 import {
   fakeGeocodeProvider,
   fakeRoutingProvider,
+  fakeTollPlazaStore,
   failingGeocodeProvider,
 } from './helpers/fakes.js';
 
 function appWith(geocode: Parameters<typeof buildApp>[0]['geocode']) {
-  return buildApp({ routing: fakeRoutingProvider(), geocode });
+  return buildApp({ routing: fakeRoutingProvider(), geocode, tollPlazas: fakeTollPlazaStore() });
 }
 
 describe('GET /places/search', () => {

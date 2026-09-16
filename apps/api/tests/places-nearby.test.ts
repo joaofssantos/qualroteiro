@@ -16,6 +16,7 @@ import {
   fakeGeocodeProvider,
   fakeGooglePlacesProvider,
   fakeRoutingProvider,
+  fakeTollPlazaStore,
   failingGooglePlacesProvider,
 } from './helpers/fakes.js';
 
@@ -32,6 +33,7 @@ function appWith(opts: {
   return buildApp({
     routing: fakeRoutingProvider(),
     geocode: fakeGeocodeProvider(),
+    tollPlazas: fakeTollPlazaStore(),
     googlePlaces: opts.googlePlaces ?? fakeGooglePlacesProvider(),
     apiUsage: opts.usage ?? fakeApiUsageStore(),
     placesMonthlyCap: opts.monthlyCap ?? 4500,
@@ -153,6 +155,7 @@ describe('GET /places/nearby', () => {
       const app = buildApp({
         routing: fakeRoutingProvider(),
         geocode: fakeGeocodeProvider(),
+        tollPlazas: fakeTollPlazaStore(),
         googlePlaces: google,
         apiUsage: usage,
         placesMonthlyCap: 10,
@@ -175,6 +178,7 @@ describe('GET /places/nearby', () => {
       const app = buildApp({
         routing: fakeRoutingProvider(),
         geocode: fakeGeocodeProvider(),
+        tollPlazas: fakeTollPlazaStore(),
         googlePlaces: google,
         apiUsage: usage,
         placesMonthlyCap: 10,
@@ -194,6 +198,7 @@ describe('GET /places/nearby', () => {
       const app = buildApp({
         routing: fakeRoutingProvider(),
         geocode: fakeGeocodeProvider(),
+        tollPlazas: fakeTollPlazaStore(),
         googlePlaces: fakeGooglePlacesProvider([]),
         apiUsage: usage,
         placesMonthlyCap: 4500,
@@ -212,6 +217,7 @@ describe('GET /places/nearby', () => {
       const app = buildApp({
         routing: fakeRoutingProvider(),
         geocode: fakeGeocodeProvider(),
+        tollPlazas: fakeTollPlazaStore(),
         googlePlaces: failingGooglePlacesProvider(new Error('places down')),
         apiUsage: usage,
         placesMonthlyCap: 4500,
@@ -234,6 +240,7 @@ describe('GET /places/nearby', () => {
       const app = buildApp({
         routing: fakeRoutingProvider(),
         geocode: fakeGeocodeProvider(),
+        tollPlazas: fakeTollPlazaStore(),
         googlePlaces: fakeGooglePlacesProvider([]),
         apiUsage: usage,
         placesMonthlyCap: 4500,
@@ -259,6 +266,7 @@ describe('GET /admin/places-usage', () => {
     const app = buildApp({
       routing: fakeRoutingProvider(),
       geocode: fakeGeocodeProvider(),
+      tollPlazas: fakeTollPlazaStore(),
       googlePlaces: fakeGooglePlacesProvider([]),
       apiUsage: usage,
       placesMonthlyCap: 4500,

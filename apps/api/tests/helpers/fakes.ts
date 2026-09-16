@@ -7,7 +7,7 @@
 
 import type { GeocodeProvider, LineString, Place } from '@qualroteiro/geo';
 import type { RouteRequest, RouteResult, RoutingProvider } from '@qualroteiro/routing';
-import { corridorPolyline } from '@qualroteiro/tolls';
+import { corridorPolyline, dutraCorridor } from '@qualroteiro/tolls';
 
 import type {
   GooglePlacesProvider,
@@ -15,6 +15,11 @@ import type {
   PlaceResult,
 } from '../../src/providers/google-places.js';
 import type { ApiUsageStore, UsageCounterSnapshot } from '../../src/store/api-usage.js';
+import type {
+  TollPlazaRecord,
+  TollPlazaStatus,
+  TollPlazaStore,
+} from '../../src/store/toll-plaza-store.js';
 
 /**
  * A plausible São Paulo → Rio de Janeiro alternative.
@@ -202,6 +207,60 @@ export function fakeApiUsageStore(
     },
     async listAll(): Promise<readonly UsageCounterSnapshot[]> {
       return [...rows.values()];
+    },
+  };
+}
+
+/**
+ * Real-world-shaped toll plaza records mirroring the Dutra demo corridor's
+ * plazas — same ids/coordinates/highway as `@qualroteiro/tolls`'s own seed,
+ * but through the T5 Wave 2 store shape (`uf`/`municipality`/`active`/
+ * `ingestedAt`, and deliberately NO tariff field). Stands in for what Wave
+ * 3's real ANTT ingestion would eventually store for this stretch of
+ * BR-116: lets `POST /routes/plan` tests prove the real geometric match
+ * against `SP_RJ_GEOMETRY` (itself `corridorPolyline('sp-rj-dutra')`) without
+ * going through `@qualroteiro/tolls`'s in-package seed, which the production
+ * path no longer reads.
+ */
+export const DUTRA_TOLL_PLAZA_RECORDS: readonly TollPlazaRecord[] = dutraCorridor.plazas.map(
+  (plaza) => ({
+    id: plaza.id,
+    concessionaire: plaza.concessionaire,
+    name: plaza.name,
+    highway: plaza.highway,
+    uf: 'SP',
+    municipality: plaza.name,
+    km: plaza.km,
+    lat: plaza.lat,
+    lng: plaza.lng,
+    active: true,
+    ingestedAt: new Date('2026-09-01T00:00:00.000Z'),
+  }),
+);
+
+/**
+ * An in-memory {@link TollPlazaStore}.
+ *
+ * A real implementation of the port's semantics, not a stub: `listActive()`
+ * actually filters on `active`, and `status()` actually aggregates `count`/
+ * `lastIngestedAt` from whatever records were seeded — so a test seeding an
+ * inactive row, or an empty store, exercises the real filtering/aggregation
+ * logic rather than a canned return value.
+ */
+export function fakeTollPlazaStore(
+  records: readonly TollPlazaRecord[] = [],
+): TollPlazaStore & { readonly records: readonly TollPlazaRecord[] } {
+  return {
+    records,
+    async listActive(): Promise<readonly TollPlazaRecord[]> {
+      return records.filter((r) => r.active);
+    },
+    async status(): Promise<TollPlazaStatus> {
+      if (records.length === 0) {
+        return { count: 0, lastIngestedAt: null };
+      }
+      const lastIngestedAt = new Date(Math.max(...records.map((r) => r.ingestedAt.getTime())));
+      return { count: records.length, lastIngestedAt };
     },
   };
 }

@@ -16,6 +16,7 @@ import { createGooglePlacesProvider } from './providers/google-places.js';
 import { createOrsGeocodeProvider } from './providers/ors-geocode.js';
 import { createOrsRoutingProvider } from './providers/ors-routing.js';
 import { createPrismaApiUsageStore } from './store/prisma-api-usage.js';
+import { createPrismaTollPlazaStore } from './store/prisma-toll-plaza-store.js';
 import { createPrismaTripStore } from './store/prisma-trips.js';
 
 // Picks up apps/api/.env in dev; a no-op when a real deployment injects
@@ -35,6 +36,7 @@ const app = buildApp({
   geocode: createOrsGeocodeProvider({ apiKey: ors.apiKey, baseUrl: ors.baseUrl }),
   auth: createClerkAuthVerifier({ secretKey: clerk.secretKey }),
   trips: createPrismaTripStore(prisma),
+  tollPlazas: createPrismaTollPlazaStore(prisma),
   googlePlaces: createGooglePlacesProvider({ apiKey: googlePlaces.apiKey }),
   apiUsage: createPrismaApiUsageStore(prisma),
   placesMonthlyCap: googlePlaces.searchMonthlyCap,

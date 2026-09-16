@@ -132,3 +132,55 @@ model ApiUsageCounter {
   /// upsert's own conflict target.
   @@unique([sku, yearMonth])
 }
+
+/// T5 Wave 2 "Pedágio real, Fase 1 (geo/identidade)": one row per real-world
+/// toll plaza, as published monthly by ANTT
+/// (`dados.antt.gov.br/dataset/praca-de-pedagio`). Geography and identity
+/// only — see `apps/api/specs/007-t5-wave2-toll-plazas/spec.md` for why a
+/// tariff column is deliberately NOT here: ANTT's own dataset carries none
+/// (each concessionaire publishes its own fare table separately), so pricing
+/// is a distinct, later phase.
+///
+/// Written by `services/data-ingest`'s monthly ingestion job (Wave 3),
+/// pointed at THIS schema (`prisma generate --schema=apps/api/prisma/schema.prisma`)
+/// rather than defining its own — see `orientation.md` decision 4, one schema
+/// per database. Read by `apps/api`'s `TollPlazaStore` — `listActive()` feeds
+/// `matchTolls`'s `plazas` list in `routes/plan.ts`, replacing the in-package
+/// demo seed on the production path.
+model TollPlazaRecord {
+  /// Stable natural key, NOT a surrogate id: ANTT's dataset has no numeric id
+  /// of its own, so the ingestion job assembles one — a slug of
+  /// concessionaire + plaza name + highway + km. Stable across re-ingestion
+  /// (the same physical plaza in next month's CSV slugs to the same id, so a
+  /// re-run upserts rather than duplicates) and human-legible in a `psql`
+  /// session, unlike a hash. Exact slugging (casing, separator, accent
+  /// stripping) is Wave 3's decision to make and document when it writes the
+  /// first row — this column only requires the value to be stable and unique.
+  id String @id
+
+  concessionaire String
+  name           String
+  highway        String
+  uf             String @db.VarChar(2)
+  municipality   String
+  km             Float
+  lat            Float
+  lng            Float
+
+  /// Mirrors the ANTT dataset's `situacao` column as of the most recent
+  /// ingestion (`true` for `'Ativo'`). `listActive()` filters on this rather
+  /// than deleting inactive rows, so a plaza that ANTT later reactivates
+  /// re-upserts onto the same natural key instead of losing its history.
+  active Boolean
+
+  /// When this row was last written — by the Wave 3 job, or, before that job
+  /// exists, by whatever inserted the row (e.g. a one-off verification
+  /// script). `GET /admin/toll-plazas-status` reports the most recent value
+  /// of this column across every row, so an operator can see how stale the
+  /// data is without needing database access.
+  ingestedAt DateTime
+
+  /// `listActive()`'s own filter — the only way `/routes/plan` ever reads
+  /// this table.
+  @@index([active])
+}

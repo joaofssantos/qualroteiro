@@ -12,7 +12,6 @@ import type { RouteAlternative, RoutingProvider } from '@qualroteiro/routing';
 import {
   type FuelStationSeed,
   type TollPlaza,
-  listCorridors,
   matchFuelStations,
   matchTolls,
 } from '@qualroteiro/tolls';
@@ -20,6 +19,7 @@ import { estimateFuel } from '@qualroteiro/fuel';
 
 import { ProviderError, UnresolvedPlaceError } from '../errors.js';
 import { type PlaceInput, type PlanRequestInput, parsePlanRequest } from '../http/validate.js';
+import type { TollPlazaRecord, TollPlazaStore } from '../store/toll-plaza-store.js';
 
 /**
  * A fuel station on the "points on route" panel — `{id, name, lng, lat}`.
@@ -51,6 +51,38 @@ export interface PlannedRoute {
 export interface PlanRouteDeps {
   readonly routing: RoutingProvider;
   readonly geocode: GeocodeProvider;
+  /**
+   * The real-world toll plaza table (T5 Wave 2, `j-20260916-9y`). Required,
+   * not optional: `/routes/plan` is F1's always-on surface, and an empty
+   * store (before Wave 3's ingestion job has ever run) is a normal state
+   * `listActive()` already answers with `[]` — there is no "half-wired"
+   * configuration to guard against the way G1's optional triple has.
+   */
+  readonly tollPlazas: TollPlazaStore;
+}
+
+/**
+ * Map one persisted, real-world plaza to the shape `matchTolls` matches
+ * against a route.
+ *
+ * `tariffByAxleCategory` is always `undefined` here — the persisted
+ * `TollPlazaRecord` carries no tariff column at all (see
+ * `prisma/schema.prisma`'s doc-comment: per-concessionaire fare scraping is a
+ * separate, future phase). `matchTolls` still matches and lists a plaza with
+ * no tariff; it simply contributes nothing to `total` (`@qualroteiro/tolls`'s
+ * own doc-comment on `matchTolls`).
+ */
+function toTollPlaza(record: TollPlazaRecord): TollPlaza {
+  return {
+    id: record.id,
+    name: record.name,
+    concessionaire: record.concessionaire,
+    highway: record.highway,
+    km: record.km,
+    lat: record.lat,
+    lng: record.lng,
+    tariffByAxleCategory: undefined,
+  };
 }
 
 /** Turn a validated place input into coordinates, geocoding text if needed. */
@@ -77,12 +109,15 @@ async function resolvePlace(
 }
 
 /** Decorate one provider alternative with its toll and fuel costs. */
-function planOne(alt: RouteAlternative, req: PlanRequestInput): PlannedRoute {
+function planOne(
+  alt: RouteAlternative,
+  req: PlanRequestInput,
+  tollPlazaCandidates: readonly TollPlaza[],
+): PlannedRoute {
   const tolls = matchTolls({
     routeGeometry: alt.geometry,
     axleCategory: req.vehicle.axleCategory,
-    // TODO(Wave 2 — j-20260916-9y): substituir por lista vinda do banco real
-    plazas: listCorridors().flatMap((c) => c.plazas),
+    plazas: tollPlazaCandidates,
   });
 
   const fuelStations = matchFuelStations({ routeGeometry: alt.geometry });
@@ -129,6 +164,14 @@ export function registerPlanRoute(app: FastifyInstance, deps: PlanRouteDeps): vo
       throw new ProviderError('routing', 'routing provider failed', { cause });
     }
 
-    return { routes: result.routes.map((alt) => planOne(alt, planRequest)) };
+    // Fetched once per request, not once per alternative — every alternative
+    // is matched against the same candidate list. An empty table (before
+    // Wave 3's ingestion job has ever run) resolves to `[]` here, which is
+    // exactly the "toll-free" state `matchTolls` already handles.
+    const tollPlazaCandidates = (await deps.tollPlazas.listActive()).map(toTollPlaza);
+
+    return {
+      routes: result.routes.map((alt) => planOne(alt, planRequest, tollPlazaCandidates)),
+    };
   });
 }

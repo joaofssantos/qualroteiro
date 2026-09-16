@@ -12,7 +12,7 @@
 import { describe, expect, it } from 'vitest';
 
 import { buildApp } from '../src/app.js';
-import { fakeGeocodeProvider, fakeRoutingProvider } from './helpers/fakes.js';
+import { fakeGeocodeProvider, fakeRoutingProvider, fakeTollPlazaStore } from './helpers/fakes.js';
 import { fakeAuthVerifier, inMemoryTripStore } from './helpers/trip-fakes.js';
 
 const ANA = 'user_ana';
@@ -25,6 +25,7 @@ function appWithTrips() {
   return buildApp({
     routing: fakeRoutingProvider(),
     geocode: fakeGeocodeProvider(),
+    tollPlazas: fakeTollPlazaStore(),
     auth: fakeAuthVerifier({ 'token-ana': ANA, 'token-bruno': BRUNO }),
     trips: inMemoryTripStore(),
   });
@@ -1065,7 +1066,11 @@ describe('error bodies (AC-16)', () => {
 
 describe('an app built without the trips ports (D-513)', () => {
   it('serves F1 and exposes no /trips surface', async () => {
-    const app = buildApp({ routing: fakeRoutingProvider(), geocode: fakeGeocodeProvider() });
+    const app = buildApp({
+      routing: fakeRoutingProvider(),
+      geocode: fakeGeocodeProvider(),
+      tollPlazas: fakeTollPlazaStore(),
+    });
 
     const health = await app.inject({ method: 'GET', url: '/health' });
     expect(health.statusCode).toBe(200);
@@ -1079,6 +1084,7 @@ describe('an app built without the trips ports (D-513)', () => {
       buildApp({
         routing: fakeRoutingProvider(),
         geocode: fakeGeocodeProvider(),
+        tollPlazas: fakeTollPlazaStore(),
         trips: inMemoryTripStore(),
       }),
     ).toThrow(/auth/i);
