@@ -11,12 +11,18 @@ export type {
   Corridor,
   CorridorId,
   FuelStationSeed,
+  OsmTollBooth,
   TariffByAxleCategory,
   TollPlaza,
+  TollPlazaCluster,
 } from './types.js';
 export { AXLE_CATEGORIES } from './types.js';
 
 export { AXLE_MULTIPLIERS, tariffTable } from './tariff.js';
+
+export { parseOsmCharge } from './osm-charge.js';
+
+export { TOLL_CLUSTER_RADIUS_METERS, clusterTollBooths } from './osm-cluster.js';
 
 export type {
   MatchFuelStationsInput,

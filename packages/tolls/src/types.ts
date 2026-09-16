@@ -70,6 +70,50 @@ export interface TollPlaza {
   readonly tariffByAxleCategory?: TariffByAxleCategory;
 }
 
+/**
+ * A single toll-booth node as reported by OpenStreetMap (`barrier=toll_booth`).
+ *
+ * One OSM node is one physical booth/lane, not one toll plaza — a real plaza
+ * has several lanes, each its own node. {@link clusterTollBooths} groups these
+ * into plaza candidates; {@link parseOsmCharge} turns `chargeTag` (OSM's raw
+ * `charge` tag value) into a {@link TariffByAxleCategory}.
+ */
+export interface OsmTollBooth {
+  /** The OSM node id. Stable across queries unless the node is deleted/replaced. */
+  readonly id: number;
+  readonly lat: number;
+  readonly lng: number;
+  /** OSM's `operator` tag — the concessionaire running this booth. */
+  readonly operator: string;
+  /** OSM's raw `charge` tag value, if present. Feed it to {@link parseOsmCharge}. */
+  readonly chargeTag?: string;
+}
+
+/**
+ * A toll-plaza candidate formed by clustering nearby {@link OsmTollBooth}
+ * nodes that share an `operator` (see {@link clusterTollBooths}).
+ */
+export interface TollPlazaCluster {
+  /**
+   * Natural key: `osm-<smallest booth id in the cluster>`. OSM node ids are
+   * stable between queries, and taking the smallest makes the key
+   * deterministic regardless of input order.
+   */
+  readonly id: string;
+  readonly operator: string;
+  /**
+   * The cluster's representative point: the lat/lng of the booth with the
+   * smallest id (same node that names the cluster), not a computed centroid.
+   * See {@link clusterTollBooths} for why.
+   */
+  readonly lat: number;
+  readonly lng: number;
+  /** Every booth id folded into this cluster, ascending, smallest first. */
+  readonly boothIds: readonly number[];
+  /** The representative booth's `chargeTag`, carried through for {@link parseOsmCharge}. */
+  readonly chargeTag?: string;
+}
+
 /** A fuel station along a corridor. */
 export interface FuelStationSeed {
   /** Stable, human-readable identifier, unique across the whole seed. */
