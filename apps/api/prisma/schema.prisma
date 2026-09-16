@@ -120,11 +120,12 @@ model ApiUsageCounter {
   /// The calendar month (UTC) this count belongs to, as `YYYY-MM`.
   yearMonth String
 
-  /// Calls completed for `sku` in `yearMonth`. Only a call that finished
-  /// (success OR a Google-side failure after the request left this process)
-  /// counts here — a call the circuit breaker itself refused never reaches
-  /// this column, and neither does one that failed before the adapter's
-  /// request finished (see the adapter for the exact boundary).
+  /// Successful calls for `sku` in `yearMonth`. Only incremented after
+  /// `googlePlaces.searchNearby` resolves without throwing — a call the
+  /// circuit breaker refuses before it ever reaches the adapter does not
+  /// count here, and neither does one that reaches Google Places but fails
+  /// (see `places-nearby.ts`'s `try`/`catch` around the adapter call for the
+  /// exact boundary).
   count Int @default(0)
 
   /// One counter per SKU per month — the row the breaker reads and the
