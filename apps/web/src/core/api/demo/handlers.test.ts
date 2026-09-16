@@ -98,7 +98,8 @@ describe('demoPlanRoute', () => {
       tolls.plazas.reduce(
         (sum, p) =>
           sum +
-          (getCorridor('sp-rj-dutra').plazas.find((s) => s.id === p.id)!.tariffByAxleCategory
+          // TODO(Wave 2 — j-20260916-9y): tratar tariffByAxleCategory ausente de verdade (fallback "valor não disponível"), ver spec
+          (getCorridor('sp-rj-dutra').plazas.find((s) => s.id === p.id)!.tariffByAxleCategory!
             .car),
         0,
       ),

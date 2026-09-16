@@ -204,7 +204,8 @@ describe('Tela 2 — resultado', () => {
     expect(entry.getByText(new RegExp(firstPlaza.concessionaire))).toBeInTheDocument();
     expect(entry.getByText(new RegExp(firstPlaza.highway))).toBeInTheDocument();
     // The tariff shown is the car column, because the form's default is "car".
-    const carTariff = firstPlaza.tariffByAxleCategory.car;
+    // TODO(Wave 2 — j-20260916-9y): tratar tariffByAxleCategory ausente de verdade (fallback "valor não disponível"), ver spec
+    const carTariff = firstPlaza.tariffByAxleCategory!.car;
     expect(entry.getByText(`R$ ${carTariff.toFixed(2).replace('.', ',')}`)).toBeInTheDocument();
   });
 
