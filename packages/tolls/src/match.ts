@@ -1,7 +1,11 @@
 /**
- * Geometric matching of toll plazas to a route.
+ * Geometric matching of toll plazas and fuel stations to a route.
  *
- * Pure functions over the in-package seed. No I/O.
+ * Pure functions, no I/O. `matchTolls` takes its candidate plazas explicitly
+ * from the caller (they may come from the in-package demo seed, a real-world
+ * store, or anywhere else); `matchFuelStations` still resolves its own
+ * candidates from the in-package seed via `corridorHint` — deliberately left
+ * as-is in this phase, which only touches toll matching.
  */
 
 import type { LineString } from '@qualroteiro/geo';
@@ -28,12 +32,14 @@ export interface MatchTollsInput {
   /** The vehicle class whose tariff should be summed. */
   readonly axleCategory: AxleCategory;
   /**
-   * Restrict the search to a single corridor.
+   * The candidate plazas to test against the route.
    *
-   * An optimisation and a disambiguator, not a filter on the result: without
-   * it, every seeded plaza is tested against the route.
+   * The caller assembles this list — `matchTolls` no longer resolves
+   * candidates itself from the in-package seed. This keeps the function
+   * agnostic to where plazas come from: the demo seed (`listCorridors()`),
+   * a real-world store, or any other source a caller wants to test.
    */
-  readonly corridorHint?: CorridorId;
+  readonly plazas: readonly TollPlaza[];
   /** Override the matching buffer. Defaults to {@link TOLL_MATCH_BUFFER_METERS}. */
   readonly bufferMeters?: number;
 }
@@ -55,18 +61,15 @@ export interface MatchTollsResult {
  * route" panel renders.
  *
  * The total is accumulated in integer centavos and converted back at the end,
- * so summing six fares cannot drift by floating-point accumulation.
+ * so summing six fares cannot drift by floating-point accumulation. A matched
+ * plaza with no `tariffByAxleCategory` (a real-world plaza ingested without a
+ * fare yet — see {@link TollPlaza}) still appears in {@link
+ * MatchTollsResult.plazas}, but contributes nothing to the total.
  *
- * @throws {RangeError} for an empty route geometry, a non-positive buffer, or
- * an unknown `corridorHint`.
+ * @throws {RangeError} for an empty route geometry or a non-positive buffer.
  */
 export function matchTolls(input: MatchTollsInput): MatchTollsResult {
-  const {
-    routeGeometry,
-    axleCategory,
-    corridorHint,
-    bufferMeters = TOLL_MATCH_BUFFER_METERS,
-  } = input;
+  const { routeGeometry, axleCategory, plazas, bufferMeters = TOLL_MATCH_BUFFER_METERS } = input;
 
   if (routeGeometry.coordinates.length === 0) {
     throw new RangeError('matchTolls: routeGeometry has no coordinates');
@@ -77,24 +80,20 @@ export function matchTolls(input: MatchTollsInput): MatchTollsResult {
     );
   }
 
-  const candidates: readonly Corridor[] =
-    corridorHint === undefined ? listCorridors() : [getCorridor(corridorHint)];
-
   const matched: { plaza: TollPlaza; fractionAlong: number }[] = [];
 
-  for (const corridor of candidates) {
-    for (const plaza of corridor.plazas) {
-      const nearest = nearestPointOnLine({ lng: plaza.lng, lat: plaza.lat }, routeGeometry);
-      if (nearest.distanceMeters <= bufferMeters) {
-        matched.push({ plaza, fractionAlong: nearest.fractionAlong });
-      }
+  for (const plaza of plazas) {
+    const nearest = nearestPointOnLine({ lng: plaza.lng, lat: plaza.lat }, routeGeometry);
+    if (nearest.distanceMeters <= bufferMeters) {
+      matched.push({ plaza, fractionAlong: nearest.fractionAlong });
     }
   }
 
   matched.sort((a, b) => a.fractionAlong - b.fractionAlong);
 
   const totalCentavos = matched.reduce(
-    (sum, { plaza }) => sum + Math.round(plaza.tariffByAxleCategory[axleCategory] * 100),
+    (sum, { plaza }) =>
+      sum + Math.round((plaza.tariffByAxleCategory?.[axleCategory] ?? 0) * 100),
     0,
   );
 

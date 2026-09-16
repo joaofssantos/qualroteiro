@@ -49,7 +49,8 @@ export function TollsPanel({
                 </span>
               </span>
               <span className="shrink-0 text-sm font-semibold tabular-nums text-primary">
-                {formatCurrency(plaza.tariffByAxleCategory[axleCategory])}
+                {/* TODO(Wave 2 — j-20260916-9y): tratar tariffByAxleCategory ausente de verdade (fallback "valor não disponível"), ver spec */}
+                {formatCurrency(plaza.tariffByAxleCategory![axleCategory])}
               </span>
               <ChevronRight aria-hidden className="size-4 shrink-0 text-muted-foreground" />
             </button>

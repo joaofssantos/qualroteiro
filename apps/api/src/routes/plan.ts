@@ -12,6 +12,7 @@ import type { RouteAlternative, RoutingProvider } from '@qualroteiro/routing';
 import {
   type FuelStationSeed,
   type TollPlaza,
+  listCorridors,
   matchFuelStations,
   matchTolls,
 } from '@qualroteiro/tolls';
@@ -80,6 +81,8 @@ function planOne(alt: RouteAlternative, req: PlanRequestInput): PlannedRoute {
   const tolls = matchTolls({
     routeGeometry: alt.geometry,
     axleCategory: req.vehicle.axleCategory,
+    // TODO(Wave 2 — j-20260916-9y): substituir por lista vinda do banco real
+    plazas: listCorridors().flatMap((c) => c.plazas),
   });
 
   const fuelStations = matchFuelStations({ routeGeometry: alt.geometry });

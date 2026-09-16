@@ -110,7 +110,8 @@ export function PlazaDrawer({
                     ) : null}
                   </th>
                   <td className="py-2 text-right tabular-nums text-foreground">
-                    {formatCurrency(plaza.tariffByAxleCategory[category])}
+                    {/* TODO(Wave 2 — j-20260916-9y): tratar tariffByAxleCategory ausente de verdade (fallback "valor não disponível"), ver spec */}
+                    {formatCurrency(plaza.tariffByAxleCategory![category])}
                   </td>
                 </tr>
               ))}

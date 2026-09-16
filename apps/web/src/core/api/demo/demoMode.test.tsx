@@ -97,7 +97,8 @@ describe('demo mode — Tela 1 -> Tela 2, no network', () => {
     expect(within(items[0]!).getByText(first.name)).toBeInTheDocument();
     expect(
       within(items[0]!).getByText(
-        `R$ ${first.tariffByAxleCategory.car.toFixed(2).replace('.', ',')}`,
+        // TODO(Wave 2 — j-20260916-9y): tratar tariffByAxleCategory ausente de verdade (fallback "valor não disponível"), ver spec
+        `R$ ${first.tariffByAxleCategory!.car.toFixed(2).replace('.', ',')}`,
       ),
     ).toBeInTheDocument();
 

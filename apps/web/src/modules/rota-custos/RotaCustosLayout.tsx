@@ -64,7 +64,8 @@ export function RotaCustosLayout() {
             id: plaza.id,
             lng: plaza.lng,
             lat: plaza.lat,
-            label: `${plaza.name} - ${formatCurrency(plaza.tariffByAxleCategory[axleCategory])}`,
+            // TODO(Wave 2 — j-20260916-9y): tratar tariffByAxleCategory ausente de verdade (fallback "valor não disponível"), ver spec
+            label: `${plaza.name} - ${formatCurrency(plaza.tariffByAxleCategory![axleCategory])}`,
             kind: 'toll' as const,
           })),
         };

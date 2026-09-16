@@ -173,7 +173,7 @@ export function buildPlannedRoute(
   const { plazas, total } = matchTolls({
     routeGeometry: geometry,
     axleCategory,
-    corridorHint: spec.corridorId,
+    plazas: corridor.plazas,
   });
 
   const fuel = estimateFuel({
