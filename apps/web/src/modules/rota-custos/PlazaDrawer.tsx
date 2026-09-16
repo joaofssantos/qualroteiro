@@ -120,7 +120,8 @@ export function PlazaDrawer({
           </table>
 
           <p className="text-[11px] leading-relaxed text-muted-foreground">
-            Valores de referência da base de demonstração desta fase (2024–2025).
+            Localização informada pela ANTT. Tarifas podem estar indisponíveis para algumas
+            praças.
           </p>
         </SheetContent>
       ) : null}

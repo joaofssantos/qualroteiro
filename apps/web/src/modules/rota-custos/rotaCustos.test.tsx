@@ -31,6 +31,11 @@ const TARIFFLESS_ROUTE: PlannedRoute = {
   tolls: { plazas: [TARIFFLESS_PLAZA], total: 0 },
   points: { ...DUTRA_ROUTE.points, tolls: [TARIFFLESS_PLAZA] },
 };
+const EMPTY_TOLLS_ROUTE: PlannedRoute = {
+  ...DUTRA_ROUTE,
+  tolls: { plazas: [], total: 0 },
+  points: { ...DUTRA_ROUTE.points, tolls: [] },
+};
 
 /** Fill Tela 1 with the acceptance scenario and submit it. */
 async function planFromForm(mock: ApiMock) {
@@ -214,6 +219,8 @@ describe('Tela 2 — resultado', () => {
     const carTariff = firstPlaza.tariffByAxleCategory?.car;
     if (carTariff === undefined) throw new Error('A fixture da Dutra deve ter tarifa de carro');
     expect(entry.getByText(`R$ ${carTariff.toFixed(2).replace('.', ',')}`)).toBeInTheDocument();
+    expect(screen.getByText(/Localização das praças informada pela ANTT/)).toBeInTheDocument();
+    expect(screen.queryByText(/base de demonstração|2024–2025/i)).not.toBeInTheDocument();
   });
 
   it('keeps a tariffless plaza visible with a fallback in the list and drawer', async () => {
@@ -231,6 +238,32 @@ describe('Tela 2 — resultado', () => {
     const drawer = within(await screen.findByRole('dialog'));
     expect(drawer.getAllByText('Valor não disponível')).toHaveLength(8);
     expect(drawer.queryByText(/undefined|NaN/)).not.toBeInTheDocument();
+    expect(drawer.getByText(/Localização informada pela ANTT/)).toBeInTheDocument();
+    expect(drawer.queryByText(/base de demonstração|2024–2025/i)).not.toBeInTheDocument();
+  });
+
+  it('describes ANTT coverage and missing tariffs without calling a route free', async () => {
+    const { user } = await planFromForm({ routes: [EMPTY_TOLLS_ROUTE] });
+    await screen.findByRole('heading', { name: /resultado da rota/i });
+
+    await user.click(panel().getByRole('tab', { name: /pedágios/i }));
+
+    expect(
+      await screen.findByText(
+        /Uma praça sem tarifa cadastrada não significa que o trecho não tenha cobrança/i,
+      ),
+    ).toBeInTheDocument();
+    expect(screen.queryByText(/três corredores|base de demonstração/i)).not.toBeInTheDocument();
+  });
+
+  it('keeps every tab label available without truncating Alternativas', async () => {
+    await planFromForm({ routes: [DUTRA_ROUTE, ALTERNATIVE_ROUTE] });
+    await screen.findByRole('heading', { name: /resultado da rota/i });
+
+    const alternatives = panel().getByRole('tab', { name: 'Alternativas' });
+    expect(alternatives).toHaveClass('min-w-max');
+    expect(alternatives).toHaveClass('text-xs');
+    expect(alternatives.parentElement).toHaveClass('overflow-x-auto');
   });
 
   it('shows litres, price and cost on the fuel tab, and the cost is litres × price', async () => {
