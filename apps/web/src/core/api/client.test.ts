@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
-import { ApiError, planRoute, searchPlaces } from './client';
+import { ApiError, planRoute, searchNearbyPlaces, searchPlaces } from './client';
 import type { PlanRouteRequest } from './types';
 
 /** Install a `fetch` double and hand back the calls it recorded. */
@@ -131,6 +131,36 @@ describe('searchPlaces', () => {
 
     await searchPlaces('sp', controller.signal);
 
+    expect(calls[0]?.init?.signal).toBe(controller.signal);
+  });
+});
+
+describe('searchNearbyPlaces', () => {
+  it('GETs the selected reference coordinates and category', async () => {
+    const calls = mockFetch(() =>
+      json({
+        places: [
+          {
+            id: 'hotel-1', name: 'Hotel Atlântico', address: 'Av. Atlântica, 1',
+            lat: -22.971, lng: -43.182, category: 'hospedagem',
+          },
+        ],
+      }),
+    );
+
+    const places = await searchNearbyPlaces(-23.5505, -46.6333, 'hospedagem');
+
+    expect(calls[0]?.url).toBe('/api/places/nearby?lat=-23.5505&lng=-46.6333&category=hospedagem');
+    expect(places[0]?.name).toBe('Hotel Atlântico');
+  });
+
+  it('passes optional radius and cancellation through', async () => {
+    const calls = mockFetch(() => json({ places: [] }));
+    const controller = new AbortController();
+
+    await searchNearbyPlaces(-23.5505, -46.6333, 'hospedagem', 5000, controller.signal);
+
+    expect(calls[0]?.url).toBe('/api/places/nearby?lat=-23.5505&lng=-46.6333&category=hospedagem&radiusMeters=5000');
     expect(calls[0]?.init?.signal).toBe(controller.signal);
   });
 });
