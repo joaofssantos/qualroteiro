@@ -11,6 +11,7 @@ import { registerModule } from '@/core/registry/registry';
 import type { ModuleDefinition } from '@/core/registry/types';
 
 import { atividadesModule } from './atividades';
+import { hospedagemModule } from './hospedagem';
 import { planejamentoViagemModule } from './planejamento-viagem';
 import { rotaCustosModule } from './rota-custos';
 
@@ -18,8 +19,9 @@ import { rotaCustosModule } from './rota-custos';
 export const appModules: readonly ModuleDefinition[] = [
   rotaCustosModule,
   planejamentoViagemModule,
+  hospedagemModule,
   atividadesModule,
-  // Next: hospedagem, restaurantes. One entry each.
+  // Next: restaurantes. One entry.
 ];
 
 /** Called once at startup by `App`. */
