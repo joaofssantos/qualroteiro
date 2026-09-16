@@ -1,0 +1,84 @@
+[
+  {
+    "test": "Planejamento sem login",
+    "passed": true
+  },
+  {
+    "test": "Overflow mobile publico",
+    "overflow": false
+  },
+  {
+    "test": "Abrir viagem e orçamento (mocks)",
+    "budget": "R$ 300,00"
+  },
+  {
+    "test": "Arrastar A para posicao B",
+    "order": [
+      "Hotel A1 noite · R$ 100,00/noiteR$ 100,00",
+      "Hotel B1 noite · R$ 100,00/noiteR$ 100,00",
+      "Hotel C1 noite · R$ 100,00/noiteR$ 100,00"
+    ],
+    "patches": [
+      {
+        "id": "a",
+        "body": {
+          "order": 0,
+          "tripDayId": "day-1"
+        }
+      },
+      {
+        "id": "b",
+        "body": {
+          "order": 1,
+          "tripDayId": "day-1"
+        }
+      },
+      {
+        "id": "c",
+        "body": {
+          "order": 2,
+          "tripDayId": "day-1"
+        }
+      }
+    ]
+  },
+  {
+    "test": "Arrastar C para posicao A",
+    "order": [
+      "Hotel C1 noite · R$ 100,00/noiteR$ 100,00",
+      "Hotel A1 noite · R$ 100,00/noiteR$ 100,00",
+      "Hotel B1 noite · R$ 100,00/noiteR$ 100,00"
+    ],
+    "patches": [
+      {
+        "id": "c",
+        "body": {
+          "order": 0,
+          "tripDayId": "day-1"
+        }
+      },
+      {
+        "id": "a",
+        "body": {
+          "order": 1,
+          "tripDayId": "day-1"
+        }
+      },
+      {
+        "id": "b",
+        "body": {
+          "order": 2,
+          "tripDayId": "day-1"
+        }
+      }
+    ]
+  },
+  {
+    "test": "Overflow mobile planejamento",
+    "overflow": false
+  },
+  {
+    "test": "Erros JavaScript",
+    "errors": []
+  }
+]
