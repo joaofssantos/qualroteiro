@@ -22,6 +22,8 @@ import type {
   TripDetail,
   TripStore,
   TripSummary,
+  UpdateTripDayInput,
+  UpdateTripItemInput,
   UpdateTripInput,
 } from '../../src/store/trips.js';
 import type { Trip, TripDay, TripItem } from '@qualroteiro/trips';
@@ -197,6 +199,24 @@ export function inMemoryTripStore(): TripStore {
       return toDay(day);
     },
 
+    async updateDay(
+      userId: string,
+      tripId: string,
+      dayId: string,
+      patch: UpdateTripDayInput,
+    ): Promise<TripDay | null> {
+      const trip = ownedTrip(userId, tripId);
+      if (trip === undefined) return null;
+
+      const day = days.find((d) => d.id === dayId && d.tripId === tripId);
+      if (day === undefined) return null;
+
+      if (patch.date !== undefined) day.date = patch.date;
+      if (patch.order !== undefined) day.order = patch.order;
+      trip.updatedAt = now();
+      return toDay(day);
+    },
+
     async createItem(
       userId: string,
       tripId: string,
@@ -220,6 +240,33 @@ export function inMemoryTripStore(): TripStore {
         costEstimate: input.costEstimate,
       };
       items.push(item);
+      return toItem(item);
+    },
+
+    async updateItem(
+      userId: string,
+      tripId: string,
+      dayId: string,
+      itemId: string,
+      patch: UpdateTripItemInput,
+    ): Promise<TripItem | null> {
+      const trip = ownedTrip(userId, tripId);
+      if (trip === undefined) return null;
+
+      const currentDay = days.find((d) => d.id === dayId && d.tripId === tripId);
+      if (currentDay === undefined) return null;
+
+      const item = items.find((i) => i.id === itemId && i.tripDayId === currentDay.id);
+      if (item === undefined) return null;
+
+      if (patch.tripDayId !== undefined) {
+        const targetDay = days.find((d) => d.id === patch.tripDayId && d.tripId === tripId);
+        if (targetDay === undefined) return null;
+        item.tripDayId = targetDay.id;
+      }
+
+      if (patch.order !== undefined) item.order = patch.order;
+      trip.updatedAt = now();
       return toItem(item);
     },
 

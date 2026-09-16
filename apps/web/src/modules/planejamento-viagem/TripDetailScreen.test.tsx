@@ -1,5 +1,6 @@
 import { render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
+import type { ReactNode } from 'react';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
@@ -7,6 +8,7 @@ import type { LodgingStay } from '../hospedagem/calc';
 import type { TripDetail, TripItem } from '@/core/api/trips';
 
 const getToken = vi.fn(async () => 'session-token');
+let dragEnd: ((event: { active: { id: string }; over: { id: string } | null }) => void) | null = null;
 
 vi.mock('@/core/auth/AuthContext', () => ({
   useQualAuth: vi.fn(() => ({
@@ -25,6 +27,59 @@ vi.mock('@/core/api/trips', () => ({
   createTripDay: vi.fn(),
   createTripItem: vi.fn(),
   deleteTripItem: vi.fn(async () => undefined),
+  updateTripDay: vi.fn(async () => ({ id: 'day-1', tripId: 'trip-1', date: null, order: 0 })),
+  updateTripItem: vi.fn(async () => ({
+    id: 'item-1',
+    tripDayId: 'day-1',
+    order: 0,
+    moduleId: 'hospedagem',
+    kind: 'stay',
+    title: 'Pousada do Centro',
+    payload: {},
+    costEstimate: 450,
+  })),
+}));
+
+vi.mock('@dnd-kit/core', () => ({
+  DndContext: ({
+    children,
+    onDragEnd,
+  }: {
+    children: ReactNode;
+    onDragEnd: (event: { active: { id: string }; over: { id: string } | null }) => void;
+  }) => {
+    dragEnd = onDragEnd;
+    return <>{children}</>;
+  },
+  KeyboardSensor: vi.fn(),
+  PointerSensor: vi.fn(),
+  closestCenter: vi.fn(),
+  useSensor: vi.fn(() => ({})),
+  useSensors: vi.fn(() => []),
+}));
+
+vi.mock('@dnd-kit/sortable', () => ({
+  SortableContext: ({ children }: { children: ReactNode }) => <>{children}</>,
+  arrayMove: <T,>(items: readonly T[], from: number, to: number) => {
+    const next = [...items];
+    const [item] = next.splice(from, 1);
+    if (item !== undefined) next.splice(to, 0, item);
+    return next;
+  },
+  sortableKeyboardCoordinates: vi.fn(),
+  useSortable: vi.fn(() => ({
+    attributes: {},
+    listeners: {},
+    setNodeRef: vi.fn(),
+    transform: null,
+    transition: undefined,
+    isDragging: false,
+  })),
+  verticalListSortingStrategy: {},
+}));
+
+vi.mock('@dnd-kit/utilities', () => ({
+  CSS: { Translate: { toString: vi.fn(() => undefined) } },
 }));
 
 const STAY: LodgingStay = {
@@ -49,7 +104,7 @@ function stayItem(overrides: Partial<TripItem> = {}): TripItem {
   };
 }
 
-function tripWith(items: readonly TripItem[]): TripDetail {
+function tripWith(items: readonly TripItem[], secondDayItems: readonly TripItem[] = []): TripDetail {
   return {
     id: 'trip-1',
     userId: 'user-1',
@@ -65,6 +120,13 @@ function tripWith(items: readonly TripItem[]): TripDetail {
         date: '2026-10-01',
         order: 0,
         items,
+      },
+      {
+        id: 'day-2',
+        tripId: 'trip-1',
+        date: '2026-10-02',
+        order: 1,
+        items: secondDayItems,
       },
     ],
   };
@@ -84,6 +146,7 @@ async function renderTripDetail() {
 afterEach(() => {
   vi.clearAllMocks();
   vi.unstubAllGlobals();
+  dragEnd = null;
 });
 
 describe('TripDetailScreen — delete item', () => {
@@ -126,6 +189,89 @@ describe('TripDetailScreen — delete item', () => {
 
     expect(trips.deleteTripItem).not.toHaveBeenCalled();
     expect(trips.getTrip).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe('TripDetailScreen — reorder timeline', () => {
+  it('reorders an item within a day and persists the new order', async () => {
+    const trips = await import('@/core/api/trips');
+    vi.mocked(trips.getTrip).mockResolvedValueOnce(
+      tripWith([
+        stayItem({ id: 'item-1', title: 'Pousada' }),
+        stayItem({ id: 'item-2', title: 'Jantar', moduleId: 'restaurantes', kind: 'meal' }),
+      ]),
+    );
+
+    await renderTripDetail();
+    await screen.findByText('Jantar');
+
+    dragEnd?.({ active: { id: 'item:item-2' }, over: { id: 'item:item-1' } });
+
+    await waitFor(() => {
+      expect(trips.updateTripItem).toHaveBeenCalledWith(getToken, 'trip-1', 'day-1', 'item-2', {
+        order: 0,
+        tripDayId: 'day-1',
+      });
+    });
+    expect(screen.getAllByRole('listitem').map((item) => item.textContent)).toEqual([
+      expect.stringContaining('Jantar'),
+      expect.stringContaining('Pousada'),
+    ]);
+  });
+
+  it('moves an item to another day and persists the new tripDayId', async () => {
+    const trips = await import('@/core/api/trips');
+    vi.mocked(trips.getTrip).mockResolvedValueOnce(tripWith([stayItem({ id: 'item-1' })]));
+
+    await renderTripDetail();
+    await screen.findByText(STAY.placeName);
+
+    dragEnd?.({ active: { id: 'item:item-1' }, over: { id: 'day:day-2' } });
+
+    await waitFor(() => {
+      expect(trips.updateTripItem).toHaveBeenCalledWith(getToken, 'trip-1', 'day-1', 'item-1', {
+        order: 0,
+        tripDayId: 'day-2',
+      });
+    });
+  });
+
+  it('rolls the UI back and shows an error when saving an item reorder fails', async () => {
+    const trips = await import('@/core/api/trips');
+    vi.mocked(trips.getTrip).mockResolvedValueOnce(
+      tripWith([
+        stayItem({ id: 'item-1', title: 'Pousada' }),
+        stayItem({ id: 'item-2', title: 'Jantar', moduleId: 'restaurantes', kind: 'meal' }),
+      ]),
+    );
+    vi.mocked(trips.updateTripItem).mockRejectedValueOnce(new Error('Falha ao salvar ordem'));
+
+    await renderTripDetail();
+    await screen.findByText('Jantar');
+
+    dragEnd?.({ active: { id: 'item:item-2' }, over: { id: 'item:item-1' } });
+
+    await screen.findByText('Falha ao salvar ordem');
+    expect(screen.getAllByRole('listitem').map((item) => item.textContent)).toEqual([
+      expect.stringContaining('Pousada'),
+      expect.stringContaining('Jantar'),
+    ]);
+  });
+
+  it('reorders days and persists the new day order', async () => {
+    const trips = await import('@/core/api/trips');
+    vi.mocked(trips.getTrip).mockResolvedValueOnce(tripWith([stayItem()]));
+
+    await renderTripDetail();
+    await screen.findByText('2026-10-02');
+
+    dragEnd?.({ active: { id: 'day:day-2' }, over: { id: 'day:day-1' } });
+
+    await waitFor(() => {
+      expect(trips.updateTripDay).toHaveBeenCalledWith(getToken, 'trip-1', 'day-2', {
+        order: 0,
+      });
+    });
   });
 });
 

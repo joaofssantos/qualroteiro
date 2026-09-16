@@ -57,6 +57,11 @@ export interface CreateTripDayInput {
   readonly order?: number;
 }
 
+export interface UpdateTripDayInput {
+  readonly date?: string | null;
+  readonly order?: number;
+}
+
 /**
  * `order` is absent on purpose: `F2-COORDINATION.md` §3's item body has no such
  * field, so an item always appends within its day.
@@ -67,6 +72,11 @@ export interface CreateTripItemInput {
   readonly title: string;
   readonly payload: unknown;
   readonly costEstimate: number | null;
+}
+
+export interface UpdateTripItemInput {
+  readonly order?: number;
+  readonly tripDayId?: string;
 }
 
 export interface TripStore {
@@ -92,6 +102,13 @@ export interface TripStore {
     input: CreateTripDayInput,
   ): Promise<TripDay | null>;
 
+  updateDay(
+    userId: string,
+    tripId: string,
+    dayId: string,
+    patch: UpdateTripDayInput,
+  ): Promise<TripDay | null>;
+
   /**
    * `null` when the trip is not the caller's **or** the day is not part of
    * that trip — a day id from another trip must not be addressable here.
@@ -101,6 +118,14 @@ export interface TripStore {
     tripId: string,
     dayId: string,
     input: CreateTripItemInput,
+  ): Promise<TripItem | null>;
+
+  updateItem(
+    userId: string,
+    tripId: string,
+    dayId: string,
+    itemId: string,
+    patch: UpdateTripItemInput,
   ): Promise<TripItem | null>;
 
   deleteItem(userId: string, tripId: string, dayId: string, itemId: string): Promise<boolean>;

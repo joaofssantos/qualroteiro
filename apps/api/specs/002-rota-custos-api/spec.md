@@ -139,6 +139,30 @@ with coordinates, so the app can resolve what I typed.
 
 **Error body shape**, uniform across `400`/`422`/`502`: `{ "error": "<human-readable message>" }`.
 
+### F2f additive trip timeline routes
+
+These routes extend the authenticated `/trips*` surface introduced by F2a. They
+follow the same ownership rule as the existing trip routes: a resource that does
+not belong to the caller is indistinguishable from one that does not exist.
+
+#### `PATCH /trips/:id/days/:dayId`
+
+Body: `{ "date"?: "YYYY-MM-DD" | null, "order"?: number }`
+
+`200` returns the updated `TripDay`. `400` names an invalid `date` or `order`.
+`401` means missing/invalid auth. `404` means the trip/day does not exist or is
+not owned by the caller.
+
+#### `PATCH /trips/:id/days/:dayId/items/:itemId`
+
+Body: `{ "order"?: number, "tripDayId"?: string }`
+
+`order` reorders within the item's current day. `tripDayId` moves the item to
+another day in the same trip; a day from another trip is rejected with `404`.
+`200` returns the updated `TripItem`. `400` names an invalid `order` or
+`tripDayId`. `401` means missing/invalid auth. `404` means the trip/day/item or
+target day does not exist or is not owned by the caller.
+
 ---
 
 ## Requirements *(mandatory)*

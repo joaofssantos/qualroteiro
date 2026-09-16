@@ -7,6 +7,8 @@ import {
   createTripItem,
   getTrip,
   listTrips,
+  updateTripDay,
+  updateTripItem,
   type Trip,
   type TripDay,
   type TripDetail,
@@ -125,6 +127,30 @@ describe('trips API client', () => {
     expect(calls[0]?.init?.method).toBe('POST');
     expect(JSON.parse(String(calls[0]?.init?.body))).toEqual(input);
     expect(item).toEqual(ITEM);
+  });
+
+  it('updateTripDay PATCHes the nested day path', async () => {
+    const { calls } = mockFetch(() => json({ ...DAY, order: 2 }));
+    const input = { order: 2 };
+
+    const day = await updateTripDay(getToken, TRIP.id, DAY.id, input);
+
+    expect(calls[0]?.url).toBe('/api/trips/trip-1/days/day-1');
+    expect(calls[0]?.init?.method).toBe('PATCH');
+    expect(JSON.parse(String(calls[0]?.init?.body))).toEqual(input);
+    expect(day.order).toBe(2);
+  });
+
+  it('updateTripItem PATCHes the nested item path', async () => {
+    const { calls } = mockFetch(() => json({ ...ITEM, tripDayId: 'day-2', order: 0 }));
+    const input = { tripDayId: 'day-2', order: 0 };
+
+    const item = await updateTripItem(getToken, TRIP.id, DAY.id, ITEM.id, input);
+
+    expect(calls[0]?.url).toBe('/api/trips/trip-1/days/day-1/items/item-1');
+    expect(calls[0]?.init?.method).toBe('PATCH');
+    expect(JSON.parse(String(calls[0]?.init?.body))).toEqual(input);
+    expect(item).toMatchObject(input);
   });
 
   it('maps a 401 response to an auth ApiError', async () => {

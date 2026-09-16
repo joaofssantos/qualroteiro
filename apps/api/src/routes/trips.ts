@@ -22,6 +22,8 @@ import {
   parseCreateDay,
   parseCreateItem,
   parseCreateTrip,
+  parseUpdateDay,
+  parseUpdateItem,
   parseUpdateTrip,
 } from '../http/trips-validate.js';
 import type { TripStore } from '../store/trips.js';
@@ -120,6 +122,17 @@ export function registerTripRoutes(app: FastifyInstance, deps: TripRoutesDeps): 
       return reply.status(201).send(day);
     });
 
+    scoped.patch<{ Params: DayParams }>('/trips/:id/days/:dayId', async (request) => {
+      const userId = requireUserId(request);
+      const { id, dayId } = request.params;
+      const input = parseUpdateDay(request.body);
+
+      const day = await deps.trips.updateDay(userId, id, dayId, input);
+      if (day === null) throw new NotFoundError(DAY_NOT_FOUND);
+
+      return day;
+    });
+
     scoped.post<{ Params: DayParams }>(
       '/trips/:id/days/:dayId/items',
       async (request, reply) => {
@@ -144,6 +157,20 @@ export function registerTripRoutes(app: FastifyInstance, deps: TripRoutesDeps): 
         if (!deleted) throw new NotFoundError(ITEM_NOT_FOUND);
 
         return reply.status(204).send();
+      },
+    );
+
+    scoped.patch<{ Params: ItemParams }>(
+      '/trips/:id/days/:dayId/items/:itemId',
+      async (request) => {
+        const userId = requireUserId(request);
+        const { id, dayId, itemId } = request.params;
+        const input = parseUpdateItem(request.body);
+
+        const item = await deps.trips.updateItem(userId, id, dayId, itemId, input);
+        if (item === null) throw new NotFoundError(ITEM_NOT_FOUND);
+
+        return item;
       },
     );
   });

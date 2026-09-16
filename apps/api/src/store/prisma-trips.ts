@@ -25,6 +25,8 @@ import type {
   TripDetail,
   TripStore,
   TripSummary,
+  UpdateTripDayInput,
+  UpdateTripItemInput,
   UpdateTripInput,
 } from './trips.js';
 
@@ -209,6 +211,29 @@ export function createPrismaTripStore(prisma: PrismaClient): TripStore {
       return toDay(row);
     },
 
+    async updateDay(
+      userId: string,
+      tripId: string,
+      dayId: string,
+      patch: UpdateTripDayInput,
+    ): Promise<TripDay | null> {
+      const { count } = await prisma.tripDay.updateMany({
+        where: { id: dayId, tripId, trip: { userId } },
+        data: patch,
+      });
+      if (count === 0) return null;
+
+      await prisma.trip.updateMany({
+        where: { id: tripId, userId },
+        data: { updatedAt: new Date() },
+      });
+
+      const row = await prisma.tripDay.findFirst({
+        where: { id: dayId, tripId, trip: { userId } },
+      });
+      return row === null ? null : toDay(row);
+    },
+
     async createItem(
       userId: string,
       tripId: string,
@@ -240,6 +265,43 @@ export function createPrismaTripStore(prisma: PrismaClient): TripStore {
           costEstimate: input.costEstimate,
         },
       });
+      return toItem(row);
+    },
+
+    async updateItem(
+      userId: string,
+      tripId: string,
+      dayId: string,
+      itemId: string,
+      patch: UpdateTripItemInput,
+    ): Promise<TripItem | null> {
+      const current = await prisma.tripItem.findFirst({
+        where: { id: itemId, tripDayId: dayId, day: { tripId, trip: { userId } } },
+        select: { id: true },
+      });
+      if (current === null) return null;
+
+      if (patch.tripDayId !== undefined) {
+        const targetDay = await prisma.tripDay.findFirst({
+          where: { id: patch.tripDayId, tripId, trip: { userId } },
+          select: { id: true },
+        });
+        if (targetDay === null) return null;
+      }
+
+      const row = await prisma.tripItem.update({
+        where: { id: current.id },
+        data: {
+          ...(patch.order !== undefined ? { order: patch.order } : {}),
+          ...(patch.tripDayId !== undefined ? { tripDayId: patch.tripDayId } : {}),
+        },
+      });
+
+      await prisma.trip.updateMany({
+        where: { id: tripId, userId },
+        data: { updatedAt: new Date() },
+      });
+
       return toItem(row);
     },
 
