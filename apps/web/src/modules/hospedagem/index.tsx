@@ -1,10 +1,15 @@
-import { Hotel } from 'lucide-react';
-import { useMemo, useState } from 'react';
+import { Hotel, Loader2, MapPin } from 'lucide-react';
+import { useEffect, useMemo, useState } from 'react';
 
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { searchNearbyPlaces } from '@/core/api/client';
+import type { PlaceResult } from '@/core/api/types';
+import { PlaceSearch, type PlaceFieldValue } from '@/core/components/PlaceSearch';
+import type { MapLayerData } from '@/core/map/layers';
+import { useMapStore } from '@/core/map/mapStore';
 import type { ModuleDefinition } from '@/core/registry/types';
 import { formatCurrency } from '@/lib/format';
 
@@ -20,12 +25,94 @@ const DEFAULT_STAY: LodgingStay = {
   pricePerNight: 320,
 };
 
+const LODGING_LAYER_ID = 'lodging-places';
+const EMPTY_REFERENCE: PlaceFieldValue = { text: '', place: null };
+
 function HospedagemPanel() {
   const [placeName, setPlaceName] = useState(DEFAULT_STAY.placeName);
   const [address, setAddress] = useState('');
   const [checkIn, setCheckIn] = useState(DEFAULT_STAY.checkIn);
   const [checkOut, setCheckOut] = useState(DEFAULT_STAY.checkOut);
   const [pricePerNight, setPricePerNight] = useState(String(DEFAULT_STAY.pricePerNight));
+  const [reference, setReference] = useState<PlaceFieldValue>(EMPTY_REFERENCE);
+  const [nearbyPlaces, setNearbyPlaces] = useState<readonly PlaceResult[] | null>(null);
+  const [nearbyError, setNearbyError] = useState<string | null>(null);
+  const [searchingNearby, setSearchingNearby] = useState(false);
+  const [selectedPlaceId, setSelectedPlaceId] = useState<string | null>(null);
+
+  const setMapLayers = useMapStore((state) => state.setMapLayers);
+  const setOnMarkerClick = useMapStore((state) => state.setOnMarkerClick);
+  const clearMap = useMapStore((state) => state.clearMap);
+
+  useEffect(() => {
+    const point = reference.place;
+    if (!point) {
+      setNearbyPlaces(null);
+      setNearbyError(null);
+      setSelectedPlaceId(null);
+      return;
+    }
+
+    const controller = new AbortController();
+    setSearchingNearby(true);
+    setNearbyError(null);
+    setSelectedPlaceId(null);
+    searchNearbyPlaces(point.lat, point.lng, 'hospedagem', undefined, controller.signal)
+      .then(setNearbyPlaces)
+      .catch((cause: unknown) => {
+        if (cause instanceof DOMException && cause.name === 'AbortError') return;
+        setNearbyPlaces(null);
+        setNearbyError(
+          'Não foi possível buscar hospedagens agora. Você ainda pode preencher a estadia manualmente.',
+        );
+      })
+      .finally(() => setSearchingNearby(false));
+
+    return () => controller.abort();
+  }, [reference.place]);
+
+  const mapLayers = useMemo<readonly (MapLayerData & { visible: boolean })[]>(
+    () =>
+      nearbyPlaces === null
+        ? []
+        : [{
+            id: LODGING_LAYER_ID,
+            label: 'Hospedagens encontradas',
+            visible: true,
+            markers: nearbyPlaces.map((place) => ({
+              id: place.id,
+              lng: place.lng,
+              lat: place.lat,
+              label: place.name,
+              kind: 'lodging',
+            })),
+          }],
+    [nearbyPlaces],
+  );
+
+  useEffect(() => {
+    setMapLayers(mapLayers);
+  }, [mapLayers, setMapLayers]);
+
+  function selectPlace(place: PlaceResult): void {
+    setSelectedPlaceId(place.id);
+    setPlaceName(place.name);
+    setAddress(place.address);
+  }
+
+  useEffect(() => {
+    setOnMarkerClick((layerId, markerId) => {
+      if (layerId !== LODGING_LAYER_ID) return;
+      const place = nearbyPlaces?.find((candidate) => candidate.id === markerId);
+      if (place) selectPlace(place);
+    });
+  }, [nearbyPlaces, setOnMarkerClick]);
+
+  // The shell keeps MapCanvas alive between modules; remove this module's data
+  // explicitly so an asynchronous nearby response can never leak elsewhere.
+  useEffect(() => {
+    return () => clearMap();
+  }, [clearMap]);
 
   const stay = useMemo<LodgingStay>(
     () => ({
@@ -57,6 +144,56 @@ function HospedagemPanel() {
           Calcule noites e custo total de uma estadia para incluir no roteiro.
         </p>
       </header>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Buscar perto de</CardTitle>
+        </CardHeader>
+        <CardContent className="grid gap-4">
+          <PlaceSearch
+            id="lodging-reference"
+            label="Cidade, bairro ou endereço"
+            value={reference}
+            onChange={setReference}
+            placeholder="Ex.: Copacabana, Rio de Janeiro"
+          />
+
+          {searchingNearby ? (
+            <p role="status" className="flex items-center gap-2 text-sm text-muted-foreground">
+              <Loader2 aria-hidden className="size-4 animate-spin" /> Buscando hospedagens...
+            </p>
+          ) : null}
+          {nearbyError ? (
+            <p role="alert" className="text-sm text-destructive">{nearbyError}</p>
+          ) : null}
+          {nearbyPlaces !== null && !searchingNearby && !nearbyError ? (
+            nearbyPlaces.length === 0 ? (
+              <p className="text-sm text-muted-foreground">
+                Nenhuma hospedagem encontrada nesta região.
+              </p>
+            ) : (
+              <ul aria-label="Hospedagens encontradas" className="grid gap-2 sm:grid-cols-2">
+                {nearbyPlaces.map((place) => (
+                  <li key={place.id}>
+                    <button
+                      type="button"
+                      aria-pressed={selectedPlaceId === place.id}
+                      onClick={() => selectPlace(place)}
+                      className="flex w-full items-start gap-2 rounded-md border border-border p-3 text-left text-sm hover:bg-secondary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                    >
+                      <MapPin aria-hidden className="mt-0.5 size-4 shrink-0 text-muted-foreground" />
+                      <span>
+                        <span className="block font-medium">{place.name}</span>
+                        <span className="block text-muted-foreground">{place.address}</span>
+                      </span>
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            )
+          ) : null}
+        </CardContent>
+      </Card>
 
       <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_20rem]">
         <Card>
@@ -168,4 +305,5 @@ export const hospedagemModule: ModuleDefinition = {
   icon: Hotel,
   path: MODULE_PATH,
   Panel: HospedagemPanel,
+  showMap: true,
 };

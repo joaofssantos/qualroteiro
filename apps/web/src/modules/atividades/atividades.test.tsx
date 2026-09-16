@@ -1,4 +1,4 @@
-import { act, screen, waitFor } from '@testing-library/react';
+import { act, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
@@ -139,14 +139,19 @@ describe('Atividades module', () => {
     const user = userEvent.setup();
     mockNearbyApi(() => json({ places: [] }));
 
-    renderApp('/atividades');
+    const rendered = renderApp('/atividades');
     await searchNearRio(user);
 
     expect(await screen.findByText('Nenhuma atividade encontrada nesta região.')).toBeInTheDocument();
     expect(useMapStore.getState().layers).toHaveLength(1);
 
-    await user.click(screen.getByRole('link', { name: 'Restaurantes' }));
-    await waitFor(() => expect(screen.getByRole('heading', { name: 'Restaurantes' })).toBeInTheDocument());
+    // Unmount directly rather than navigating to a sibling `showMap: true`
+    // module: Hospedagem and Restaurantes both publish their own `layers`
+    // (even an empty array) synchronously on their own mount, which would
+    // overwrite whatever Atividades left behind regardless of whether its
+    // own `clearMap()` cleanup ran — masking exactly the gap this test
+    // exists to catch (the same failure mode G2's QA gate found).
+    rendered.unmount();
 
     expect(useMapStore.getState().layers).toEqual([]);
     expect(useMapStore.getState().trace).toBeNull();

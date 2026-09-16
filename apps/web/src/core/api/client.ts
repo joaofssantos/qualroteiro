@@ -135,10 +135,12 @@ export async function searchPlaces(q: string, signal?: AbortSignal): Promise<rea
 }
 
 /**
- * `GET /places/nearby` — nearby results for one of the planner categories.
+ * `GET /places/nearby` — establishments near a resolved reference place.
  *
- * Unlike `searchPlaces`, this endpoint needs resolved coordinates. The caller
- * gets those from `PlaceSearch` before invoking this function.
+ * The category is deliberately a closed union shared with the API contract so a
+ * module cannot accidentally ask Google for a category the product does not show.
+ * The reference point always comes from a selected `PlaceSearch` hit, so callers
+ * send its precise coordinates rather than asking the API to geocode again.
  */
 export async function searchNearbyPlaces(
   lat: number,
@@ -147,12 +149,12 @@ export async function searchNearbyPlaces(
   radiusMeters?: number,
   signal?: AbortSignal,
 ): Promise<readonly PlaceResult[]> {
-  const query = new URLSearchParams({ lat: String(lat), lng: String(lng), category });
-  if (radiusMeters !== undefined) query.set('radiusMeters', String(radiusMeters));
+  const params = new URLSearchParams({ lat: String(lat), lng: String(lng), category });
+  if (radiusMeters !== undefined) params.set('radiusMeters', String(radiusMeters));
 
   let response: Response;
   try {
-    response = await fetch(url(`/places/nearby?${query.toString()}`), {
+    response = await fetch(url(`/places/nearby?${params.toString()}`), {
       ...(signal ? { signal } : {}),
     });
   } catch (cause) {
