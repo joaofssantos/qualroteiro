@@ -33,8 +33,10 @@ export function TollsPanel({
   return (
     <div className="flex flex-col gap-3">
       <ul aria-label="Praças de pedágio" className="flex flex-col gap-1.5">
-        {route.tolls.plazas.map((plaza) => (
-          <li key={plaza.id}>
+        {route.tolls.plazas.map((plaza) => {
+          const tariff = plaza.tariffByAxleCategory?.[axleCategory];
+          return (
+            <li key={plaza.id}>
             <button
               type="button"
               onClick={() => onSelectPlaza(plaza)}
@@ -49,13 +51,13 @@ export function TollsPanel({
                 </span>
               </span>
               <span className="shrink-0 text-sm font-semibold tabular-nums text-primary">
-                {/* TODO(Wave 2 — j-20260916-9y): tratar tariffByAxleCategory ausente de verdade (fallback "valor não disponível"), ver spec */}
-                {formatCurrency(plaza.tariffByAxleCategory![axleCategory])}
+                {tariff === undefined ? 'Valor não disponível' : formatCurrency(tariff)}
               </span>
               <ChevronRight aria-hidden className="size-4 shrink-0 text-muted-foreground" />
             </button>
           </li>
-        ))}
+          );
+        })}
       </ul>
 
       <div className="flex items-center justify-between rounded-md bg-secondary px-3 py-2.5">
