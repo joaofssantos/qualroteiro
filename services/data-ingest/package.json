@@ -16,11 +16,28 @@
   ],
   "scripts": {
     "build": "tsc -p tsconfig.json",
+    "lint": "eslint src",
     "typecheck": "tsc -p tsconfig.test.json",
-    "test": "vitest run"
+    "test": "vitest run",
+    "postinstall": "prisma generate --schema=../../apps/api/prisma/schema.prisma",
+    "prisma:generate": "prisma generate --schema=../../apps/api/prisma/schema.prisma",
+    "ingest:once": "tsx src/cli.ts",
+    "worker": "tsx src/worker.ts"
+  },
+  "dependencies": {
+    "@prisma/client": "^5.20.0",
+    "bullmq": "^5.81.5",
+    "ioredis": "^5.11.1"
   },
   "devDependencies": {
+    "@eslint/js": "^9.12.0",
+    "@types/node": "^20.16.0",
+    "eslint": "^9.12.0",
+    "globals": "^15.11.0",
+    "prisma": "^5.20.0",
+    "tsx": "^4.19.1",
     "typescript": "^5.6.0",
+    "typescript-eslint": "^8.8.1",
     "vitest": "^2.1.3"
   }
 }
