@@ -9,9 +9,11 @@ import { describe, expect, it } from 'vitest';
 
 import { buildApp } from '../src/app.js';
 import {
+  DUTRA_TOLL_PLAZA_RECORDS,
   SP_RJ_DISTANCE_KM,
   fakeGeocodeProvider,
   fakeRoutingProvider,
+  fakeTollPlazaStore,
   failingRoutingProvider,
   offCorridorRoutingProvider,
 } from './helpers/fakes.js';
@@ -25,16 +27,23 @@ const VALID_BODY = {
 
 type AppDeps = Parameters<typeof buildApp>[0];
 
+/**
+ * Defaults `tollPlazas` to a store seeded with plazas along the Dutra
+ * geometry (`DUTRA_TOLL_PLAZA_RECORDS`) — real-store shape, but per T5 Wave 2
+ * carrying no tariff — so most tests here still see matched plazas on an
+ * SP→RJ route without every call site having to seed one explicitly.
+ */
 function appWithFakes(overrides: Partial<AppDeps> = {}) {
   return buildApp({
     routing: fakeRoutingProvider(),
     geocode: fakeGeocodeProvider(),
+    tollPlazas: fakeTollPlazaStore(DUTRA_TOLL_PLAZA_RECORDS),
     ...overrides,
   });
 }
 
 describe('POST /routes/plan', () => {
-  it('plans SP→RJ with tolls and fuel costs', async () => {
+  it('plans SP→RJ with real store-sourced tolls (no tariff yet) and fuel costs', async () => {
     const app = appWithFakes();
     const res = await app.inject({ method: 'POST', url: '/routes/plan', payload: VALID_BODY });
 
@@ -47,9 +56,17 @@ describe('POST /routes/plan', () => {
     expect(route.distanceKm).toBeGreaterThanOrEqual(400);
     expect(route.distanceKm).toBeLessThanOrEqual(470);
 
-    // Real geometric match against the seeded Dutra corridor.
+    // Real geometric match against `DUTRA_TOLL_PLAZA_RECORDS` — plazas are
+    // matched and listed, but T5 Wave 2's store carries no tariff column at
+    // all (see prisma/schema.prisma), so the total stays 0. This is the
+    // documented, deliberate behaviour change from the old demo-seed path
+    // (orientation.md decision 3): real geographic coverage now, real prices
+    // in a later, separate phase.
     expect(route.tolls.plazas.length).toBeGreaterThan(0);
-    expect(route.tolls.total).toBeGreaterThan(0);
+    expect(route.tolls.total).toBe(0);
+    for (const plaza of route.tolls.plazas) {
+      expect(plaza.tariffByAxleCategory).toBeUndefined();
+    }
 
     // liters = 429.7 / 10 ; cost = that * 6, rounded to cents by @qualroteiro/fuel.
     expect(route.fuel.cost).toBeCloseTo((SP_RJ_DISTANCE_KM / 10) * 6, 2);
@@ -57,8 +74,9 @@ describe('POST /routes/plan', () => {
     expect(route.geometry.type).toBe('LineString');
     expect(route.durationMin).toBeGreaterThan(0);
 
-    // points panel: tolls mirrored; fuelStations real-matched against the
-    // seeded Dutra corridor, same geometric approach as tolls.
+    // points panel: tolls mirrored; fuelStations still real-matched against
+    // the tolls package's own seeded stations (out of scope this phase — see
+    // orientation.md decision 1).
     expect(route.points.tolls.length).toBe(route.tolls.plazas.length);
     expect(route.points.fuelStations.length).toBeGreaterThan(0);
     for (const station of route.points.fuelStations) {
@@ -71,10 +89,14 @@ describe('POST /routes/plan', () => {
     }
   });
 
-  it('returns no fuel stations for a route matching no seeded corridor', async () => {
+  it('returns no tolls or fuel stations for a route matching no seeded/stored geometry', async () => {
     const app = buildApp({
       routing: offCorridorRoutingProvider(),
       geocode: fakeGeocodeProvider(),
+      // Non-empty store, deliberately: proves the empty result comes from the
+      // geometric match (the route is nowhere near these plazas), not merely
+      // from an empty store.
+      tollPlazas: fakeTollPlazaStore(DUTRA_TOLL_PLAZA_RECORDS),
     });
 
     const res = await app.inject({ method: 'POST', url: '/routes/plan', payload: VALID_BODY });
@@ -83,12 +105,70 @@ describe('POST /routes/plan', () => {
     const route = res.json().routes[0];
     expect(route.points.fuelStations).toEqual([]);
     expect(route.points.tolls).toEqual([]);
+    expect(route.tolls.plazas).toEqual([]);
+    expect(route.tolls.total).toBe(0);
+  });
+
+  describe('toll plazas from the store (T5 Wave 2, j-20260916-9y)', () => {
+    it('matches plazas from a mocked store and does not break the total', async () => {
+      const app = buildApp({
+        routing: fakeRoutingProvider(),
+        geocode: fakeGeocodeProvider(),
+        tollPlazas: fakeTollPlazaStore(DUTRA_TOLL_PLAZA_RECORDS),
+      });
+
+      const res = await app.inject({ method: 'POST', url: '/routes/plan', payload: VALID_BODY });
+
+      expect(res.statusCode).toBe(200);
+      const route = res.json().routes[0];
+      const storeIds = new Set(DUTRA_TOLL_PLAZA_RECORDS.map((r) => r.id));
+
+      expect(route.tolls.plazas.length).toBeGreaterThan(0);
+      // Every matched plaza id comes from the mocked store, and the total is
+      // a real, finite number (not NaN/undefined) even though none of them
+      // carry a tariff.
+      for (const plaza of route.tolls.plazas) {
+        expect(storeIds.has(plaza.id)).toBe(true);
+      }
+      expect(route.tolls.total).toBe(0);
+      expect(Number.isFinite(route.tolls.total)).toBe(true);
+    });
+
+    it('works with no error and zero tolls when the table is empty (before Wave 3 ever ran)', async () => {
+      const app = buildApp({
+        routing: fakeRoutingProvider(),
+        geocode: fakeGeocodeProvider(),
+        tollPlazas: fakeTollPlazaStore(),
+      });
+
+      const res = await app.inject({ method: 'POST', url: '/routes/plan', payload: VALID_BODY });
+
+      expect(res.statusCode).toBe(200);
+      const route = res.json().routes[0];
+      expect(route.tolls.plazas).toEqual([]);
+      expect(route.tolls.total).toBe(0);
+      expect(route.points.tolls).toEqual([]);
+    });
+
+    it('excludes an inactive plaza the store returns from listActive()', async () => {
+      const inactiveOnly = DUTRA_TOLL_PLAZA_RECORDS.map((r) => ({ ...r, active: false }));
+      const app = buildApp({
+        routing: fakeRoutingProvider(),
+        geocode: fakeGeocodeProvider(),
+        tollPlazas: fakeTollPlazaStore(inactiveOnly),
+      });
+
+      const res = await app.inject({ method: 'POST', url: '/routes/plan', payload: VALID_BODY });
+
+      expect(res.statusCode).toBe(200);
+      expect(res.json().routes[0].tolls.plazas).toEqual([]);
+    });
   });
 
   it('geocodes string endpoints and passes resolved coordinates to the router', async () => {
     const routing = fakeRoutingProvider();
     const geocode = fakeGeocodeProvider();
-    const app = buildApp({ routing, geocode });
+    const app = buildApp({ routing, geocode, tollPlazas: fakeTollPlazaStore() });
 
     const res = await app.inject({ method: 'POST', url: '/routes/plan', payload: VALID_BODY });
 
@@ -100,7 +180,7 @@ describe('POST /routes/plan', () => {
   it('accepts literal coordinates without geocoding', async () => {
     const routing = fakeRoutingProvider();
     const geocode = fakeGeocodeProvider();
-    const app = buildApp({ routing, geocode });
+    const app = buildApp({ routing, geocode, tollPlazas: fakeTollPlazaStore() });
 
     const res = await app.inject({
       method: 'POST',
@@ -119,7 +199,7 @@ describe('POST /routes/plan', () => {
 
   it('passes waypoints through in order', async () => {
     const routing = fakeRoutingProvider();
-    const app = buildApp({ routing, geocode: fakeGeocodeProvider() });
+    const app = buildApp({ routing, geocode: fakeGeocodeProvider(), tollPlazas: fakeTollPlazaStore() });
 
     const res = await app.inject({
       method: 'POST',
@@ -177,6 +257,7 @@ describe('POST /routes/plan', () => {
     const app = buildApp({
       routing: failingRoutingProvider(new Error('upstream exploded')),
       geocode: fakeGeocodeProvider(),
+      tollPlazas: fakeTollPlazaStore(),
     });
 
     const res = await app.inject({ method: 'POST', url: '/routes/plan', payload: VALID_BODY });
@@ -189,6 +270,7 @@ describe('POST /routes/plan', () => {
     const app = buildApp({
       routing: fakeRoutingProvider(),
       geocode: fakeGeocodeProvider([]),
+      tollPlazas: fakeTollPlazaStore(),
     });
 
     const res = await app.inject({ method: 'POST', url: '/routes/plan', payload: VALID_BODY });
@@ -201,6 +283,7 @@ describe('POST /routes/plan', () => {
     const app = buildApp({
       routing: fakeRoutingProvider({ routes: [] }),
       geocode: fakeGeocodeProvider(),
+      tollPlazas: fakeTollPlazaStore(),
     });
 
     const res = await app.inject({ method: 'POST', url: '/routes/plan', payload: VALID_BODY });
