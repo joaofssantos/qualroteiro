@@ -13,6 +13,7 @@ import { MemoryRouter } from 'react-router-dom';
 import { vi } from 'vitest';
 
 import { AppRouter } from '@/core/shell/AppRouter';
+import { useMapStore } from '@/core/map/mapStore';
 import { resetRegistry } from '@/core/registry/registry';
 import { useRouteStore } from '@/core/store/routeStore';
 import type { PlannedRoute } from '@/core/api/types';
@@ -67,6 +68,7 @@ export function resetApp(): void {
     layers: [],
     endpointMarkers: [],
   });
+  useMapStore.getState().clearMap();
 }
 
 // The return type is annotated rather than inferred: the inferred type reaches
