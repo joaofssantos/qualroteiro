@@ -65,11 +65,19 @@ export function ResultScreen() {
       <SummaryRow route={route} />
 
       <Tabs defaultValue="pedagios" className="flex min-h-0 flex-col">
-        <TabsList>
-          <TabsTrigger value="pedagios">Pedágios</TabsTrigger>
-          <TabsTrigger value="combustivel">Combustível</TabsTrigger>
-          <TabsTrigger value="pontos">Pontos na rota</TabsTrigger>
-          <TabsTrigger value="alternativas">Alternativas</TabsTrigger>
+        <TabsList className="overflow-x-auto gap-0.5">
+          <TabsTrigger value="pedagios" className="min-w-max px-2 text-xs">
+            Pedágios
+          </TabsTrigger>
+          <TabsTrigger value="combustivel" className="min-w-max px-2 text-xs">
+            Combustível
+          </TabsTrigger>
+          <TabsTrigger value="pontos" className="min-w-max px-2 text-xs">
+            Pontos na rota
+          </TabsTrigger>
+          <TabsTrigger value="alternativas" className="min-w-max px-2 text-xs">
+            Alternativas
+          </TabsTrigger>
         </TabsList>
 
         <TabsContent value="pedagios">

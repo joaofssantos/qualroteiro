@@ -25,7 +25,7 @@ export function TollsPanel({
     return (
       <EmptyState
         title="Nenhuma praça de pedágio nesta rota"
-        description="A base de pedágios desta fase cobre três corredores do Sudeste; trechos fora deles aparecem sem cobrança."
+        description="A cobertura usa dados federais da ANTT. Uma praça sem tarifa cadastrada não significa que o trecho não tenha cobrança."
       />
     );
   }
@@ -68,8 +68,8 @@ export function TollsPanel({
       </div>
 
       <p className="text-[11px] leading-relaxed text-muted-foreground">
-        Tarifas de referência (2024–2025) da base de demonstração desta fase. Confirme no
-        guichê antes de viajar.
+        Localização das praças informada pela ANTT. As tarifas ainda podem estar indisponíveis
+        para algumas praças; confirme antes de viajar.
       </p>
     </div>
   );
