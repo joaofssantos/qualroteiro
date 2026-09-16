@@ -95,7 +95,7 @@ export interface SearchPlacesResponse {
   readonly places: readonly Place[];
 }
 
-/** Categories accepted by `GET /places/nearby`. */
+/** Categories accepted by `GET /places/nearby`, shared by the three planner modules. */
 export type PlaceCategory = 'hospedagem' | 'restaurantes' | 'atividades';
 
 /** One establishment returned by Google Places through our API. */

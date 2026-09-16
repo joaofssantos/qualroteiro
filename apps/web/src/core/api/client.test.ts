@@ -167,4 +167,26 @@ describe('searchNearbyPlaces', () => {
     expect(calls[0]?.url).toBe('/api/places/nearby?lat=-23.5&lng=-46.6&category=restaurantes&radiusMeters=5000');
     expect(calls[0]?.init?.signal).toBe(controller.signal);
   });
+
+  it('also works for the atividades category', async () => {
+    const calls = mockFetch(() =>
+      json({
+        places: [
+          {
+            id: 'attraction-1',
+            name: 'Museu',
+            address: 'Centro, Rio de Janeiro - RJ',
+            lat: -22.9,
+            lng: -43.2,
+            category: 'atividades',
+          },
+        ],
+      }),
+    );
+
+    const places = await searchNearbyPlaces(-22.9068, -43.1729, 'atividades');
+
+    expect(calls[0]?.url).toBe('/api/places/nearby?lat=-22.9068&lng=-43.1729&category=atividades');
+    expect(places[0]?.name).toBe('Museu');
+  });
 });

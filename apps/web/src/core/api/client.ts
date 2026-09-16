@@ -11,11 +11,11 @@ import { ApiError, fieldFromMessage, kindFromStatus } from './errors';
 import type {
   ApiErrorBody,
   Place,
+  PlaceCategory,
+  PlaceResult,
   PlanRouteRequest,
   PlanRouteResponse,
   PlannedRoute,
-  PlaceCategory,
-  PlaceResult,
   SearchNearbyPlacesResponse,
   SearchPlacesResponse,
 } from './types';
