@@ -3,9 +3,10 @@
 ## Escopo
 
 O módulo `atividades` é uma calculadora web standalone para estimar custo de uma
-atividade (passeio, ingresso, tour) por pessoa. Ele não usa `apps/api`, pacote
-novo de domínio, geocoding nem rede. Tela única, sem split/mapa — mesmo formato
-de `hospedagem`.
+atividade (passeio, ingresso, tour) por pessoa. A calculadora continua
+standalone, mas o usuário também pode procurar atividades reais perto de um
+ponto de referência resolvido pelo autocomplete. A busca usa
+`GET /places/nearby` e publica os resultados no mapa persistente compartilhado.
 
 ## Contrato
 
@@ -15,6 +16,15 @@ de `hospedagem`.
 - `date` é opcional (ISO `YYYY-MM-DD` ou `null`) e não é validado por `calc.ts` —
   é apenas repassado no payload.
 - Cálculo é ao vivo (sem submit, sem chamada de rede) conforme o usuário digita.
+- `PlaceSearch` resolve cidade, bairro ou endereço em coordenadas; só então
+  `searchNearbyPlaces(lat, lng, 'atividades')` é chamado.
+- Cada resultado da busca aparece na lista e em uma camada `atividade-lugares`
+  do mapa. Selecionar pela lista ou pelo marcador preenche `placeName` e
+  `address`; preço, data e pessoas seguem manuais.
+- Loading, lista vazia e indisponibilidade do backend são estados explícitos.
+  Em uma falha, a calculadora manual permanece editável.
+- O módulo chama `clearMap()` no unmount para não deixar marcadores no próximo
+  módulo que o usuário visitar.
 
 ## Integração com Trips
 
@@ -31,7 +41,8 @@ Usuário deslogado continua usando a calculadora; o botão de salvar não aparec
 
 ## Fora de escopo
 
-- Geocoding/validação de endereço.
+- Usar automaticamente o destino de uma viagem salva como referência.
+- Place Details (foto, telefone ou horário).
 - Persistência de rascunho.
 - Qualquer alteração em `apps/api`, `packages/*` ou config raiz.
 
@@ -39,6 +50,10 @@ Usuário deslogado continua usando a calculadora; o botão de salvar não aparec
 
 - `calc.ts`: caso normal, `people < 1` lança, `pricePerPerson < 0` lança.
 - Tela computa `totalCost` ao vivo (sem `fetch`).
+- Busca próxima envia as coordenadas escolhidas e `category=atividades`, mostra
+  lista e marcadores, e ambos os caminhos de seleção preenchem o formulário.
+- Falha ou lista vazia não impede o cálculo manual; o unmount limpa a store de
+  mapa com assert direto em `useMapStore.getState()`.
 - `SaveActivityToTripDialog`: logado salva com `costEstimate`/`payload`
   corretos; deslogado não renderiza a ação.
 - `pnpm --filter @qualroteiro/web build/typecheck/lint/test` verdes.

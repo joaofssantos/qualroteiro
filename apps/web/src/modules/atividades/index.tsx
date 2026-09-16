@@ -1,10 +1,15 @@
 import { Ticket } from 'lucide-react';
-import { useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { searchNearbyPlaces } from '@/core/api/client';
+import { PlaceSearch, type PlaceFieldValue } from '@/core/components/PlaceSearch';
+import type { PlaceResult } from '@/core/api/types';
+import type { MapLayerData } from '@/core/map/layers';
+import { useMapStore } from '@/core/map/mapStore';
 import type { ModuleDefinition } from '@/core/registry/types';
 import { formatCurrency } from '@/lib/format';
 
@@ -20,12 +25,96 @@ const DEFAULT_PLAN: ActivityPlan = {
   people: 2,
 };
 
+const ACTIVITY_LAYER_ID = 'atividade-lugares';
+const EMPTY_REFERENCE: PlaceFieldValue = { text: '', place: null };
+
+type SearchState = 'idle' | 'loading' | 'error' | 'empty' | 'results';
+
 function AtividadesPanel() {
   const [placeName, setPlaceName] = useState(DEFAULT_PLAN.placeName);
   const [address, setAddress] = useState('');
   const [date, setDate] = useState(DEFAULT_PLAN.date ?? '');
   const [pricePerPerson, setPricePerPerson] = useState(String(DEFAULT_PLAN.pricePerPerson));
   const [people, setPeople] = useState(String(DEFAULT_PLAN.people));
+  const [reference, setReference] = useState<PlaceFieldValue>(EMPTY_REFERENCE);
+  const [places, setPlaces] = useState<readonly PlaceResult[]>([]);
+  const [searchState, setSearchState] = useState<SearchState>('idle');
+  const [selectedPlaceId, setSelectedPlaceId] = useState<string | null>(null);
+
+  const setMapLayers = useMapStore((state) => state.setMapLayers);
+  const setMapTrace = useMapStore((state) => state.setMapTrace);
+  const setOnMarkerClick = useMapStore((state) => state.setOnMarkerClick);
+  const clearMap = useMapStore((state) => state.clearMap);
+
+  useEffect(() => {
+    const point = reference.place;
+    if (!point) {
+      setPlaces([]);
+      setSelectedPlaceId(null);
+      setSearchState('idle');
+      return;
+    }
+
+    const controller = new AbortController();
+    setSearchState('loading');
+    setPlaces([]);
+    setSelectedPlaceId(null);
+
+    searchNearbyPlaces(point.lat, point.lng, 'atividades', undefined, controller.signal)
+      .then((results) => {
+        setPlaces(results);
+        setSearchState(results.length === 0 ? 'empty' : 'results');
+      })
+      .catch((cause: unknown) => {
+        if (cause instanceof DOMException && cause.name === 'AbortError') return;
+        setPlaces([]);
+        setSearchState('error');
+      });
+
+    return () => controller.abort();
+  }, [reference.place]);
+
+  const mapLayers = useMemo<readonly (MapLayerData & { visible: boolean })[]>(
+    () => [
+      {
+        id: ACTIVITY_LAYER_ID,
+        label: 'Atividades encontradas',
+        visible: true,
+        markers: places.map((place) => ({
+          id: place.id,
+          lng: place.lng,
+          lat: place.lat,
+          label: place.name,
+          kind: 'waypoint' as const,
+        })),
+      },
+    ],
+    [places],
+  );
+
+  useEffect(() => {
+    setMapLayers(mapLayers);
+    setMapTrace(null);
+  }, [mapLayers, setMapLayers, setMapTrace]);
+
+  const selectPlace = useCallback((place: PlaceResult): void => {
+    setSelectedPlaceId(place.id);
+    setPlaceName(place.name);
+    setAddress(place.address);
+  }, []);
+
+  useEffect(() => {
+    setOnMarkerClick((layerId, markerId) => {
+      if (layerId !== ACTIVITY_LAYER_ID) return;
+      const place = places.find((result) => result.id === markerId);
+      if (place) selectPlace(place);
+    });
+  }, [places, selectPlace, setOnMarkerClick]);
+
+  // `MapCanvas` lives in the shell, so this module owns clearing what it published.
+  useEffect(() => {
+    return () => clearMap();
+  }, [clearMap]);
 
   const plan = useMemo<ActivityPlan>(
     () => ({
@@ -59,6 +148,56 @@ function AtividadesPanel() {
       </header>
 
       <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_20rem]">
+        <Card className="lg:col-span-2">
+          <CardHeader>
+            <CardTitle>Encontrar atividade</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="grid gap-4">
+              <PlaceSearch
+                id="activity-reference"
+                label="Buscar perto de"
+                value={reference}
+                onChange={setReference}
+                placeholder="Cidade, bairro ou endereço"
+              />
+
+              {searchState === 'loading' ? (
+                <p role="status" className="text-sm text-muted-foreground">
+                  Buscando atividades próximas…
+                </p>
+              ) : null}
+              {searchState === 'error' ? (
+                <p role="alert" className="rounded-md border border-destructive/30 bg-destructive/10 px-3 py-2 text-sm text-destructive">
+                  Não foi possível buscar atividades agora. Você pode preencher os dados manualmente.
+                </p>
+              ) : null}
+              {searchState === 'empty' ? (
+                <p className="text-sm text-muted-foreground">Nenhuma atividade encontrada nesta região.</p>
+              ) : null}
+              {searchState === 'results' ? (
+                <ul aria-label="Atividades encontradas" className="grid gap-2">
+                  {places.map((place) => (
+                    <li key={place.id}>
+                      <Button
+                        type="button"
+                        variant={selectedPlaceId === place.id ? 'secondary' : 'outline'}
+                        className="h-auto w-full justify-start whitespace-normal px-3 py-2 text-left"
+                        onClick={() => selectPlace(place)}
+                      >
+                        <span className="grid gap-0.5">
+                          <span>{place.name}</span>
+                          <span className="text-xs font-normal text-muted-foreground">{place.address}</span>
+                        </span>
+                      </Button>
+                    </li>
+                  ))}
+                </ul>
+              ) : null}
+            </div>
+          </CardContent>
+        </Card>
+
         <Card>
           <CardHeader>
             <CardTitle>Dados da atividade</CardTitle>
@@ -171,4 +310,5 @@ export const atividadesModule: ModuleDefinition = {
   icon: Ticket,
   path: MODULE_PATH,
   Panel: AtividadesPanel,
+  showMap: true,
 };

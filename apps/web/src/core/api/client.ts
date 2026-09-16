@@ -11,9 +11,12 @@ import { ApiError, fieldFromMessage, kindFromStatus } from './errors';
 import type {
   ApiErrorBody,
   Place,
+  PlaceCategory,
+  PlaceResult,
   PlanRouteRequest,
   PlanRouteResponse,
   PlannedRoute,
+  SearchNearbyPlacesResponse,
   SearchPlacesResponse,
 } from './types';
 
@@ -128,5 +131,36 @@ export async function searchPlaces(q: string, signal?: AbortSignal): Promise<rea
   if (!response.ok) throw await toApiError(response);
 
   const body = (await response.json()) as SearchPlacesResponse;
+  return body.places ?? [];
+}
+
+/**
+ * `GET /places/nearby` — nearby results for one of the planner categories.
+ *
+ * Unlike `searchPlaces`, this endpoint needs resolved coordinates. The caller
+ * gets those from `PlaceSearch` before invoking this function.
+ */
+export async function searchNearbyPlaces(
+  lat: number,
+  lng: number,
+  category: PlaceCategory,
+  radiusMeters?: number,
+  signal?: AbortSignal,
+): Promise<readonly PlaceResult[]> {
+  const query = new URLSearchParams({ lat: String(lat), lng: String(lng), category });
+  if (radiusMeters !== undefined) query.set('radiusMeters', String(radiusMeters));
+
+  let response: Response;
+  try {
+    response = await fetch(url(`/places/nearby?${query.toString()}`), {
+      ...(signal ? { signal } : {}),
+    });
+  } catch (cause) {
+    toNetworkError(cause);
+  }
+
+  if (!response.ok) throw await toApiError(response);
+
+  const body = (await response.json()) as SearchNearbyPlacesResponse;
   return body.places ?? [];
 }

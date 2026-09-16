@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
-import { ApiError, planRoute, searchPlaces } from './client';
+import { ApiError, planRoute, searchNearbyPlaces, searchPlaces } from './client';
 import type { PlanRouteRequest } from './types';
 
 /** Install a `fetch` double and hand back the calls it recorded. */
@@ -131,6 +131,40 @@ describe('searchPlaces', () => {
 
     await searchPlaces('sp', controller.signal);
 
+    expect(calls[0]?.init?.signal).toBe(controller.signal);
+  });
+});
+
+describe('searchNearbyPlaces', () => {
+  it('GETs /api/places/nearby with resolved coordinates and category', async () => {
+    const calls = mockFetch(() =>
+      json({
+        places: [
+          {
+            id: 'attraction-1',
+            name: 'Museu',
+            address: 'Centro, Rio de Janeiro - RJ',
+            lat: -22.9,
+            lng: -43.2,
+            category: 'atividades',
+          },
+        ],
+      }),
+    );
+
+    const places = await searchNearbyPlaces(-22.9068, -43.1729, 'atividades');
+
+    expect(calls[0]?.url).toBe('/api/places/nearby?lat=-22.9068&lng=-43.1729&category=atividades');
+    expect(places[0]?.name).toBe('Museu');
+  });
+
+  it('passes an optional radius and AbortSignal through', async () => {
+    const calls = mockFetch(() => json({ places: [] }));
+    const controller = new AbortController();
+
+    await searchNearbyPlaces(-22.9, -43.2, 'atividades', 1500, controller.signal);
+
+    expect(calls[0]?.url).toBe('/api/places/nearby?lat=-22.9&lng=-43.2&category=atividades&radiusMeters=1500');
     expect(calls[0]?.init?.signal).toBe(controller.signal);
   });
 });
