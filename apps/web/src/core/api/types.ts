@@ -95,6 +95,21 @@ export interface SearchPlacesResponse {
   readonly places: readonly Place[];
 }
 
+/** A result from the cost-guarded Google Places Nearby Search endpoint. */
+export interface PlaceResult {
+  readonly id: string;
+  readonly name: string;
+  readonly address: string;
+  readonly lat: number;
+  readonly lng: number;
+  readonly category: 'hospedagem' | 'restaurantes' | 'atividades';
+}
+
+/** `200` body of `GET /places/nearby`. */
+export interface SearchNearbyPlacesResponse {
+  readonly places: readonly PlaceResult[];
+}
+
 /** Uniform error body across `400`, `422` and `502`. */
 export interface ApiErrorBody {
   readonly error: string;

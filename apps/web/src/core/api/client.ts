@@ -14,7 +14,9 @@ import type {
   PlanRouteRequest,
   PlanRouteResponse,
   PlannedRoute,
+  PlaceResult,
   SearchPlacesResponse,
+  SearchNearbyPlacesResponse,
 } from './types';
 
 export { ApiError } from './errors';
@@ -128,5 +130,36 @@ export async function searchPlaces(q: string, signal?: AbortSignal): Promise<rea
   if (!response.ok) throw await toApiError(response);
 
   const body = (await response.json()) as SearchPlacesResponse;
+  return body.places ?? [];
+}
+
+/**
+ * `GET /places/nearby` — cost-guarded Google Places category search.
+ *
+ * The reference point always comes from a selected `PlaceSearch` hit, so callers
+ * send its precise coordinates rather than asking the API to geocode again.
+ */
+export async function searchNearbyPlaces(
+  lat: number,
+  lng: number,
+  category: PlaceResult['category'],
+  radiusMeters?: number,
+  signal?: AbortSignal,
+): Promise<readonly PlaceResult[]> {
+  const query = new URLSearchParams({ lat: String(lat), lng: String(lng), category });
+  if (radiusMeters !== undefined) query.set('radiusMeters', String(radiusMeters));
+
+  let response: Response;
+  try {
+    response = await fetch(url(`/places/nearby?${query.toString()}`), {
+      ...(signal ? { signal } : {}),
+    });
+  } catch (cause) {
+    toNetworkError(cause);
+  }
+
+  if (!response.ok) throw await toApiError(response);
+
+  const body = (await response.json()) as SearchNearbyPlacesResponse;
   return body.places ?? [];
 }
