@@ -9,7 +9,14 @@ import { join } from 'node:path';
 
 import { afterEach, describe, expect, it } from 'vitest';
 
-import { DEFAULT_ORS_BASE_URL, loadDotEnvInto, readClerkEnv, readOrsEnv } from '../src/env.js';
+import {
+  DEFAULT_GOOGLE_PLACES_SEARCH_MONTHLY_CAP,
+  DEFAULT_ORS_BASE_URL,
+  loadDotEnvInto,
+  readClerkEnv,
+  readGooglePlacesEnv,
+  readOrsEnv,
+} from '../src/env.js';
 
 describe('readClerkEnv', () => {
   it('reads and trims CLERK_SECRET_KEY', () => {
@@ -54,6 +61,44 @@ describe('readOrsEnv', () => {
     expect(() => readOrsEnv({})).toThrow(/ORS_API_KEY/);
     expect(() => readOrsEnv({ ORS_API_KEY: '   ' })).toThrow(/ORS_API_KEY/);
   });
+});
+
+describe('readGooglePlacesEnv', () => {
+  it('reads the key and defaults the monthly cap', () => {
+    expect(readGooglePlacesEnv({ GOOGLE_PLACES_API_KEY: 'abc123' })).toEqual({
+      apiKey: 'abc123',
+      searchMonthlyCap: DEFAULT_GOOGLE_PLACES_SEARCH_MONTHLY_CAP,
+    });
+  });
+
+  it('defaults the cap to 4500 — below Google\'s 5,000 free-tier ceiling', () => {
+    expect(DEFAULT_GOOGLE_PLACES_SEARCH_MONTHLY_CAP).toBe(4500);
+  });
+
+  it('honours an explicit monthly cap', () => {
+    expect(
+      readGooglePlacesEnv({
+        GOOGLE_PLACES_API_KEY: 'abc',
+        GOOGLE_PLACES_SEARCH_MONTHLY_CAP: '100',
+      }),
+    ).toEqual({ apiKey: 'abc', searchMonthlyCap: 100 });
+  });
+
+  it('fails loudly when the key is absent or blank', () => {
+    expect(() => readGooglePlacesEnv({})).toThrow(/GOOGLE_PLACES_API_KEY/);
+    expect(() => readGooglePlacesEnv({ GOOGLE_PLACES_API_KEY: '   ' })).toThrow(
+      /GOOGLE_PLACES_API_KEY/,
+    );
+  });
+
+  it.each(['0', '-5', 'not-a-number', 'NaN'])(
+    'fails loudly when the cap is not a positive number (%s)',
+    (cap) => {
+      expect(() =>
+        readGooglePlacesEnv({ GOOGLE_PLACES_API_KEY: 'abc', GOOGLE_PLACES_SEARCH_MONTHLY_CAP: cap }),
+      ).toThrow(/GOOGLE_PLACES_SEARCH_MONTHLY_CAP/);
+    },
+  );
 });
 
 describe('loadDotEnvInto', () => {

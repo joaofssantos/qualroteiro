@@ -9,6 +9,13 @@ import type { GeocodeProvider, LineString, Place } from '@qualroteiro/geo';
 import type { RouteRequest, RouteResult, RoutingProvider } from '@qualroteiro/routing';
 import { corridorPolyline } from '@qualroteiro/tolls';
 
+import type {
+  GooglePlacesProvider,
+  NearbySearchRequest,
+  PlaceResult,
+} from '../../src/providers/google-places.js';
+import type { ApiUsageStore, UsageCounterSnapshot } from '../../src/store/api-usage.js';
+
 /**
  * A plausible São Paulo → Rio de Janeiro alternative.
  *
@@ -119,6 +126,82 @@ export function failingGeocodeProvider(error: Error): GeocodeProvider {
   return {
     async search(): Promise<Place[]> {
       throw error;
+    },
+  };
+}
+
+export interface FakeGooglePlaces extends GooglePlacesProvider {
+  /** Every request the handler made, in order — asserted to be EMPTY when the breaker trips. */
+  readonly calls: NearbySearchRequest[];
+}
+
+/** A `GooglePlacesProvider` returning one fixed result per category, or a caller-supplied list. */
+export function fakeGooglePlacesProvider(results?: PlaceResult[]): FakeGooglePlaces {
+  const calls: NearbySearchRequest[] = [];
+  return {
+    calls,
+    async searchNearby(req: NearbySearchRequest): Promise<PlaceResult[]> {
+      calls.push(req);
+      if (results !== undefined) return results;
+      return [
+        {
+          id: `fake-place-${calls.length}`,
+          name: 'Pousada Fake',
+          address: 'Rua Fake, 123',
+          lat: req.lat,
+          lng: req.lng,
+          category: req.category,
+        },
+      ];
+    },
+  };
+}
+
+/** A `GooglePlacesProvider` that always fails, to exercise the 502 path. */
+export function failingGooglePlacesProvider(error: Error): FakeGooglePlaces {
+  const calls: NearbySearchRequest[] = [];
+  return {
+    calls,
+    async searchNearby(req: NearbySearchRequest): Promise<PlaceResult[]> {
+      calls.push(req);
+      throw error;
+    },
+  };
+}
+
+/**
+ * An in-memory {@link ApiUsageStore}.
+ *
+ * A real implementation of the port's semantics — atomic-in-appearance
+ * increment, per (sku, yearMonth) keying — not a stub returning fixtures, so
+ * the breaker's route-level tests prove the actual refuse-before-calling
+ * ordering and not just a mocked return value.
+ */
+export function fakeApiUsageStore(
+  seed: Readonly<Record<string, number>> = {},
+): ApiUsageStore & { readonly rows: Map<string, UsageCounterSnapshot> } {
+  const rows = new Map<string, UsageCounterSnapshot>();
+  for (const [key, count] of Object.entries(seed)) {
+    const [sku, yearMonth] = key.split('|');
+    if (sku === undefined || yearMonth === undefined) {
+      throw new Error(`fakeApiUsageStore: seed key must be 'sku|yearMonth', got '${key}'`);
+    }
+    rows.set(key, { sku, yearMonth, count });
+  }
+
+  return {
+    rows,
+    async getCount(sku: string, yearMonth: string): Promise<number> {
+      return rows.get(`${sku}|${yearMonth}`)?.count ?? 0;
+    },
+    async increment(sku: string, yearMonth: string): Promise<UsageCounterSnapshot> {
+      const key = `${sku}|${yearMonth}`;
+      const next = { sku, yearMonth, count: (rows.get(key)?.count ?? 0) + 1 };
+      rows.set(key, next);
+      return next;
+    },
+    async listAll(): Promise<readonly UsageCounterSnapshot[]> {
+      return [...rows.values()];
     },
   };
 }
