@@ -85,8 +85,10 @@ describe('auth on /trips* (AC-5, AC-6)', () => {
       { method: 'PATCH' as const, url: '/trips/trip_0001' },
       { method: 'DELETE' as const, url: '/trips/trip_0001' },
       { method: 'POST' as const, url: '/trips/trip_0001/days' },
+      { method: 'PATCH' as const, url: '/trips/trip_0001/days/day_0002' },
       { method: 'POST' as const, url: '/trips/trip_0001/days/day_0002/items' },
       { method: 'DELETE' as const, url: '/trips/trip_0001/days/day_0002/items/item_0003' },
+      { method: 'PATCH' as const, url: '/trips/trip_0001/days/day_0002/items/item_0003' },
     ];
 
     for (const route of routes) {
@@ -827,6 +829,210 @@ describe('DELETE /trips/:id/days/:dayId/items/:itemId (AC-12)', () => {
     });
 
     expect(res.statusCode).toBe(404);
+  });
+});
+
+describe('PATCH day/item ordering (F2f)', () => {
+  async function tripWithDaysAndItems(app: App) {
+    const trip = await createTrip(app, asAna, { title: 'Roteiro' });
+    const firstDay = await app
+      .inject({
+        method: 'POST',
+        url: `/trips/${trip.id}/days`,
+        headers: asAna,
+        payload: { date: '2026-10-01' },
+      })
+      .then((r) => r.json());
+    const secondDay = await app
+      .inject({
+        method: 'POST',
+        url: `/trips/${trip.id}/days`,
+        headers: asAna,
+        payload: { date: '2026-10-02' },
+      })
+      .then((r) => r.json());
+    const firstItem = await app
+      .inject({
+        method: 'POST',
+        url: `/trips/${trip.id}/days/${firstDay.id}/items`,
+        headers: asAna,
+        payload: { moduleId: 'restaurantes', kind: 'meal', title: 'Almoço', payload: {} },
+      })
+      .then((r) => r.json());
+    const secondItem = await app
+      .inject({
+        method: 'POST',
+        url: `/trips/${trip.id}/days/${firstDay.id}/items`,
+        headers: asAna,
+        payload: { moduleId: 'atividades', kind: 'activity', title: 'Museu', payload: {} },
+      })
+      .then((r) => r.json());
+
+    return { trip, firstDay, secondDay, firstItem, secondItem };
+  }
+
+  it('updates a day order and persists it in the next trip detail read', async () => {
+    const app = appWithTrips();
+    const { trip, firstDay, secondDay } = await tripWithDaysAndItems(app);
+
+    const res = await app.inject({
+      method: 'PATCH',
+      url: `/trips/${trip.id}/days/${secondDay.id}`,
+      headers: asAna,
+      payload: { order: 0, date: '2026-10-03' },
+    });
+
+    expect(res.statusCode).toBe(200);
+    expect(res.json()).toMatchObject({ id: secondDay.id, order: 0, date: '2026-10-03' });
+
+    await app.inject({
+      method: 'PATCH',
+      url: `/trips/${trip.id}/days/${firstDay.id}`,
+      headers: asAna,
+      payload: { order: 1 },
+    });
+
+    const detail = await app
+      .inject({ method: 'GET', url: `/trips/${trip.id}`, headers: asAna })
+      .then((r) => r.json());
+
+    expect(detail.days.map((day: { id: string }) => day.id)).toEqual([secondDay.id, firstDay.id]);
+  });
+
+  it('updates an item order and persists it in the next trip detail read', async () => {
+    const app = appWithTrips();
+    const { trip, firstDay, firstItem, secondItem } = await tripWithDaysAndItems(app);
+
+    const res = await app.inject({
+      method: 'PATCH',
+      url: `/trips/${trip.id}/days/${firstDay.id}/items/${secondItem.id}`,
+      headers: asAna,
+      payload: { order: 0 },
+    });
+
+    expect(res.statusCode).toBe(200);
+    expect(res.json()).toMatchObject({ id: secondItem.id, order: 0 });
+
+    await app.inject({
+      method: 'PATCH',
+      url: `/trips/${trip.id}/days/${firstDay.id}/items/${firstItem.id}`,
+      headers: asAna,
+      payload: { order: 1 },
+    });
+
+    const detail = await app
+      .inject({ method: 'GET', url: `/trips/${trip.id}`, headers: asAna })
+      .then((r) => r.json());
+
+    expect(detail.days[0].items.map((item: { id: string }) => item.id)).toEqual([
+      secondItem.id,
+      firstItem.id,
+    ]);
+  });
+
+  it('moves an item to another day of the same trip', async () => {
+    const app = appWithTrips();
+    const { trip, firstDay, secondDay, firstItem } = await tripWithDaysAndItems(app);
+
+    const res = await app.inject({
+      method: 'PATCH',
+      url: `/trips/${trip.id}/days/${firstDay.id}/items/${firstItem.id}`,
+      headers: asAna,
+      payload: { tripDayId: secondDay.id, order: 0 },
+    });
+
+    expect(res.statusCode).toBe(200);
+    expect(res.json()).toMatchObject({ id: firstItem.id, tripDayId: secondDay.id, order: 0 });
+
+    const detail = await app
+      .inject({ method: 'GET', url: `/trips/${trip.id}`, headers: asAna })
+      .then((r) => r.json());
+
+    expect(detail.days.find((day: { id: string }) => day.id === firstDay.id).items).toHaveLength(1);
+    expect(detail.days.find((day: { id: string }) => day.id === secondDay.id).items).toEqual([
+      expect.objectContaining({ id: firstItem.id, tripDayId: secondDay.id }),
+    ]);
+  });
+
+  it('rejects moving an item to a day from another trip', async () => {
+    const app = appWithTrips();
+    const { trip, firstDay, firstItem } = await tripWithDaysAndItems(app);
+    const otherTrip = await createTrip(app, asAna, { title: 'Outra' });
+    const otherDay = await app
+      .inject({ method: 'POST', url: `/trips/${otherTrip.id}/days`, headers: asAna, payload: {} })
+      .then((r) => r.json());
+
+    const res = await app.inject({
+      method: 'PATCH',
+      url: `/trips/${trip.id}/days/${firstDay.id}/items/${firstItem.id}`,
+      headers: asAna,
+      payload: { tripDayId: otherDay.id },
+    });
+
+    expect(res.statusCode).toBe(404);
+  });
+
+  it("hides another user's day and item patch behind the same 404 as a nonexistent one", async () => {
+    const app = appWithTrips();
+    const { trip, firstDay, firstItem } = await tripWithDaysAndItems(app);
+
+    const stolenDay = await app.inject({
+      method: 'PATCH',
+      url: `/trips/${trip.id}/days/${firstDay.id}`,
+      headers: asBruno,
+      payload: { order: 4 },
+    });
+    const missingDay = await app.inject({
+      method: 'PATCH',
+      url: `/trips/${trip.id}/days/day_nope`,
+      headers: asBruno,
+      payload: { order: 4 },
+    });
+
+    expect(stolenDay.statusCode).toBe(404);
+    expect(stolenDay.json()).toEqual(missingDay.json());
+
+    const stolenItem = await app.inject({
+      method: 'PATCH',
+      url: `/trips/${trip.id}/days/${firstDay.id}/items/${firstItem.id}`,
+      headers: asBruno,
+      payload: { order: 4 },
+    });
+    const missingItem = await app.inject({
+      method: 'PATCH',
+      url: `/trips/${trip.id}/days/${firstDay.id}/items/item_nope`,
+      headers: asBruno,
+      payload: { order: 4 },
+    });
+
+    expect(stolenItem.statusCode).toBe(404);
+    expect(stolenItem.json()).toEqual(missingItem.json());
+  });
+
+  it.each([
+    ['bad day order', `/trips/trip_0001/days/day_0002`, { order: -1 }, 'order'],
+    [
+      'bad item order',
+      `/trips/trip_0001/days/day_0002/items/item_0003`,
+      { order: 1.5 },
+      'order',
+    ],
+    [
+      'blank target day',
+      `/trips/trip_0001/days/day_0002/items/item_0003`,
+      { tripDayId: '  ' },
+      'tripDayId',
+    ],
+  ])('rejects %s with a 400 naming the field', async (_label, url, payload, field) => {
+    const res = await appWithTrips().inject({
+      method: 'PATCH',
+      url,
+      headers: asAna,
+      payload,
+    });
+
+    expect(res.statusCode).toBe(400);
+    expect(res.json().error).toContain(field);
   });
 });
 

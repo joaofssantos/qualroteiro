@@ -31,6 +31,8 @@ import { ValidationError } from '../errors.js';
 import type {
   CreateTripDayInput,
   CreateTripItemInput,
+  UpdateTripDayInput,
+  UpdateTripItemInput,
   UpdateTripInput,
 } from '../store/trips.js';
 
@@ -198,6 +200,26 @@ export function parseCreateDay(body: unknown): CreateTripDayInput {
   return orderGiven ? { date, order: record['order'] as number } : { date };
 }
 
+export function parseUpdateDay(body: unknown): UpdateTripDayInput {
+  const record = assertObjectBody(body);
+  const patch: { date?: string | null; order?: number } = {};
+
+  const dateGiven = 'date' in record;
+  const orderGiven = 'order' in record;
+
+  assertValid(
+    validateTripDay({
+      date: dateGiven ? (record['date'] as string | null | undefined) : null,
+      order: orderGiven ? (record['order'] as number) : 0,
+    }),
+  );
+
+  if (dateGiven) patch.date = normaliseDate(record['date']);
+  if (orderGiven) patch.order = record['order'] as number;
+
+  return patch;
+}
+
 /**
  * Validate a `POST /trips/:id/days/:dayId/items` body.
  *
@@ -241,6 +263,33 @@ export function parseCreateItem(body: unknown): CreateTripItemInput {
     payload,
     costEstimate: parseCostEstimate(record['costEstimate']),
   };
+}
+
+export function parseUpdateItem(body: unknown): UpdateTripItemInput {
+  const record = assertObjectBody(body);
+  const patch: { order?: number; tripDayId?: string } = {};
+
+  if ('order' in record) {
+    assertValid(
+      validateTripItem({
+        moduleId: 'placeholder',
+        kind: 'placeholder',
+        title: 'placeholder',
+        order: record['order'] as number,
+      }),
+    );
+    patch.order = record['order'] as number;
+  }
+
+  if ('tripDayId' in record) {
+    const tripDayId = record['tripDayId'];
+    if (typeof tripDayId !== 'string' || tripDayId.trim().length === 0) {
+      throw new ValidationError('tripDayId', 'tripDayId: must be a non-empty string');
+    }
+    patch.tripDayId = tripDayId.trim();
+  }
+
+  return patch;
 }
 
 /**

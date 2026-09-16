@@ -57,6 +57,16 @@ export interface CreateTripItemInput {
   readonly costEstimate?: number | null;
 }
 
+export interface UpdateTripDayInput {
+  readonly date?: string | null;
+  readonly order?: number;
+}
+
+export interface UpdateTripItemInput {
+  readonly order?: number;
+  readonly tripDayId?: string;
+}
+
 type TokenProvider = () => Promise<string | null>;
 
 const BASE_URL = import.meta.env.VITE_API_BASE_URL ?? '/api';
@@ -144,6 +154,35 @@ export function createTripItem(
     getToken,
     {
       method: 'POST',
+      body: JSON.stringify(input),
+    },
+  );
+}
+
+export function updateTripDay(
+  getToken: TokenProvider,
+  tripId: string,
+  dayId: string,
+  input: UpdateTripDayInput,
+): Promise<TripDay> {
+  return request(`/trips/${encodeURIComponent(tripId)}/days/${encodeURIComponent(dayId)}`, getToken, {
+    method: 'PATCH',
+    body: JSON.stringify(input),
+  });
+}
+
+export function updateTripItem(
+  getToken: TokenProvider,
+  tripId: string,
+  dayId: string,
+  itemId: string,
+  input: UpdateTripItemInput,
+): Promise<TripItem> {
+  return request(
+    `/trips/${encodeURIComponent(tripId)}/days/${encodeURIComponent(dayId)}/items/${encodeURIComponent(itemId)}`,
+    getToken,
+    {
+      method: 'PATCH',
       body: JSON.stringify(input),
     },
   );
