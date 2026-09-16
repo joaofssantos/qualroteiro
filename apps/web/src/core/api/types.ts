@@ -95,14 +95,17 @@ export interface SearchPlacesResponse {
   readonly places: readonly Place[];
 }
 
-/** A result from the cost-guarded Google Places Nearby Search endpoint. */
+/** Categories accepted by `GET /places/nearby`. */
+export type PlaceCategory = 'hospedagem' | 'restaurantes' | 'atividades';
+
+/** One establishment returned by Google Places through our API. */
 export interface PlaceResult {
   readonly id: string;
   readonly name: string;
   readonly address: string;
   readonly lat: number;
   readonly lng: number;
-  readonly category: 'hospedagem' | 'restaurantes' | 'atividades';
+  readonly category: PlaceCategory;
 }
 
 /** `200` body of `GET /places/nearby`. */

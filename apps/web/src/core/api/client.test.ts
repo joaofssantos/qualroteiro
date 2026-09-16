@@ -136,31 +136,35 @@ describe('searchPlaces', () => {
 });
 
 describe('searchNearbyPlaces', () => {
-  it('GETs the selected reference coordinates and category', async () => {
+  it('GETs nearby places with the resolved coordinates and category', async () => {
     const calls = mockFetch(() =>
       json({
         places: [
           {
-            id: 'hotel-1', name: 'Hotel Atlântico', address: 'Av. Atlântica, 1',
-            lat: -22.971, lng: -43.182, category: 'hospedagem',
+            id: 'restaurant-1',
+            name: 'Casa do Porco',
+            address: 'Rua Araújo, 124 - República, São Paulo - SP',
+            lat: -23.545,
+            lng: -46.64,
+            category: 'restaurantes',
           },
         ],
       }),
     );
 
-    const places = await searchNearbyPlaces(-23.5505, -46.6333, 'hospedagem');
+    const places = await searchNearbyPlaces(-23.5505, -46.6333, 'restaurantes');
 
-    expect(calls[0]?.url).toBe('/api/places/nearby?lat=-23.5505&lng=-46.6333&category=hospedagem');
-    expect(places[0]?.name).toBe('Hotel Atlântico');
+    expect(calls[0]?.url).toBe('/api/places/nearby?lat=-23.5505&lng=-46.6333&category=restaurantes');
+    expect(places[0]?.name).toBe('Casa do Porco');
   });
 
-  it('passes optional radius and cancellation through', async () => {
+  it('includes an optional radius and passes an AbortSignal through', async () => {
     const calls = mockFetch(() => json({ places: [] }));
     const controller = new AbortController();
 
-    await searchNearbyPlaces(-23.5505, -46.6333, 'hospedagem', 5000, controller.signal);
+    await searchNearbyPlaces(-23.5, -46.6, 'restaurantes', 5_000, controller.signal);
 
-    expect(calls[0]?.url).toBe('/api/places/nearby?lat=-23.5505&lng=-46.6333&category=hospedagem&radiusMeters=5000');
+    expect(calls[0]?.url).toBe('/api/places/nearby?lat=-23.5&lng=-46.6&category=restaurantes&radiusMeters=5000');
     expect(calls[0]?.init?.signal).toBe(controller.signal);
   });
 });
