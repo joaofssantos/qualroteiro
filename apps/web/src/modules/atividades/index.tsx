@@ -149,7 +149,7 @@ function AtividadesPanel() {
       </header>
 
       <div className="calculator-main-grid grid gap-4 lg:grid-cols-[minmax(0,1fr)_20rem]">
-        <Card className="lg:col-span-2">
+        <Card className="activity-search-card lg:col-span-2">
           <CardHeader>
             <CardTitle>Encontrar atividade</CardTitle>
           </CardHeader>

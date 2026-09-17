@@ -62,7 +62,7 @@ export function AppShell({ children }: { children: ReactNode }) {
       <nav
         aria-label="Módulos"
         className={cn(
-          'relative z-10 flex shrink-0 items-center gap-3 border-border bg-primary px-3 py-2.5',
+          'app-sidebar relative z-10 flex shrink-0 items-center gap-3 border-border bg-primary px-3 py-2.5',
           'border-b md:flex-col md:items-stretch md:gap-1 md:border-b-0 md:border-r md:py-5',
           isSidebarCollapsed ? 'md:w-16' : 'md:w-56',
         )}

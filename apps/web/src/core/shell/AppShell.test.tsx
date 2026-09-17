@@ -52,6 +52,7 @@ describe('AppShell', () => {
     await user.click(screen.getByRole('button', { name: 'Minimizar menu lateral' }));
 
     expect(screen.getByRole('navigation', { name: 'Módulos' })).toHaveClass('md:w-16');
+    expect(screen.getByRole('navigation', { name: 'Módulos' })).toHaveClass('app-sidebar');
     expect(screen.getByRole('button', { name: 'Expandir menu lateral' })).toBeInTheDocument();
     expect(screen.getByRole('link', { name: 'Hospedagem' })).toHaveAttribute('title', 'Hospedagem');
     expect(window.localStorage.getItem(SIDEBAR_STORAGE_KEY)).toBe('true');
