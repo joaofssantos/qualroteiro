@@ -1,0 +1,205 @@
+{
+  "elements": [
+    {
+      "type": "node",
+      "id": 25937871,
+      "lat": -23.5116663,
+      "lon": -46.8013414,
+      "tags": {
+        "barrier": "toll_booth",
+        "charge": "4.20BRL/motorcar;0.00BRL/motorcycle;4.20BRL/hgv/axle",
+        "check_date": "2026-03-30",
+        "direction": "108",
+        "note": "Osasco - 1",
+        "operator": "Ecovias Raposo Castello"
+      }
+    },
+    {
+      "type": "node",
+      "id": 1640685437,
+      "lat": -23.5122596,
+      "lon": -46.8015612,
+      "tags": {
+        "barrier": "toll_booth",
+        "charge": "4.20BRL/motorcar;0.00BRL/motorcycle;4.20BRL/hgv/axle",
+        "check_date": "2026-03-30",
+        "direction": "109",
+        "note": "Osasco - 2",
+        "operator": "Ecovias Raposo Castello"
+      }
+    },
+    {
+      "type": "node",
+      "id": 8743095970,
+      "lat": -23.5119049,
+      "lon": -46.8014206,
+      "tags": {
+        "barrier": "toll_booth",
+        "charge": "4.20BRL/motorcar;0.00BRL/motorcycle;4.20BRL/hgv/axle",
+        "check_date": "2026-03-30",
+        "direction": "108",
+        "note": "Osasco - 1",
+        "operator": "Ecovias Raposo Castello"
+      }
+    },
+    {
+      "type": "node",
+      "id": 8743095971,
+      "lat": -23.5120218,
+      "lon": -46.8014574,
+      "tags": {
+        "barrier": "toll_booth",
+        "charge": "4.20BRL/motorcar;0.00BRL/motorcycle;4.20BRL/hgv/axle",
+        "check_date": "2026-03-30",
+        "direction": "108",
+        "note": "Osasco - 1",
+        "operator": "Ecovias Raposo Castello"
+      }
+    },
+    {
+      "type": "node",
+      "id": 25937851,
+      "lat": -23.5101982,
+      "lon": -46.8172702,
+      "tags": {
+        "barrier": "toll_booth",
+        "charge": "4.20BRL/motorcar;0.00BRL/motorcycle;4.20BRL/hgv/axle",
+        "check_date": "2026-03-30",
+        "direction": "276",
+        "note": "Barueri - 2",
+        "operator": "Ecovias Raposo Castello"
+      }
+    },
+    {
+      "type": "node",
+      "id": 25937853,
+      "lat": -23.5096388,
+      "lon": -46.8171768,
+      "tags": {
+        "barrier": "toll_booth",
+        "charge": "4.20BRL/motorcar;0.00BRL/motorcycle;4.20BRL/hgv/axle",
+        "check_date": "2026-03-30",
+        "direction": "278",
+        "note": "Barueri - 1",
+        "operator": "Ecovias Raposo Castello"
+      }
+    },
+    {
+      "type": "node",
+      "id": 32551122,
+      "lat": -23.5180694,
+      "lon": -46.9408185,
+      "tags": {
+        "barrier": "toll_booth",
+        "charge": "9.80BRL/motorcar;0.00BRL/motorcycle;9.80BRL/hgv/axle",
+        "check_date": "2026-03-30",
+        "description": "Praça de pedágio de Itapevi",
+        "direction": "82",
+        "motor_vehicle": "yes",
+        "note": "Itapevi",
+        "operator": "Ecovias Raposo Castello"
+      }
+    },
+    {
+      "type": "node",
+      "id": 2191768746,
+      "lat": -22.9300984,
+      "lon": -45.3800611,
+      "tags": {
+        "barrier": "toll_booth",
+        "charge": "12.70BRL/motorcar;0.00BRL/motorcycle;12.70BRL/hgv",
+        "direction": "29",
+        "operator": "Prefeitura de Pindamonhagaba"
+      }
+    },
+    {
+      "type": "node",
+      "id": 3489599093,
+      "lat": -23.0768971,
+      "lon": -46.8414378,
+      "tags": {
+        "barrier": "toll_booth",
+        "charge": "6.40BRL/motorcar;3.20BRL/motorcycle;6.40BRL/hgva/axle",
+        "check_date": "2026-07-01",
+        "direction": "35",
+        "note": "Jundiaí - 2",
+        "operator": "Rota das Bandeiras"
+      }
+    },
+    {
+      "type": "node",
+      "id": 321191953,
+      "lat": -12.8216193,
+      "lon": -38.2514445,
+      "tags": {
+        "barrier": "toll_booth",
+        "charge": "Mo-Fr 9.80BRL/motorcar;Sa-Su 14.70BRL/motorcar;Mo-Fr 4.90BRL/motorcycle;Sa-Su 7.40BRL/motorcycle;Mo-Fr 9.00BRL/hgv;Sa-Su 13.50BRL/hgv/axle",
+        "direction": "55",
+        "note": "Camaçari - 1",
+        "operator": "CLN"
+      }
+    },
+    {
+      "type": "node",
+      "id": 2087431077,
+      "lat": -22.2414302,
+      "lon": -51.1711839,
+      "tags": {
+        "barrier": "toll_booth",
+        "direction": "342"
+      }
+    },
+    {
+      "type": "node",
+      "id": 1838413379,
+      "lat": -13.5665367,
+      "lon": -58.3985431,
+      "tags": {
+        "barrier": "toll_booth",
+        "fee": "yes",
+        "name": "Cobrança de Direiro de Passagem na Terra Indígena Utiariti",
+        "operator": "Associação Halitina"
+      }
+    },
+    {
+      "type": "node",
+      "id": 3798361958,
+      "lat": -21.262644,
+      "lon": -43.6621162,
+      "tags": {
+        "addr:city": "Barbacena",
+        "addr:country": "BR",
+        "addr:milestone": "714",
+        "addr:state": "Minas Gerais",
+        "addr:street": "Rodovia Presidente Juscelino Kubitschek",
+        "barrier": "toll_booth",
+        "charge": "13.60BRL/motorcar;0.00BRL/motorcycle;13.60BRL/hgv/axle",
+        "check_date": "2026-02-06",
+        "direction": "156",
+        "note": "Barbacena - 1",
+        "operator": "EPR Via Mineira"
+      }
+    },
+    {
+      "type": "node",
+      "id": 3798361959,
+      "lat": -21.2627043,
+      "lon": -43.6622888,
+      "tags": {
+        "addr:city": "Barbacena",
+        "addr:country": "BR",
+        "addr:milestone": "714",
+        "addr:state": "Minas Gerais",
+        "addr:street": "Rodovia Presidente Juscelino Kubitschek",
+        "barrier": "toll_booth",
+        "charge": "13.60BRL/motorcar;0.00BRL/motorcycle;13.60BRL/hgv/axle",
+        "check_date": "2026-02-06",
+        "currency:BRL": "yes",
+        "direction": "334",
+        "note": "Barbacena - 2",
+        "operator": "EPR Via Mineira",
+        "payment:cash": "yes"
+      }
+    }
+  ]
+}

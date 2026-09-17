@@ -62,6 +62,54 @@ pnpm --filter @qualroteiro/data-ingest worker
 
 Both need `DATABASE_URL` (see `.env.example`, same value as `apps/api`'s).
 
+## `ingest-toll-plazas-osm` (Wave 3 of journey `j-20260916-y9`)
+
+Queries the Overpass API for every `barrier=toll_booth` node in Brazil,
+clusters same-operator nodes within 150m into plaza candidates
+(`clusterTollBooths`, `@qualroteiro/tolls`, Wave 1), parses each cluster's
+`charge` tag into a real tariff (`parseOsmCharge`, same package), and upserts
+each as a `TollPlazaRecord` with `source: 'osm'` — a second, independent
+source that coexists with (never overwrites) the `antt` rows above.
+
+- **Source**: `https://overpass-api.de/api/interpreter`, `POST`, no API key.
+  Query scoped to Brazil's real OSM administrative area
+  (`area["ISO3166-1"="BR"][admin_level=2]`), not a manual bounding box — see
+  `src/overpass.ts`.
+- **Real volume, checked live** (2026-09-17): **957** `barrier=toll_booth`
+  nodes nationwide — well under orientation.md's "poucos milhares" estimate,
+  comfortably inside one `[timeout:180]` request, no pagination needed.
+- **Fair use**: a real `User-Agent`, a bounded server-side timeout, a
+  client-side `AbortController`, exactly one request per run, no retry loop.
+  Overpass's real "server busy" failure (an HTML page, not JSON) is surfaced
+  as a distinct thrown error, not silently retried or truncated around.
+- **Cluster ≠ node**: one OSM node is one lane; `clusterTollBooths` groups
+  same-operator nodes within 150m into one plaza. The natural key is
+  `osm-<smallest node id in the cluster>` — stable across re-runs.
+- **Best-effort fields**: real OSM toll-booth nodes rarely carry the tags
+  ANTT's dataset always has (`highway`/`uf`/`municipality` — see
+  `src/osm-toll-plazas.ts`'s doc-comment for the exact real tag-coverage
+  numbers). Missing values get an explicit sentinel (`uf: 'BR'`, never a
+  real UF code; `"Não informado (OSM)"` for highway/municipality) rather than
+  a guess. `lat`/`lng`/`tariff`/`concessionaire` are this job's real accuracy
+  promise.
+- **Idempotent**: same natural-key `upsert` pattern as the ANTT job —
+  verified against the real database (see "Evidence" in
+  `specs/002-t5-wave3-osm-toll-ingest/plan.md`): two real runs against the
+  live Overpass API produced the same 489 rows both times, with the
+  277 pre-existing `antt` rows untouched throughout.
+
+### Running it
+
+```sh
+# On-demand / manual testing — no Redis needed:
+pnpm --filter @qualroteiro/data-ingest ingest:osm:once
+
+# Same long-running `worker` command above also registers this job's
+# monthly repeatable schedule (2nd of every month, 06:00 UTC — one day
+# after the ANTT job, so the two don't land on the same worker tick) and
+# processes it alongside the ANTT job in the one shared BullMQ queue.
+```
+
 ## Scripts
 
 - `build` — `tsc -p tsconfig.json`
@@ -69,5 +117,6 @@ Both need `DATABASE_URL` (see `.env.example`, same value as `apps/api`'s).
 - `typecheck` — `tsc -p tsconfig.test.json`
 - `test` — `vitest run`
 - `prisma:generate` (also runs on `postinstall`) — `prisma generate --schema=../../apps/api/prisma/schema.prisma`
-- `ingest:once` — one-off run of `ingest-toll-plazas`, no Redis required
-- `worker` — long-running BullMQ worker + monthly schedule registration
+- `ingest:once` — one-off run of `ingest-toll-plazas` (ANTT), no Redis required
+- `ingest:osm:once` — one-off run of `ingest-toll-plazas-osm` (OSM), no Redis required
+- `worker` — long-running BullMQ worker + both monthly schedule registrations
