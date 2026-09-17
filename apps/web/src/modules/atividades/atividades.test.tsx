@@ -65,6 +65,13 @@ describe('Atividades module', () => {
     expect(fetchSpy).not.toHaveBeenCalled();
   });
 
+  it('marks the search card so the compact map panel can keep a single grid column', () => {
+    mockApi();
+    renderApp('/atividades');
+
+    expect(screen.getByText('Encontrar atividade').closest('.activity-search-card')).toBeInTheDocument();
+  });
+
   it('shows a validation message instead of a total when the input is invalid', async () => {
     const user = userEvent.setup();
     mockApi();

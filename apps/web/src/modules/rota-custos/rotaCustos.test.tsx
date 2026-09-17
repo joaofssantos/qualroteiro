@@ -256,14 +256,14 @@ describe('Tela 2 — resultado', () => {
     expect(screen.queryByText(/três corredores|base de demonstração/i)).not.toBeInTheDocument();
   });
 
-  it('keeps every tab label available without truncating Alternativas', async () => {
+  it('keeps every tab label available without horizontal scrolling', async () => {
     await planFromForm({ routes: [DUTRA_ROUTE, ALTERNATIVE_ROUTE] });
     await screen.findByRole('heading', { name: /resultado da rota/i });
 
     const alternatives = panel().getByRole('tab', { name: 'Alternativas' });
-    expect(alternatives).toHaveClass('min-w-max');
+    expect(alternatives).toHaveClass('min-w-0', 'basis-[45%]');
     expect(alternatives).toHaveClass('text-xs');
-    expect(alternatives.parentElement).toHaveClass('overflow-x-auto');
+    expect(alternatives.parentElement).toHaveClass('flex-wrap', 'overflow-visible');
   });
 
   it('shows litres, price and cost on the fuel tab, and the cost is litres × price', async () => {
