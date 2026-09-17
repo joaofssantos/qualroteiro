@@ -112,12 +112,18 @@ describe('restaurantes module', () => {
     await user.click(screen.getByRole('button', { name: /Casa do Porco/ }));
     expect(screen.getByLabelText('Nome do lugar')).toHaveValue(RESTAURANT.name);
     expect(screen.getByLabelText('Endereço')).toHaveValue(RESTAURANT.address);
+    expect(screen.queryByRole('list', { name: 'Restaurantes encontrados' })).not.toBeInTheDocument();
 
     await act(async () => {
       useMapStore.getState().onMarkerClick?.('restaurant-results', RESTAURANT.id);
     });
     expect(screen.getByLabelText('Nome do lugar')).toHaveValue(RESTAURANT.name);
     expect(screen.getByLabelText('Endereço')).toHaveValue(RESTAURANT.address);
+
+    const referenceInput = screen.getByLabelText('Ponto de referência');
+    await user.clear(referenceInput);
+    await chooseReference(user);
+    expect(await screen.findByRole('list', { name: 'Restaurantes encontrados' })).toBeInTheDocument();
   });
 
   it('keeps the cost calculator usable when nearby search fails', async () => {

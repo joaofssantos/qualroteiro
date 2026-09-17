@@ -112,9 +112,15 @@ describe('Atividades module', () => {
 
     expect(screen.getByLabelText('Nome do lugar')).toHaveValue(MUSEUM.name);
     expect(screen.getByLabelText('Endereço')).toHaveValue(MUSEUM.address);
+    expect(screen.queryByRole('list', { name: 'Atividades encontradas' })).not.toBeInTheDocument();
     expect(useMapStore.getState().layers[0]?.markers).toEqual([
       expect.objectContaining({ id: MUSEUM.id, label: MUSEUM.name }),
     ]);
+
+    const referenceInput = screen.getByRole('combobox', { name: 'Buscar perto de' });
+    await user.clear(referenceInput);
+    await searchNearRio(user);
+    expect(await screen.findByRole('list', { name: 'Atividades encontradas' })).toBeInTheDocument();
   });
 
   it('uses the shared-map marker handler to select the same activity', async () => {

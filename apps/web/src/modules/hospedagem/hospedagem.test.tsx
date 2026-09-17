@@ -84,12 +84,19 @@ describe('Hospedagem module', () => {
     await user.click(within(results).getByRole('button', { name: /Hotel Atlântico/ }));
     expect(screen.getByLabelText('Nome do lugar')).toHaveValue('Hotel Atlântico');
     expect(screen.getByLabelText('Endereço')).toHaveValue('Av. Atlântica, 1');
+    expect(screen.queryByRole('list', { name: 'Hospedagens encontradas' })).not.toBeInTheDocument();
 
     await user.clear(screen.getByLabelText('Nome do lugar'));
     await user.clear(screen.getByLabelText('Endereço'));
     act(() => useMapStore.getState().onMarkerClick?.('lodging-places', HOTEL.id));
     expect(screen.getByLabelText('Nome do lugar')).toHaveValue('Hotel Atlântico');
     expect(screen.getByLabelText('Endereço')).toHaveValue('Av. Atlântica, 1');
+
+    const referenceInput = screen.getByLabelText('Cidade, bairro ou endereço');
+    await user.clear(referenceInput);
+    await user.type(referenceInput, 'Rio');
+    await user.click(await screen.findByRole('option', { name: /Rio de Janeiro/ }));
+    expect(await screen.findByRole('list', { name: 'Hospedagens encontradas' })).toBeInTheDocument();
 
     expect(useMapStore.getState().layers).toHaveLength(1);
     rendered.unmount();
