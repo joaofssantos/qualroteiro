@@ -15,14 +15,15 @@ import {
   verticalListSortingStrategy,
 } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
-import { CalendarDays, GripVertical, Plus, Trash2, WalletCards } from 'lucide-react';
+import { CalendarDays, ExternalLink, GripVertical, Plus, Trash2, WalletCards } from 'lucide-react';
 import { type FormEvent, useCallback, useEffect, useMemo, useState } from 'react';
-import { Link, Route, Routes, useParams } from 'react-router-dom';
+import { Link, Route, Routes, useNavigate, useParams } from 'react-router-dom';
 
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, EmptyState } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import type { PlannedRoute } from '@/core/api/types';
 import {
   createTrip,
   deleteTripItem,
@@ -36,11 +37,19 @@ import {
   type TripSummary,
 } from '@/core/api/trips';
 import { useQualAuth } from '@/core/auth/AuthContext';
+import type { MapLayerData } from '@/core/map/layers';
+import { useMapStore } from '@/core/map/mapStore';
 import type { ModuleDefinition } from '@/core/registry/types';
+import { type PlanQuery, useRouteStore } from '@/core/store/routeStore';
 import { formatCurrency } from '@/lib/format';
 
 import { describeTripItem } from './describeTripItem';
 import { MODULE_PATH } from './module';
+import { MODULE_PATH as ROTA_CUSTOS_PATH } from '../rota-custos/module';
+import { extractSavedRoute, extractTripItemCoordinate } from './tripItemGeo';
+
+/** The single map layer this screen publishes — every item with a coordinate, one marker each. */
+const TRIP_ITEMS_LAYER_ID = 'trip-items';
 
 type TripDayWithItems = TripDetail['days'][number];
 type MutableTripDay = TripDay & { items: TripItem[] };
@@ -220,7 +229,7 @@ function TripListScreen() {
   }
 
   return (
-    <section className="mx-auto flex w-full max-w-5xl flex-col gap-5 px-4 py-6 md:px-8">
+    <section className="map-panel-content mx-auto flex w-full max-w-5xl flex-col gap-5 px-4 py-6 md:px-8">
       <header className="flex flex-col gap-1">
         <h1 className="text-2xl font-bold tracking-tight text-primary">Planejamento de Viagem</h1>
         <p className="text-sm text-muted-foreground">
@@ -292,6 +301,7 @@ function TripListScreen() {
 
 export function TripDetailScreen() {
   const { tripId } = useParams();
+  const navigate = useNavigate();
   const auth = useQualAuth();
   const [trip, setTrip] = useState<TripDetail | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -302,6 +312,10 @@ export function TripDetailScreen() {
     useSensor(PointerSensor),
     useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates }),
   );
+
+  const setMapLayers = useMapStore((s) => s.setMapLayers);
+  const clearMap = useMapStore((s) => s.clearMap);
+  const restoreRoute = useRouteStore((s) => s.restoreRoute);
 
   const reload = useCallback(async () => {
     if (!tripId) return;
@@ -379,6 +393,41 @@ export function TripDetailScreen() {
     [trip],
   );
 
+  // One marker per item that has a coordinate, across every day — not just
+  // the day currently in view. An item without one (a manual entry, or
+  // anything saved before its module started keeping coordinates) is simply
+  // left out: no error, no phantom pin.
+  const mapLayers = useMemo<readonly (MapLayerData & { visible: boolean })[]>(() => {
+    const markers = (trip?.days ?? []).flatMap((day) =>
+      day.items.flatMap((item) => {
+        const coordinate = extractTripItemCoordinate(item);
+        return coordinate
+          ? [{ id: item.id, lat: coordinate.lat, lng: coordinate.lng, label: item.title, kind: item.moduleId }]
+          : [];
+      }),
+    );
+    return [{ id: TRIP_ITEMS_LAYER_ID, label: 'Itens da viagem', visible: true, markers }];
+  }, [trip]);
+
+  useEffect(() => {
+    setMapLayers(mapLayers);
+  }, [mapLayers, setMapLayers]);
+
+  // The shell keeps MapCanvas alive between modules; remove this screen's
+  // markers explicitly on unmount so they never leak into whatever the user
+  // opens next (another trip, or another module entirely).
+  useEffect(() => {
+    return () => clearMap();
+  }, [clearMap]);
+
+  // A rota-custos item with a saved query reopens Tela 2 exactly as it was
+  // planned/saved — restoreRoute puts the route + query back in the store
+  // without recalculating, then navigation takes the user there.
+  function onReopenRoute(route: PlannedRoute, query: PlanQuery) {
+    restoreRoute(route, query);
+    navigate(`${ROTA_CUSTOS_PATH}/resultado`);
+  }
+
   if (error) {
     return (
       <section className="mx-auto max-w-3xl px-4 py-8">
@@ -396,7 +445,7 @@ export function TripDetailScreen() {
   }
 
   return (
-    <section className="mx-auto flex w-full max-w-5xl flex-col gap-5 px-4 py-6 md:px-8">
+    <section className="map-panel-content mx-auto flex w-full max-w-5xl flex-col gap-5 px-4 py-6 md:px-8">
       <header className="flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
         <div>
           <Button asChild variant="ghost" size="sm" className="-ml-3 mb-2">
@@ -432,6 +481,7 @@ export function TripDetailScreen() {
                   dayIndex={index}
                   deletingItemId={deletingItemId}
                   onDeleteItem={onDeleteItem}
+                  onReopenRoute={onReopenRoute}
                 />
               ))}
             </div>
@@ -447,11 +497,13 @@ function SortableDayCard({
   dayIndex,
   deletingItemId,
   onDeleteItem,
+  onReopenRoute,
 }: {
   readonly day: TripDayWithItems;
   readonly dayIndex: number;
   readonly deletingItemId: string | null;
   readonly onDeleteItem: (dayId: string, item: TripItem) => void | Promise<void>;
+  readonly onReopenRoute: (route: PlannedRoute, query: PlanQuery) => void;
 }) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
     id: dayDragId(day.id),
@@ -499,6 +551,7 @@ function SortableDayCard({
                   item={item}
                   deletingItemId={deletingItemId}
                   onDeleteItem={onDeleteItem}
+                  onReopenRoute={onReopenRoute}
                 />
               ))}
             </ol>
@@ -514,11 +567,13 @@ function SortableTripItem({
   item,
   deletingItemId,
   onDeleteItem,
+  onReopenRoute,
 }: {
   readonly dayId: string;
   readonly item: TripItem;
   readonly deletingItemId: string | null;
   readonly onDeleteItem: (dayId: string, item: TripItem) => void | Promise<void>;
+  readonly onReopenRoute: (route: PlannedRoute, query: PlanQuery) => void;
 }) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
     id: itemDragId(item.id),
@@ -527,6 +582,9 @@ function SortableTripItem({
     transform: CSS.Translate.toString(transform),
     transition,
   };
+  // Only a saved route with a query can be reopened — a Wave 1/pre-Wave-2
+  // route item (no query saved) shows normally, just without this action.
+  const savedRoute = item.moduleId === 'rota-custos' ? extractSavedRoute(item) : null;
 
   return (
     <li
@@ -555,6 +613,18 @@ function SortableTripItem({
         <div className="flex shrink-0 items-center gap-2">
           {item.costEstimate != null ? (
             <span className="text-sm font-semibold text-primary">{formatCurrency(item.costEstimate)}</span>
+          ) : null}
+          {savedRoute ? (
+            <Button
+              type="button"
+              variant="ghost"
+              size="icon"
+              aria-label={`Reabrir rota ${item.title}`}
+              title="Reabrir rota"
+              onClick={() => onReopenRoute(savedRoute.route, savedRoute.query)}
+            >
+              <ExternalLink className="size-4 text-accent" />
+            </Button>
           ) : null}
           <Button
             type="button"
@@ -585,4 +655,5 @@ export const planejamentoViagemModule: ModuleDefinition = {
   icon: CalendarDays,
   path: MODULE_PATH,
   Panel: PlanningPanel,
+  showMap: true,
 };
