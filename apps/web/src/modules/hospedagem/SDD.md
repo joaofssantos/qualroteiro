@@ -13,6 +13,24 @@ inventamos coordenada por geocoding reverso ou heurística. Falha ou lista vazia
 calculadora. Ao desmontar, o módulo chama `clearMap()` para não deixar marcadores no próximo
 módulo.
 
+### Raio configurável e filtro de tipo (j-20260917-qv, Wave 2)
+
+O card "Buscar perto de" ganhou `NearbySearchControls` (`@/core/components/NearbySearchControls`,
+compartilhado com Restaurantes/Atividades): um `<Select>` de raio (marcos 1/3/5/10/20 km,
+`RADIUS_OPTIONS` em `@/core/api/placeTypes.ts`, default 3 km — o mesmo default do backend) e chips
+de tipo (multi-seleção, lista curada de 6 tipos de `PLACE_TYPE_OPTIONS.hospedagem`, mesmos valores
+do `PLACE_TYPE_ALLOWLIST.hospedagem` de `apps/api`). Nenhum chip selecionado mantém o comportamento
+de hoje (tipo-base `lodging`, sem enviar `types`); um ou mais chips substituem (não somam) o tipo-base.
+
+Mudar o raio ou os tipos selecionados **re-dispara a busca automaticamente** — ambos entram na
+dependência do mesmo `useEffect` que já reage a `reference.place`, o mesmo padrão do efeito
+existente, sem exigir um clique extra em "buscar". `radiusMeters` e `types` vão para
+`searchNearbyPlaces()` a cada busca.
+
+Este controle não interfere no comportamento de esconder a lista quando `selectedPlaceId !== null`
+(PR #46) nem na propagação de `lat`/`lng` do lugar selecionado (`j-20260917-up` Wave 1) — nenhum dos
+dois estados é tocado por esta mudança.
+
 ## Contrato
 
 - `calculateLodgingCost(stay)` calcula `nights` pela diferença entre `checkIn` e `checkOut`, em datas ISO `YYYY-MM-DD`.

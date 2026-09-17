@@ -141,16 +141,24 @@ export async function searchPlaces(q: string, signal?: AbortSignal): Promise<rea
  * module cannot accidentally ask Google for a category the product does not show.
  * The reference point always comes from a selected `PlaceSearch` hit, so callers
  * send its precise coordinates rather than asking the API to geocode again.
+ *
+ * `types`, when given, is serialized as a single comma-separated `types` query
+ * value — one of the two forms `parseTypesParam` (`apps/api/src/http/validate.ts`)
+ * accepts, the other being a repeated `types=`. An empty array is treated the
+ * same as `undefined` (omit the param) so "no type selected" keeps sending
+ * nothing, which the API/provider read as today's single base type per category.
  */
 export async function searchNearbyPlaces(
   lat: number,
   lng: number,
   category: PlaceCategory,
   radiusMeters?: number,
+  types?: readonly string[],
   signal?: AbortSignal,
 ): Promise<readonly PlaceResult[]> {
   const params = new URLSearchParams({ lat: String(lat), lng: String(lng), category });
   if (radiusMeters !== undefined) params.set('radiusMeters', String(radiusMeters));
+  if (types !== undefined && types.length > 0) params.set('types', types.join(','));
 
   let response: Response;
   try {

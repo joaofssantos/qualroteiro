@@ -151,7 +151,7 @@ describe('Atividades module', () => {
       fetchSpy.mock.calls.some(
         ([url]) =>
           String(url) ===
-          '/api/places/nearby?lat=-22.9068&lng=-43.1729&category=atividades',
+          '/api/places/nearby?lat=-22.9068&lng=-43.1729&category=atividades&radiusMeters=3000',
       ),
     ).toBe(true);
 
@@ -182,6 +182,53 @@ describe('Atividades module', () => {
 
     expect(screen.getByLabelText('Nome do lugar')).toHaveValue(MUSEUM.name);
     expect(screen.getByLabelText('Endereço')).toHaveValue(MUSEUM.address);
+  });
+
+  it('changing the radius re-queries with the new radiusMeters, and type chips add/remove types', async () => {
+    const user = userEvent.setup();
+    const fetchSpy = mockNearbyApi();
+
+    renderApp('/atividades');
+    await searchNearRio(user);
+    await screen.findByText(MUSEUM.address);
+
+    expect(
+      fetchSpy.mock.calls.some(
+        ([url]) =>
+          String(url) ===
+          '/api/places/nearby?lat=-22.9068&lng=-43.1729&category=atividades&radiusMeters=3000',
+      ),
+    ).toBe(true);
+
+    await user.selectOptions(screen.getByLabelText('Raio de busca'), '20000');
+    await waitFor(() =>
+      expect(
+        fetchSpy.mock.calls.some(
+          ([url]) =>
+            String(url) ===
+            '/api/places/nearby?lat=-22.9068&lng=-43.1729&category=atividades&radiusMeters=20000',
+        ),
+      ).toBe(true),
+    );
+
+    await user.click(screen.getByRole('button', { name: 'Museu' }));
+    await waitFor(() =>
+      expect(
+        fetchSpy.mock.calls.some(
+          ([url]) =>
+            String(url) ===
+            '/api/places/nearby?lat=-22.9068&lng=-43.1729&category=atividades&radiusMeters=20000&types=museum',
+        ),
+      ).toBe(true),
+    );
+
+    await user.click(screen.getByRole('button', { name: 'Museu' }));
+    await waitFor(() => {
+      const lastCall = fetchSpy.mock.calls.at(-1);
+      expect(String(lastCall?.[0])).toBe(
+        '/api/places/nearby?lat=-22.9068&lng=-43.1729&category=atividades&radiusMeters=20000',
+      );
+    });
   });
 
   it('keeps the manual calculator available when nearby search fails', async () => {

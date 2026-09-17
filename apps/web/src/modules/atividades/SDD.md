@@ -28,6 +28,13 @@ ponto de referência resolvido pelo autocomplete. A busca usa
   Em uma falha, a calculadora manual permanece editável.
 - O módulo chama `clearMap()` no unmount para não deixar marcadores no próximo
   módulo que o usuário visitar.
+- `NearbySearchControls` (`@/core/components/NearbySearchControls`, compartilhado com
+  Hospedagem/Restaurantes) adiciona um `<Select>` de raio (1/3/5/10/20 km, default 3 km) e
+  chips de tipo (multi-seleção, `PLACE_TYPE_OPTIONS.atividades` — 8 tipos curados, mesmos
+  valores de `PLACE_TYPE_ALLOWLIST.atividades` em `apps/api`). Nenhum chip selecionado mantém
+  o tipo-base `tourist_attraction`; um ou mais chips substituem-no. Mudar o raio ou os tipos
+  re-dispara `searchNearbyPlaces()` automaticamente (mesmo `useEffect` que já reage a
+  `reference.place`), sem exigir um novo clique em buscar.
 
 ## Integração com Trips
 
@@ -63,4 +70,6 @@ Usuário deslogado continua usando a calculadora; o botão de salvar não aparec
   mapa com assert direto em `useMapStore.getState()`.
 - `SaveActivityToTripDialog`: logado salva com `costEstimate`/`payload`
   corretos; deslogado não renderiza a ação.
+- Mudar o raio no `<Select>` reenvia `radiusMeters` atualizado; marcar/desmarcar
+  chips de tipo reenvia `types` (ou o omite quando nenhum chip está marcado).
 - `pnpm --filter @qualroteiro/web build/typecheck/lint/test` verdes.

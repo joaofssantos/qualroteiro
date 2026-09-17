@@ -162,10 +162,28 @@ describe('searchNearbyPlaces', () => {
     const calls = mockFetch(() => json({ places: [] }));
     const controller = new AbortController();
 
-    await searchNearbyPlaces(-23.5, -46.6, 'restaurantes', 5_000, controller.signal);
+    await searchNearbyPlaces(-23.5, -46.6, 'restaurantes', 5_000, undefined, controller.signal);
 
     expect(calls[0]?.url).toBe('/api/places/nearby?lat=-23.5&lng=-46.6&category=restaurantes&radiusMeters=5000');
     expect(calls[0]?.init?.signal).toBe(controller.signal);
+  });
+
+  it('includes an optional types param as a comma-separated list', async () => {
+    const calls = mockFetch(() => json({ places: [] }));
+
+    await searchNearbyPlaces(-23.5, -46.6, 'restaurantes', 5_000, ['cafe', 'bar']);
+
+    expect(calls[0]?.url).toBe(
+      '/api/places/nearby?lat=-23.5&lng=-46.6&category=restaurantes&radiusMeters=5000&types=cafe%2Cbar',
+    );
+  });
+
+  it('omits types when the array is empty, same as when undefined', async () => {
+    const calls = mockFetch(() => json({ places: [] }));
+
+    await searchNearbyPlaces(-23.5, -46.6, 'restaurantes', undefined, []);
+
+    expect(calls[0]?.url).toBe('/api/places/nearby?lat=-23.5&lng=-46.6&category=restaurantes');
   });
 
   it('also works for the atividades category', async () => {
