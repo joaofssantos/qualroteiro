@@ -6,6 +6,9 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import type { LodgingStay } from '../hospedagem/calc';
 import type { TripDetail, TripItem } from '@/core/api/trips';
+import { useMapStore } from '@/core/map/mapStore';
+import { useRouteStore } from '@/core/store/routeStore';
+import { DUTRA_ROUTE, PLAN_QUERY_FIXTURE } from '@/test/fixtures';
 
 const getToken = vi.fn(async () => 'session-token');
 let dragEnd: ((event: { active: { id: string }; over: { id: string } | null }) => void) | null = null;
@@ -145,10 +148,39 @@ async function renderTripDetail() {
   );
 }
 
+/** Same as `renderTripDetail`, plus a route to land on after reopening a saved route. */
+async function renderTripDetailWithResultRoute() {
+  const { TripDetailScreen } = await import('./index');
+  return render(
+    <MemoryRouter initialEntries={['/trip-1']}>
+      <Routes>
+        <Route path=":tripId" element={<TripDetailScreen />} />
+        <Route path="/rota-custos/resultado" element={<div data-testid="resultado-route" />} />
+      </Routes>
+    </MemoryRouter>,
+  );
+}
+
+function rotaItem(payload: unknown, overrides: Partial<TripItem> = {}): TripItem {
+  return {
+    id: 'rota-item',
+    tripDayId: 'day-1',
+    order: 0,
+    moduleId: 'rota-custos',
+    kind: 'route',
+    title: 'São Paulo → Rio de Janeiro',
+    payload,
+    costEstimate: DUTRA_ROUTE.tolls.total + DUTRA_ROUTE.fuel.cost,
+    ...overrides,
+  };
+}
+
 afterEach(() => {
   vi.clearAllMocks();
   vi.unstubAllGlobals();
   dragEnd = null;
+  useMapStore.getState().clearMap();
+  useRouteStore.getState().reset();
 });
 
 describe('TripDetailScreen — delete item', () => {
@@ -336,5 +368,103 @@ describe('TripDetailScreen — per-module rich summary', () => {
 
     await screen.findByText('Frete São Paulo → Curitiba');
     expect(screen.getByText('frete · shipment')).toBeInTheDocument();
+  });
+});
+
+describe('TripDetailScreen — map pins (j-20260917-up Wave 3)', () => {
+  it('publishes one marker per item that has a coordinate, across every day, skipping items that have none', async () => {
+    const trips = await import('@/core/api/trips');
+    const hotelWithCoord = stayItem({ id: 'hotel-1', title: 'Hotel Com Coordenada' });
+    const routeWithQuery = rotaItem(
+      { ...DUTRA_ROUTE, query: PLAN_QUERY_FIXTURE },
+      { id: 'route-1', title: 'Rota com query' },
+    );
+    const restaurantManual = stayItem({
+      id: 'rest-1',
+      moduleId: 'restaurantes',
+      kind: 'meal',
+      title: 'Restaurante manual',
+      payload: { lat: null, lng: null },
+    });
+    const routeNoQuery = rotaItem({ ...DUTRA_ROUTE }, { id: 'route-2', title: 'Rota antiga sem query' });
+
+    vi.mocked(trips.getTrip).mockResolvedValueOnce(
+      tripWith([hotelWithCoord, routeWithQuery, restaurantManual], [routeNoQuery]),
+    );
+
+    await renderTripDetail();
+    await screen.findByText('Rota antiga sem query');
+
+    const layers = useMapStore.getState().layers;
+    expect(layers).toHaveLength(1);
+    const markerIds = layers[0]?.markers.map((marker) => marker.id).sort();
+    // Exactly the two items with a usable coordinate — the manually-entered
+    // restaurant (lat/lng null) and the pre-Wave-2 route (no query) are left
+    // out, not errored on.
+    expect(markerIds).toEqual(['hotel-1', 'route-1']);
+  });
+
+  it('clears its markers on unmount so nothing leaks into whatever opens next', async () => {
+    const trips = await import('@/core/api/trips');
+    vi.mocked(trips.getTrip).mockResolvedValueOnce(tripWith([stayItem({ id: 'hotel-1' })]));
+
+    const view = await renderTripDetail();
+    await screen.findByText(STAY.placeName);
+    expect(useMapStore.getState().layers[0]?.markers).toHaveLength(1);
+
+    view.unmount();
+
+    expect(useMapStore.getState().layers).toEqual([]);
+    expect(useMapStore.getState().trace).toBeNull();
+  });
+});
+
+describe('TripDetailScreen — reopening a saved route (j-20260917-up Wave 3)', () => {
+  it('navigates to /rota-custos/resultado and restores the exact saved route + query when the item has a query', async () => {
+    const trips = await import('@/core/api/trips');
+    const payload = { ...DUTRA_ROUTE, query: PLAN_QUERY_FIXTURE };
+    vi.mocked(trips.getTrip).mockResolvedValueOnce(tripWith([rotaItem(payload)]));
+
+    const user = userEvent.setup();
+    await renderTripDetailWithResultRoute();
+
+    const reopenButton = await screen.findByRole('button', { name: /Reabrir rota/i });
+    await user.click(reopenButton);
+
+    expect(await screen.findByTestId('resultado-route')).toBeInTheDocument();
+
+    const state = useRouteStore.getState();
+    // Same distance/tolls/fuel figures the payload was saved with — this is a
+    // restore, not a recalculation.
+    expect(state.routes).toEqual([DUTRA_ROUTE]);
+    expect(state.routes[0]?.distanceKm).toBe(DUTRA_ROUTE.distanceKm);
+    expect(state.routes[0]?.tolls.total).toBe(DUTRA_ROUTE.tolls.total);
+    expect(state.routes[0]?.fuel.cost).toBe(DUTRA_ROUTE.fuel.cost);
+    expect(state.query).toEqual(PLAN_QUERY_FIXTURE);
+  });
+
+  it('shows a rota-custos item saved without a query normally, with no reopen action and no crash', async () => {
+    const trips = await import('@/core/api/trips');
+    // The exact pre-Wave-2 shape: `PlannedRoute` fields at the payload root,
+    // no `query` key at all.
+    const oldPayload = { ...DUTRA_ROUTE };
+    expect('query' in oldPayload).toBe(false);
+    vi.mocked(trips.getTrip).mockResolvedValueOnce(tripWith([rotaItem(oldPayload)]));
+
+    await renderTripDetail();
+
+    await screen.findByText('São Paulo → Rio de Janeiro');
+    expect(screen.queryByRole('button', { name: /Reabrir rota/i })).not.toBeInTheDocument();
+    expect(useRouteStore.getState().routes).toEqual([]);
+  });
+
+  it('does not offer the reopen action for a hospedagem/restaurantes/atividades item', async () => {
+    const trips = await import('@/core/api/trips');
+    vi.mocked(trips.getTrip).mockResolvedValueOnce(tripWith([stayItem()]));
+
+    await renderTripDetail();
+
+    await screen.findByText(STAY.placeName);
+    expect(screen.queryByRole('button', { name: /Reabrir rota/i })).not.toBeInTheDocument();
   });
 });
