@@ -73,6 +73,15 @@ interface RouteStore {
   setActiveIndex(index: number): void;
   reset(): void;
 
+  /**
+   * Restore a previously-saved route + query directly into the state, as if it
+   * had just come back from `/routes/plan` — without calling the API. Used to
+   * reopen a route saved to a trip: the trace, tolls and fuel figures shown are
+   * exactly what was saved, not a fresh recalculation. Leaves `status`/`error`
+   * untouched (this is not a new query, so it never becomes `'loading'`).
+   */
+  restoreRoute(route: PlannedRoute, query: PlanQuery): void;
+
   /** Register a named layer. Idempotent: re-registering keeps current visibility. */
   registerLayer(descriptor: MapLayerDescriptor): void;
   toggleLayer(id: string): void;
@@ -101,6 +110,8 @@ export const useRouteStore = create<RouteStore>((set) => ({
     set((state) => ({
       activeIndex: Math.min(Math.max(index, 0), Math.max(state.routes.length - 1, 0)),
     })),
+
+  restoreRoute: (route, query) => set({ query, routes: [route], activeIndex: 0 }),
 
   reset: () =>
     set({

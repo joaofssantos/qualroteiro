@@ -3,7 +3,8 @@ import userEvent from '@testing-library/user-event';
 import { MemoryRouter } from 'react-router-dom';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
-import { DUTRA_ROUTE } from '@/test/fixtures';
+import { useRouteStore } from '@/core/store/routeStore';
+import { DUTRA_ROUTE, PLAN_QUERY_FIXTURE } from '@/test/fixtures';
 
 import { SaveRouteToTripDialog } from './SaveRouteToTripDialog';
 
@@ -51,10 +52,12 @@ vi.mock('@/core/api/trips', () => ({
 
 afterEach(() => {
   vi.clearAllMocks();
+  useRouteStore.setState({ query: null });
 });
 
 describe('SaveRouteToTripDialog', () => {
-  it('saves the active route payload with the route cost estimate', async () => {
+  it('saves the active route payload, spread with the query, keeping distanceKm/durationMin at the root', async () => {
+    useRouteStore.setState({ query: PLAN_QUERY_FIXTURE });
     const trips = await import('@/core/api/trips');
     const user = userEvent.setup();
 
@@ -77,11 +80,23 @@ describe('SaveRouteToTripDialog', () => {
           moduleId: 'rota-custos',
           kind: 'route',
           title: 'São Paulo → Rio de Janeiro',
-          payload: DUTRA_ROUTE,
+          payload: { ...DUTRA_ROUTE, query: PLAN_QUERY_FIXTURE },
           costEstimate: DUTRA_ROUTE.tolls.total + DUTRA_ROUTE.fuel.cost,
         }),
       );
     });
+
+    const [, , , input] = vi.mocked(trips.createTripItem).mock.calls[0] as [
+      unknown,
+      unknown,
+      unknown,
+      { payload: { distanceKm: number; durationMin: number; query: unknown } },
+    ];
+    // `describeTripItem.ts`'s `describeRotaCustos` reads these at the payload
+    // root, not nested under `query` — the spread must keep them there.
+    expect(input.payload.distanceKm).toBe(DUTRA_ROUTE.distanceKm);
+    expect(input.payload.durationMin).toBe(DUTRA_ROUTE.durationMin);
+    expect(input.payload.query).toEqual(PLAN_QUERY_FIXTURE);
   });
 
   it('does not render the save action when the user is signed out', async () => {

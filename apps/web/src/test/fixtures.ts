@@ -11,6 +11,7 @@
 import { dutraCorridor } from '@qualroteiro/tolls';
 
 import type { PlannedRoute } from '@/core/api/types';
+import type { PlanQuery } from '@/core/store/routeStore';
 
 export const DUTRA_PLAZAS = dutraCorridor.plazas.slice(0, 3);
 
@@ -59,3 +60,14 @@ export const RIO_DE_JANEIRO = {
   lng: -43.1729,
   lat: -22.9068,
 } as const;
+
+/** The query that would have produced `DUTRA_ROUTE`, for Tela 2 / save-and-restore tests. */
+export const PLAN_QUERY_FIXTURE: PlanQuery = {
+  origin: { lng: SAO_PAULO.lng, lat: SAO_PAULO.lat },
+  destination: { lng: RIO_DE_JANEIRO.lng, lat: RIO_DE_JANEIRO.lat },
+  waypoints: [],
+  vehicle: { type: 'car', axleCategory: 'car', consumptionKmPerL: 10 },
+  fuelPricePerL: 6,
+  originLabel: SAO_PAULO.label,
+  destinationLabel: RIO_DE_JANEIRO.label,
+};

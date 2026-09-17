@@ -25,6 +25,7 @@ import {
 } from '@/core/api/trips';
 import { useQualAuth } from '@/core/auth/AuthContext';
 import type { PlannedRoute } from '@/core/api/types';
+import { useRouteStore } from '@/core/store/routeStore';
 
 import { MODULE_PATH as TRIPS_PATH } from '../planejamento-viagem/module';
 
@@ -38,6 +39,11 @@ interface SaveRouteToTripDialogProps {
 
 export function SaveRouteToTripDialog({ route, title }: SaveRouteToTripDialogProps) {
   const auth = useQualAuth();
+  // The query that produced `route`, so the saved payload carries enough to
+  // re-render Tela 2 without recalculating (see `restoreRoute`). Read from the
+  // store rather than a prop: this dialog only ever renders inside `ResultScreen`,
+  // which is already inside that context.
+  const query = useRouteStore((s) => s.query);
   const [open, setOpen] = useState(false);
   const [trips, setTrips] = useState<readonly TripSummary[]>([]);
   const [selectedTripId, setSelectedTripId] = useState(NEW_TRIP);
@@ -122,7 +128,13 @@ export function SaveRouteToTripDialog({ route, title }: SaveRouteToTripDialogPro
         moduleId: 'rota-custos',
         kind: 'route',
         title,
-        payload: route,
+        // Spread, not nested: `distanceKm`/`durationMin` (and the rest of
+        // `PlannedRoute`) stay at the payload root, which is what
+        // `describeTripItem.ts`'s `describeRotaCustos` already reads — only
+        // `query` is new. `query` may be `null` in principle (the store's
+        // type), though in practice this dialog only renders once a plan
+        // exists.
+        payload: { ...route, query },
         costEstimate,
       });
 
