@@ -11,7 +11,11 @@ import type { LngLat } from '@qualroteiro/geo';
 import { AXLE_CATEGORIES, type AxleCategory } from '@qualroteiro/tolls';
 
 import { ValidationError } from '../errors.js';
-import { PLACE_CATEGORIES, type PlaceCategory } from '../providers/google-places.js';
+import {
+  PLACE_CATEGORIES,
+  PLACE_TYPE_ALLOWLIST,
+  type PlaceCategory,
+} from '../providers/google-places.js';
 
 /** A place the client gave us: either coordinates already, or text to geocode. */
 export type PlaceInput = { readonly kind: 'coords'; readonly value: LngLat } | {
@@ -166,9 +170,26 @@ export interface NearbyQueryInput {
   readonly lng: number;
   readonly category: PlaceCategory;
   readonly radiusMeters: number;
+  /**
+   * Curated Places API (New) types to search within `category`, validated
+   * against that category's own allow-list (see {@link PLACE_TYPE_ALLOWLIST}).
+   * `undefined` when absent/empty — the provider then falls back to today's
+   * single base type per category.
+   */
+  readonly types?: readonly string[];
 }
 
 const DEFAULT_NEARBY_RADIUS_METERS = 3000;
+
+/**
+ * Places API (New) allows `locationRestriction.circle.radius` up to 50000m,
+ * but that ceiling belongs to the API, not to a sane product range. 20000
+ * (20km) aligns with the widest radius the UI offers (decision 4 of
+ * `orientation.md` for j-20260917-qv) — large enough for any real
+ * trip-planning search, so an over-large value fails fast here instead of
+ * being sent to (and billed by) Google.
+ */
+const MAX_NEARBY_RADIUS_METERS = 20000;
 
 /**
  * A query-string value, coerced from Fastify's raw string. Fastify hands
@@ -189,6 +210,51 @@ function parseNumberParam(raw: unknown, field: string): number {
 
 function isPlaceCategory(value: string): value is PlaceCategory {
   return (PLACE_CATEGORIES as readonly string[]).includes(value);
+}
+
+/**
+ * Parse the `types` query parameter and validate every value against
+ * `category`'s OWN curated allow-list — a type valid for a different
+ * category (e.g. `hotel` under `category=restaurantes`) is rejected, not
+ * silently accepted because it is valid for *some* category.
+ *
+ * Accepts either form Fastify hands back for `?types=`: a single
+ * comma-separated string (`types=museum,park`) or a repeated param, which
+ * Fastify turns into `string[]` (`types=museum&types=park`); a mix of both
+ * (a repeated param where an entry itself contains commas) is also handled.
+ * Absent, blank, or empty-after-trim yields `undefined` — the same "no
+ * types" outcome as never passing the parameter, so the provider falls back
+ * to today's single base type per category.
+ *
+ * @throws {ValidationError} naming `types` when any value falls outside
+ * `category`'s allow-list.
+ */
+function parseTypesParam(raw: unknown, category: PlaceCategory): readonly string[] | undefined {
+  if (raw === undefined) {
+    return undefined;
+  }
+
+  const rawValues = Array.isArray(raw) ? raw : [raw];
+  const types = rawValues
+    .flatMap((v) => (typeof v === 'string' ? v.split(',') : []))
+    .map((t) => t.trim())
+    .filter((t) => t.length > 0);
+
+  if (types.length === 0) {
+    return undefined;
+  }
+
+  const allowed = PLACE_TYPE_ALLOWLIST[category];
+  for (const type of types) {
+    if (!allowed.includes(type)) {
+      throw new ValidationError(
+        'types',
+        `types must be one of ${category}'s allowed types (${allowed.join(', ')}), got '${type}'`,
+      );
+    }
+  }
+
+  return types;
 }
 
 /**
@@ -227,7 +293,15 @@ export function parseNearbyQuery(query: unknown): NearbyQueryInput {
         `radiusMeters must be a positive number, got ${radiusMeters}`,
       );
     }
+    if (radiusMeters > MAX_NEARBY_RADIUS_METERS) {
+      throw new ValidationError(
+        'radiusMeters',
+        `radiusMeters must not exceed ${MAX_NEARBY_RADIUS_METERS}, got ${radiusMeters}`,
+      );
+    }
   }
 
-  return { lat, lng, category: rawCategory, radiusMeters };
+  const types = parseTypesParam(q['types'], rawCategory);
+
+  return { lat, lng, category: rawCategory, radiusMeters, types };
 }
