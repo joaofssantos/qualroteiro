@@ -85,6 +85,8 @@ vi.mock('@dnd-kit/utilities', () => ({
 const STAY: LodgingStay = {
   placeName: 'Pousada do Centro',
   address: 'Rua Central, 10',
+  lat: -22.971,
+  lng: -43.182,
   checkIn: '2026-10-01',
   checkOut: '2026-10-04',
   pricePerNight: 150,

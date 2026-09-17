@@ -1,10 +1,56 @@
-import { act, screen } from '@testing-library/react';
+import { act, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import { useMapStore } from '@/core/map/mapStore';
 import type { Place, PlaceResult } from '@/core/api/types';
 import { mockApi, renderApp, resetApp } from '@/test/renderApp';
+
+const getToken = vi.fn(async () => 'session-token');
+
+// `SaveActivityToTripDialog` only gates on `isSignedIn`; `isConfigured` stays
+// `false` so the real shell's `AuthActions` keeps rendering its "Login
+// indisponível" fallback instead of Clerk's `UserButton` (which needs a real
+// `ClerkProvider` this test tree does not have).
+vi.mock('@/core/auth/AuthContext', () => ({
+  useQualAuth: vi.fn(() => ({
+    isConfigured: false,
+    isLoaded: true,
+    isSignedIn: true,
+    userName: 'João',
+    getToken,
+  })),
+}));
+
+vi.mock('@/core/api/trips', () => ({
+  listTrips: vi.fn(async () => []),
+  getTrip: vi.fn(),
+  createTrip: vi.fn(async () => ({
+    id: 'trip-1',
+    userId: 'user-1',
+    title: 'Atividades',
+    startDate: null,
+    endDate: null,
+    createdAt: '2026-09-16T10:00:00.000Z',
+    updatedAt: '2026-09-16T10:00:00.000Z',
+  })),
+  createTripDay: vi.fn(async () => ({
+    id: 'day-1',
+    tripId: 'trip-1',
+    date: null,
+    order: 0,
+  })),
+  createTripItem: vi.fn(async () => ({
+    id: 'item-1',
+    tripDayId: 'day-1',
+    order: 0,
+    moduleId: 'atividades',
+    kind: 'activity',
+    title: 'Atividades',
+    payload: {},
+    costEstimate: 0,
+  })),
+}));
 
 const RIO: Place = { id: 'rio', label: 'Rio de Janeiro, RJ', lng: -43.1729, lat: -22.9068 };
 const MUSEUM: PlaceResult = {
@@ -42,6 +88,7 @@ async function searchNearRio(user: ReturnType<typeof userEvent.setup>): Promise<
 
 afterEach(() => {
   vi.unstubAllGlobals();
+  vi.clearAllMocks();
   resetApp();
 });
 
@@ -169,5 +216,61 @@ describe('Atividades module', () => {
     expect(useMapStore.getState().layers).toEqual([]);
     expect(useMapStore.getState().trace).toBeNull();
     expect(useMapStore.getState().onMarkerClick).toBeUndefined();
+  });
+
+  it('saves the coordinates of an activity selected from the search results', async () => {
+    const user = userEvent.setup();
+    mockNearbyApi();
+    const trips = await import('@/core/api/trips');
+
+    renderApp('/atividades');
+    await searchNearRio(user);
+
+    const result = await screen.findByRole('button', {
+      name: /Museu do Amanhã Praça Mauá, Rio de Janeiro - RJ/,
+    });
+    await user.click(result);
+
+    await user.click(screen.getByRole('button', { name: 'Salvar na viagem' }));
+    await screen.findByRole('dialog');
+    await user.click(screen.getByRole('button', { name: 'Salvar' }));
+
+    await waitFor(() => {
+      expect(trips.createTripItem).toHaveBeenCalledWith(
+        getToken,
+        'trip-1',
+        'day-1',
+        expect.objectContaining({
+          payload: expect.objectContaining({ lat: MUSEUM.lat, lng: MUSEUM.lng }),
+        }),
+      );
+    });
+  });
+
+  it('keeps lat/lng null when the plan is entered manually, without selecting a search result', async () => {
+    const user = userEvent.setup();
+    mockApi();
+    const trips = await import('@/core/api/trips');
+
+    renderApp('/atividades');
+
+    await user.clear(screen.getByLabelText('Nome do lugar'));
+    await user.type(screen.getByLabelText('Nome do lugar'), 'Tour a pé');
+    await user.type(screen.getByLabelText('Endereço'), 'Rua sem geocoding, 7');
+
+    await user.click(screen.getByRole('button', { name: 'Salvar na viagem' }));
+    await screen.findByRole('dialog');
+    await user.click(screen.getByRole('button', { name: 'Salvar' }));
+
+    await waitFor(() => {
+      expect(trips.createTripItem).toHaveBeenCalledWith(
+        getToken,
+        'trip-1',
+        'day-1',
+        expect.objectContaining({
+          payload: expect.objectContaining({ lat: null, lng: null }),
+        }),
+      );
+    });
   });
 });

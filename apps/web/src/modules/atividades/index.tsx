@@ -20,6 +20,8 @@ import { SaveActivityToTripDialog } from './SaveActivityToTripDialog';
 const DEFAULT_PLAN: ActivityPlan = {
   placeName: 'Passeio de barco',
   address: null,
+  lat: null,
+  lng: null,
   date: '2026-10-02',
   pricePerPerson: 150,
   people: 2,
@@ -33,6 +35,7 @@ type SearchState = 'idle' | 'loading' | 'error' | 'empty' | 'results';
 function AtividadesPanel() {
   const [placeName, setPlaceName] = useState(DEFAULT_PLAN.placeName);
   const [address, setAddress] = useState('');
+  const [coords, setCoords] = useState<{ readonly lat: number; readonly lng: number } | null>(null);
   const [date, setDate] = useState(DEFAULT_PLAN.date ?? '');
   const [pricePerPerson, setPricePerPerson] = useState(String(DEFAULT_PLAN.pricePerPerson));
   const [people, setPeople] = useState(String(DEFAULT_PLAN.people));
@@ -101,6 +104,7 @@ function AtividadesPanel() {
     setSelectedPlaceId(place.id);
     setPlaceName(place.name);
     setAddress(place.address);
+    setCoords({ lat: place.lat, lng: place.lng });
   }, []);
 
   useEffect(() => {
@@ -120,11 +124,13 @@ function AtividadesPanel() {
     () => ({
       placeName: placeName.trim() || 'Atividade',
       address: address.trim() || null,
+      lat: coords?.lat ?? null,
+      lng: coords?.lng ?? null,
       date: date || null,
       pricePerPerson: Number(pricePerPerson),
       people: Number(people),
     }),
-    [address, date, people, placeName, pricePerPerson],
+    [address, coords, date, people, placeName, pricePerPerson],
   );
 
   const result = useMemo(() => {
@@ -219,7 +225,10 @@ function AtividadesPanel() {
                 <Input
                   id="activity-address"
                   value={address}
-                  onChange={(event) => setAddress(event.target.value)}
+                  onChange={(event) => {
+                    setAddress(event.target.value);
+                    setCoords(null);
+                  }}
                   placeholder="Opcional"
                 />
               </div>
@@ -290,6 +299,7 @@ function AtividadesPanel() {
               onClick={() => {
                 setPlaceName(DEFAULT_PLAN.placeName);
                 setAddress('');
+                setCoords(null);
                 setDate(DEFAULT_PLAN.date ?? '');
                 setPricePerPerson(String(DEFAULT_PLAN.pricePerPerson));
                 setPeople(String(DEFAULT_PLAN.people));

@@ -5,6 +5,8 @@ import { calculateActivityCost, type ActivityPlan } from './calc';
 const PLAN: ActivityPlan = {
   placeName: 'Passeio de barco',
   address: null,
+  lat: null,
+  lng: null,
   date: '2026-10-02',
   pricePerPerson: 150,
   people: 2,

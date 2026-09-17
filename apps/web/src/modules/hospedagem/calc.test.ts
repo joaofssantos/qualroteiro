@@ -5,6 +5,8 @@ import { calculateLodgingCost, type LodgingStay } from './calc';
 const STAY: LodgingStay = {
   placeName: 'Hotel Atlântico',
   address: null,
+  lat: null,
+  lng: null,
   checkIn: '2026-10-01',
   checkOut: '2026-10-04',
   pricePerNight: 250,

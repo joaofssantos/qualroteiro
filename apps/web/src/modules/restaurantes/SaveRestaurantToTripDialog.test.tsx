@@ -11,6 +11,8 @@ const getToken = vi.fn(async () => 'session-token');
 const visit: RestaurantVisit = {
   placeName: 'Casa do Porco',
   address: 'Rua Araujo, 124',
+  lat: -23.561,
+  lng: -46.66,
   date: '2026-10-12',
   pricePerPerson: 120,
   people: 3,

@@ -21,8 +21,55 @@ const HOTEL: PlaceResult = {
   category: 'hospedagem',
 };
 
+const getToken = vi.fn(async () => 'session-token');
+
+// `SaveStayToTripDialog` only gates on `isSignedIn`; `isConfigured` stays
+// `false` so the real shell's `AuthActions` keeps rendering its "Login
+// indisponível" fallback instead of Clerk's `UserButton` (which needs a real
+// `ClerkProvider` this test tree does not have).
+vi.mock('@/core/auth/AuthContext', () => ({
+  useQualAuth: vi.fn(() => ({
+    isConfigured: false,
+    isLoaded: true,
+    isSignedIn: true,
+    userName: 'João',
+    getToken,
+  })),
+}));
+
+vi.mock('@/core/api/trips', () => ({
+  listTrips: vi.fn(async () => []),
+  getTrip: vi.fn(),
+  createTrip: vi.fn(async () => ({
+    id: 'trip-1',
+    userId: 'user-1',
+    title: 'Hospedagem',
+    startDate: null,
+    endDate: null,
+    createdAt: '2026-09-16T10:00:00.000Z',
+    updatedAt: '2026-09-16T10:00:00.000Z',
+  })),
+  createTripDay: vi.fn(async () => ({
+    id: 'day-1',
+    tripId: 'trip-1',
+    date: '2026-10-01',
+    order: 0,
+  })),
+  createTripItem: vi.fn(async () => ({
+    id: 'item-1',
+    tripDayId: 'day-1',
+    order: 0,
+    moduleId: 'hospedagem',
+    kind: 'stay',
+    title: 'Hospedagem',
+    payload: {},
+    costEstimate: 0,
+  })),
+}));
+
 afterEach(() => {
   vi.unstubAllGlobals();
+  vi.clearAllMocks();
   resetApp();
 });
 
@@ -117,5 +164,64 @@ describe('Hospedagem module', () => {
     await user.type(screen.getByLabelText('Preço/noite'), '150');
     expect(screen.getByText('R$ 300,00')).toBeInTheDocument();
 
+  });
+
+  it('saves the coordinates of a place selected from the search results', async () => {
+    const user = userEvent.setup();
+    mockApi({ places: [REFERENCE], nearbyPlaces: [HOTEL] });
+    const trips = await import('@/core/api/trips');
+
+    renderApp('/hospedagem');
+
+    await user.type(screen.getByLabelText('Cidade, bairro ou endereço'), 'Rio');
+    await waitFor(() =>
+      expect(screen.getByRole('option', { name: /Rio de Janeiro/ })).toBeInTheDocument(),
+    );
+    await user.click(screen.getByRole('option', { name: /Rio de Janeiro/ }));
+
+    const results = await screen.findByRole('list', { name: 'Hospedagens encontradas' });
+    await user.click(within(results).getByRole('button', { name: /Hotel Atlântico/ }));
+
+    await user.click(screen.getByRole('button', { name: 'Salvar na viagem' }));
+    await screen.findByRole('dialog');
+    await user.click(screen.getByRole('button', { name: 'Salvar' }));
+
+    await waitFor(() => {
+      expect(trips.createTripItem).toHaveBeenCalledWith(
+        getToken,
+        'trip-1',
+        'day-1',
+        expect.objectContaining({
+          payload: expect.objectContaining({ lat: HOTEL.lat, lng: HOTEL.lng }),
+        }),
+      );
+    });
+  });
+
+  it('keeps lat/lng null when the stay is entered manually, without selecting a search result', async () => {
+    const user = userEvent.setup();
+    mockApi();
+    const trips = await import('@/core/api/trips');
+
+    renderApp('/hospedagem');
+
+    await user.clear(screen.getByLabelText('Nome do lugar'));
+    await user.type(screen.getByLabelText('Nome do lugar'), 'Pousada da Vila');
+    await user.type(screen.getByLabelText('Endereço'), 'Rua sem geocoding, 123');
+
+    await user.click(screen.getByRole('button', { name: 'Salvar na viagem' }));
+    await screen.findByRole('dialog');
+    await user.click(screen.getByRole('button', { name: 'Salvar' }));
+
+    await waitFor(() => {
+      expect(trips.createTripItem).toHaveBeenCalledWith(
+        getToken,
+        'trip-1',
+        'day-1',
+        expect.objectContaining({
+          payload: expect.objectContaining({ lat: null, lng: null }),
+        }),
+      );
+    });
   });
 });
