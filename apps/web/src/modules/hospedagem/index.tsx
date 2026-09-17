@@ -20,6 +20,8 @@ import { SaveStayToTripDialog } from './SaveStayToTripDialog';
 const DEFAULT_STAY: LodgingStay = {
   placeName: 'Hotel Atlântico',
   address: null,
+  lat: null,
+  lng: null,
   checkIn: '2026-10-01',
   checkOut: '2026-10-03',
   pricePerNight: 320,
@@ -31,6 +33,7 @@ const EMPTY_REFERENCE: PlaceFieldValue = { text: '', place: null };
 function HospedagemPanel() {
   const [placeName, setPlaceName] = useState(DEFAULT_STAY.placeName);
   const [address, setAddress] = useState('');
+  const [coords, setCoords] = useState<{ readonly lat: number; readonly lng: number } | null>(null);
   const [checkIn, setCheckIn] = useState(DEFAULT_STAY.checkIn);
   const [checkOut, setCheckOut] = useState(DEFAULT_STAY.checkOut);
   const [pricePerNight, setPricePerNight] = useState(String(DEFAULT_STAY.pricePerNight));
@@ -98,6 +101,7 @@ function HospedagemPanel() {
     setSelectedPlaceId(place.id);
     setPlaceName(place.name);
     setAddress(place.address);
+    setCoords({ lat: place.lat, lng: place.lng });
   }
 
   useEffect(() => {
@@ -118,11 +122,13 @@ function HospedagemPanel() {
     () => ({
       placeName: placeName.trim() || 'Hospedagem',
       address: address.trim() || null,
+      lat: coords?.lat ?? null,
+      lng: coords?.lng ?? null,
       checkIn,
       checkOut,
       pricePerNight: Number(pricePerNight),
     }),
-    [address, checkIn, checkOut, placeName, pricePerNight],
+    [address, checkIn, checkOut, coords, placeName, pricePerNight],
   );
 
   const result = useMemo(() => {
@@ -217,7 +223,10 @@ function HospedagemPanel() {
                 <Input
                   id="lodging-address"
                   value={address}
-                  onChange={(event) => setAddress(event.target.value)}
+                  onChange={(event) => {
+                    setAddress(event.target.value);
+                    setCoords(null);
+                  }}
                   placeholder="Opcional"
                 />
               </div>
@@ -286,6 +295,7 @@ function HospedagemPanel() {
             <Button type="button" variant="outline" onClick={() => {
               setPlaceName(DEFAULT_STAY.placeName);
               setAddress('');
+              setCoords(null);
               setCheckIn(DEFAULT_STAY.checkIn);
               setCheckOut(DEFAULT_STAY.checkOut);
               setPricePerNight(String(DEFAULT_STAY.pricePerNight));

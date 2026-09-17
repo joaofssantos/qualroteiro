@@ -1,4 +1,4 @@
-import { act, render, screen } from '@testing-library/react';
+import { act, render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter } from 'react-router-dom';
 import { afterEach, describe, expect, it, vi } from 'vitest';
@@ -16,13 +16,45 @@ const RESTAURANT = {
   category: 'restaurantes' as const,
 };
 
+const getToken = vi.fn(async () => 'session-token');
+
 vi.mock('@/core/auth/AuthContext', () => ({
   useQualAuth: vi.fn(() => ({
     isConfigured: true,
     isLoaded: true,
-    isSignedIn: false,
-    userName: null,
-    getToken: vi.fn(async () => null),
+    isSignedIn: true,
+    userName: 'João',
+    getToken,
+  })),
+}));
+
+vi.mock('@/core/api/trips', () => ({
+  listTrips: vi.fn(async () => []),
+  getTrip: vi.fn(),
+  createTrip: vi.fn(async () => ({
+    id: 'trip-1',
+    userId: 'user-1',
+    title: 'Restaurantes',
+    startDate: null,
+    endDate: null,
+    createdAt: '2026-09-16T10:00:00.000Z',
+    updatedAt: '2026-09-16T10:00:00.000Z',
+  })),
+  createTripDay: vi.fn(async () => ({
+    id: 'day-1',
+    tripId: 'trip-1',
+    date: null,
+    order: 0,
+  })),
+  createTripItem: vi.fn(async () => ({
+    id: 'item-1',
+    tripDayId: 'day-1',
+    order: 0,
+    moduleId: 'restaurantes',
+    kind: 'meal',
+    title: 'Restaurantes',
+    payload: {},
+    costEstimate: 0,
   })),
 }));
 
@@ -48,6 +80,7 @@ async function chooseReference(user: ReturnType<typeof userEvent.setup>) {
 
 afterEach(() => {
   vi.unstubAllGlobals();
+  vi.clearAllMocks();
   useMapStore.getState().clearMap();
 });
 
@@ -151,5 +184,59 @@ describe('restaurantes module', () => {
     expect(useMapStore.getState().layers).toEqual([]);
     expect(useMapStore.getState().trace).toBeNull();
     expect(useMapStore.getState().onMarkerClick).toBeUndefined();
+  });
+
+  it('saves the coordinates of a restaurant selected from the search results', async () => {
+    mockPlaceRequests();
+    const user = userEvent.setup();
+    const trips = await import('@/core/api/trips');
+    const Panel = restaurantesModule.Panel;
+
+    render(<MemoryRouter><Panel /></MemoryRouter>);
+    await chooseReference(user);
+
+    await user.click(await screen.findByRole('button', { name: /Casa do Porco/ }));
+
+    await user.click(screen.getByRole('button', { name: 'Salvar na viagem' }));
+    await screen.findByRole('dialog');
+    await user.click(screen.getByRole('button', { name: 'Salvar' }));
+
+    await waitFor(() => {
+      expect(trips.createTripItem).toHaveBeenCalledWith(
+        getToken,
+        'trip-1',
+        'day-1',
+        expect.objectContaining({
+          payload: expect.objectContaining({ lat: RESTAURANT.lat, lng: RESTAURANT.lng }),
+        }),
+      );
+    });
+  });
+
+  it('keeps lat/lng null when the visit is entered manually, without selecting a search result', async () => {
+    const user = userEvent.setup();
+    const trips = await import('@/core/api/trips');
+    const Panel = restaurantesModule.Panel;
+
+    render(<MemoryRouter><Panel /></MemoryRouter>);
+
+    await user.clear(screen.getByLabelText('Nome do lugar'));
+    await user.type(screen.getByLabelText('Nome do lugar'), 'Restaurante da esquina');
+    await user.type(screen.getByLabelText('Endereço'), 'Rua sem geocoding, 99');
+
+    await user.click(screen.getByRole('button', { name: 'Salvar na viagem' }));
+    await screen.findByRole('dialog');
+    await user.click(screen.getByRole('button', { name: 'Salvar' }));
+
+    await waitFor(() => {
+      expect(trips.createTripItem).toHaveBeenCalledWith(
+        getToken,
+        'trip-1',
+        'day-1',
+        expect.objectContaining({
+          payload: expect.objectContaining({ lat: null, lng: null }),
+        }),
+      );
+    });
   });
 });

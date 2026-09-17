@@ -1,6 +1,8 @@
 export interface RestaurantVisit {
   readonly placeName: string;
   readonly address: string | null;
+  readonly lat: number | null;
+  readonly lng: number | null;
   readonly date: string | null;
   readonly pricePerPerson: number;
   readonly people: number;

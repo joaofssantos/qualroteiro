@@ -23,6 +23,7 @@ function parseMoney(value: string): number {
 function RestaurantPanel() {
   const [placeName, setPlaceName] = useState('Restaurante');
   const [address, setAddress] = useState('');
+  const [coords, setCoords] = useState<{ readonly lat: number; readonly lng: number } | null>(null);
   const [date, setDate] = useState('');
   const [pricePerPerson, setPricePerPerson] = useState('80');
   const [people, setPeople] = useState('2');
@@ -39,6 +40,7 @@ function RestaurantPanel() {
     setSelectedPlaceId(place.id);
     setPlaceName(place.name);
     setAddress(place.address);
+    setCoords({ lat: place.lat, lng: place.lng });
   }, []);
 
   useEffect(() => {
@@ -102,11 +104,13 @@ function RestaurantPanel() {
     () => ({
       placeName: placeName.trim() || 'Restaurante',
       address: address.trim() || null,
+      lat: coords?.lat ?? null,
+      lng: coords?.lng ?? null,
       date: date || null,
       pricePerPerson: parseMoney(pricePerPerson) || 0,
       people: Number.parseInt(people, 10) || 0,
     }),
-    [address, date, people, placeName, pricePerPerson],
+    [address, coords, date, people, placeName, pricePerPerson],
   );
 
   const costResult = useMemo(() => {
@@ -190,7 +194,10 @@ function RestaurantPanel() {
                   <Input
                     id="restaurant-address"
                     value={address}
-                    onChange={(event) => setAddress(event.target.value)}
+                    onChange={(event) => {
+                      setAddress(event.target.value);
+                      setCoords(null);
+                    }}
                     placeholder="Opcional"
                   />
                 </div>

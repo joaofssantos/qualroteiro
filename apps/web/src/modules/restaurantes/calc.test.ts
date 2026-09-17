@@ -8,6 +8,8 @@ describe('calculateRestaurantCost', () => {
       calculateRestaurantCost({
         placeName: 'Casa do Porco',
         address: 'Rua Araujo, 124',
+        lat: -23.561,
+        lng: -46.66,
         date: '2026-10-12',
         pricePerPerson: 120,
         people: 3,
@@ -20,6 +22,8 @@ describe('calculateRestaurantCost', () => {
       calculateRestaurantCost({
         placeName: 'Padaria da Esquina',
         address: null,
+        lat: null,
+        lng: null,
         date: null,
         pricePerPerson: 32.5,
         people: 1,
@@ -32,6 +36,8 @@ describe('calculateRestaurantCost', () => {
       calculateRestaurantCost({
         placeName: 'Café',
         address: null,
+        lat: null,
+        lng: null,
         date: null,
         pricePerPerson: 20,
         people: 0,
@@ -44,6 +50,8 @@ describe('calculateRestaurantCost', () => {
       calculateRestaurantCost({
         placeName: 'Café',
         address: null,
+        lat: null,
+        lng: null,
         date: null,
         pricePerPerson: -1,
         people: 2,

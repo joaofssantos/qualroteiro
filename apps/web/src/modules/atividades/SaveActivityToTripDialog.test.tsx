@@ -11,6 +11,8 @@ const getToken = vi.fn(async () => 'session-token');
 const PLAN: ActivityPlan = {
   placeName: 'Passeio de barco',
   address: 'Marina Central',
+  lat: -22.951,
+  lng: -43.21,
   date: '2026-10-02',
   pricePerPerson: 150,
   people: 2,

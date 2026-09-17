@@ -19,8 +19,11 @@ ponto de referência resolvido pelo autocomplete. A busca usa
 - `PlaceSearch` resolve cidade, bairro ou endereço em coordenadas; só então
   `searchNearbyPlaces(lat, lng, 'atividades')` é chamado.
 - Cada resultado da busca aparece na lista e em uma camada `atividade-lugares`
-  do mapa. Selecionar pela lista ou pelo marcador preenche `placeName` e
-  `address`; preço, data e pessoas seguem manuais.
+  do mapa. Selecionar pela lista ou pelo marcador preenche `placeName`,
+  `address` e a coordenada (`lat`/`lng`); preço, data e pessoas seguem
+  manuais. Editar o endereço manualmente depois de uma seleção — ou nunca
+  selecionar um resultado de busca — mantém `lat`/`lng` em `null`: nunca
+  inventamos coordenada por geocoding reverso ou heurística.
 - Loading, lista vazia e indisponibilidade do backend são estados explícitos.
   Em uma falha, a calculadora manual permanece editável.
 - O módulo chama `clearMap()` no unmount para não deixar marcadores no próximo
@@ -34,7 +37,8 @@ Rota & Custos / Hospedagem:
 - escolher viagem existente ou criar uma rápida;
 - escolher dia existente ou criar um dia;
 - chamar `createTripItem` com `moduleId: 'atividades'`, `kind: 'activity'`,
-  `title = plan.placeName`, `payload = ActivityPlan`, `costEstimate = totalCost`.
+  `title = plan.placeName`, `payload = ActivityPlan` (já inclui `lat`/`lng`,
+  `null` quando não vieram de uma seleção de busca), `costEstimate = totalCost`.
 
 Usuário deslogado continua usando a calculadora; o botão de salvar não aparece
 (`if (!auth.isSignedIn) return null;`).
@@ -52,6 +56,9 @@ Usuário deslogado continua usando a calculadora; o botão de salvar não aparec
 - Tela computa `totalCost` ao vivo (sem `fetch`).
 - Busca próxima envia as coordenadas escolhidas e `category=atividades`, mostra
   lista e marcadores, e ambos os caminhos de seleção preenchem o formulário.
+- Selecionar um resultado de busca preenche `lat`/`lng` no `ActivityPlan`;
+  editar manualmente sem selecionar mantém ambos `null`; salvar na viagem
+  persiste os dois campos no payload enviado a `createTripItem`.
 - Falha ou lista vazia não impede o cálculo manual; o unmount limpa a store de
   mapa com assert direto em `useMapStore.getState()`.
 - `SaveActivityToTripDialog`: logado salva com `costEstimate`/`payload`
