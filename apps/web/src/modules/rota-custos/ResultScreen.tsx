@@ -40,7 +40,7 @@ export function ResultScreen() {
   return (
     <aside
       aria-label="Custos da rota"
-      className="flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto border-border bg-background p-4 md:w-[26rem] md:flex-none md:border-l md:p-5"
+      className="flex min-w-0 min-h-0 flex-1 flex-col gap-4 overflow-y-auto border-border bg-background p-4 md:border-l md:p-5"
     >
       <div>
         <Button asChild variant="ghost" size="sm" className="-ml-2 mb-2 text-muted-foreground">
@@ -65,17 +65,17 @@ export function ResultScreen() {
       <SummaryRow route={route} />
 
       <Tabs defaultValue="pedagios" className="flex flex-none flex-col">
-        <TabsList className="min-h-10 shrink-0 gap-0.5 overflow-x-auto">
-          <TabsTrigger value="pedagios" className="min-w-max flex-none px-2 text-xs">
+        <TabsList className="min-h-10 shrink-0 flex-wrap gap-0.5 overflow-visible">
+          <TabsTrigger value="pedagios" className="min-w-0 flex-1 basis-[45%] px-2 text-xs">
             Pedágios
           </TabsTrigger>
-          <TabsTrigger value="combustivel" className="min-w-max flex-none px-2 text-xs">
+          <TabsTrigger value="combustivel" className="min-w-0 flex-1 basis-[45%] px-2 text-xs">
             Combustível
           </TabsTrigger>
-          <TabsTrigger value="pontos" className="min-w-max flex-none px-2 text-xs">
+          <TabsTrigger value="pontos" className="min-w-0 flex-1 basis-[45%] px-2 text-xs">
             Pontos na rota
           </TabsTrigger>
-          <TabsTrigger value="alternativas" className="min-w-max flex-none px-2 text-xs">
+          <TabsTrigger value="alternativas" className="min-w-0 flex-1 basis-[45%] px-2 text-xs">
             Alternativas
           </TabsTrigger>
         </TabsList>

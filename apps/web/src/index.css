@@ -107,4 +107,27 @@
   .dark .maplibregl-canvas {
     filter: brightness(0.78) saturate(0.85);
   }
+
+  @media (min-width: 768px) {
+    .map-content-panel {
+      container-type: inline-size;
+    }
+
+    .map-content-panel > * {
+      min-width: 0;
+    }
+
+    .map-content-panel .map-panel-content,
+    .map-content-panel .route-query-panel {
+      padding: 1rem !important;
+    }
+
+    .map-content-panel .calculator-main-grid,
+    .map-content-panel .calculator-form-grid,
+    .map-content-panel .calculator-nearby-grid,
+    .map-content-panel fieldset,
+    .map-content-panel .grid-cols-2 {
+      grid-template-columns: minmax(0, 1fr) !important;
+    }
+  }
 }

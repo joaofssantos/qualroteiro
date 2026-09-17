@@ -2,28 +2,36 @@
   "viewport": "1440x1050",
   "mapRoutes": {
     "/rota-custos": {
-      "mainClass": "min-w-0 flex-1 flex h-[calc(100vh-3.25rem)] flex-col overflow-hidden md:h-screen",
-      "mapClass": "relative h-[30vh] min-h-48 max-h-[22rem] shrink-0",
+      "mainClass": "min-w-0 flex-1 flex h-[calc(100vh-3.25rem)] flex-col overflow-hidden md:h-screen md:flex-row",
+      "mapClass": "relative h-[30vh] min-h-48 max-h-[22rem] shrink-0 md:h-auto md:min-h-0 md:max-h-none md:w-4/5",
       "mapIsFirstChild": true,
-      "contentOverflow": "min-h-0 flex-1 overflow-y-auto"
+      "contentOverflow": "map-content-panel min-h-0 flex-1 overflow-x-hidden overflow-y-auto md:w-1/5",
+      "pageScrollWidth": 1440,
+      "viewportWidth": 1440
     },
     "/hospedagem": {
-      "mainClass": "min-w-0 flex-1 flex h-[calc(100vh-3.25rem)] flex-col overflow-hidden md:h-screen",
-      "mapClass": "relative h-[30vh] min-h-48 max-h-[22rem] shrink-0",
+      "mainClass": "min-w-0 flex-1 flex h-[calc(100vh-3.25rem)] flex-col overflow-hidden md:h-screen md:flex-row",
+      "mapClass": "relative h-[30vh] min-h-48 max-h-[22rem] shrink-0 md:h-auto md:min-h-0 md:max-h-none md:w-4/5",
       "mapIsFirstChild": true,
-      "contentOverflow": "min-h-0 flex-1 overflow-y-auto"
+      "contentOverflow": "map-content-panel min-h-0 flex-1 overflow-x-hidden overflow-y-auto md:w-1/5",
+      "pageScrollWidth": 1440,
+      "viewportWidth": 1440
     },
     "/restaurantes": {
-      "mainClass": "min-w-0 flex-1 flex h-[calc(100vh-3.25rem)] flex-col overflow-hidden md:h-screen",
-      "mapClass": "relative h-[30vh] min-h-48 max-h-[22rem] shrink-0",
+      "mainClass": "min-w-0 flex-1 flex h-[calc(100vh-3.25rem)] flex-col overflow-hidden md:h-screen md:flex-row",
+      "mapClass": "relative h-[30vh] min-h-48 max-h-[22rem] shrink-0 md:h-auto md:min-h-0 md:max-h-none md:w-4/5",
       "mapIsFirstChild": true,
-      "contentOverflow": "min-h-0 flex-1 overflow-y-auto"
+      "contentOverflow": "map-content-panel min-h-0 flex-1 overflow-x-hidden overflow-y-auto md:w-1/5",
+      "pageScrollWidth": 1440,
+      "viewportWidth": 1440
     },
     "/atividades": {
-      "mainClass": "min-w-0 flex-1 flex h-[calc(100vh-3.25rem)] flex-col overflow-hidden md:h-screen",
-      "mapClass": "relative h-[30vh] min-h-48 max-h-[22rem] shrink-0",
+      "mainClass": "min-w-0 flex-1 flex h-[calc(100vh-3.25rem)] flex-col overflow-hidden md:h-screen md:flex-row",
+      "mapClass": "relative h-[30vh] min-h-48 max-h-[22rem] shrink-0 md:h-auto md:min-h-0 md:max-h-none md:w-4/5",
       "mapIsFirstChild": true,
-      "contentOverflow": "min-h-0 flex-1 overflow-y-auto"
+      "contentOverflow": "map-content-panel min-h-0 flex-1 overflow-x-hidden overflow-y-auto md:w-1/5",
+      "pageScrollWidth": 1440,
+      "viewportWidth": 1440
     }
   },
   "theme": {

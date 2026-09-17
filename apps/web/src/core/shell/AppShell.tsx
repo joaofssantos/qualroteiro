@@ -147,13 +147,13 @@ export function AppShell({ children }: { children: ReactNode }) {
       <main
         className={cn(
           'min-w-0 flex-1',
-          showMap && 'flex h-[calc(100vh-3.25rem)] flex-col overflow-hidden md:h-screen',
+          showMap && 'flex h-[calc(100vh-3.25rem)] flex-col overflow-hidden md:h-screen md:flex-row',
         )}
       >
         {showMap ? (
           <div
             data-testid="app-map-container"
-            className="relative h-[30vh] min-h-48 max-h-[22rem] shrink-0"
+            className="relative h-[30vh] min-h-48 max-h-[22rem] shrink-0 md:h-auto md:min-h-0 md:max-h-none md:w-4/5"
           >
             <MapCanvas
               trace={mapTrace?.coordinates ?? null}
@@ -162,7 +162,7 @@ export function AppShell({ children }: { children: ReactNode }) {
             />
           </div>
         ) : null}
-        <div className={cn(showMap && 'min-h-0 flex-1 overflow-y-auto')}>
+        <div className={cn(showMap && 'map-content-panel min-h-0 flex-1 overflow-x-hidden overflow-y-auto md:w-1/5')}>
           {children}
         </div>
       </main>

@@ -58,17 +58,21 @@ describe('AppShell', () => {
   });
 
   it.each(['/rota-custos', '/hospedagem', '/restaurantes', '/atividades'])(
-    'stacks the map above the content for %s',
+    'uses the 80/20 map-and-content split for %s',
     (path) => {
       const { container } = renderApp(path);
       const main = container.querySelector('main');
       const map = screen.getByTestId('app-map-container');
 
-      expect(main).toHaveClass('flex-col');
-      expect(main).not.toHaveClass('md:flex-row');
-      expect(map).toHaveClass('h-[30vh]', 'min-h-48', 'max-h-[22rem]');
+      expect(main).toHaveClass('flex-col', 'md:flex-row');
+      expect(map).toHaveClass('h-[30vh]', 'min-h-48', 'max-h-[22rem]', 'md:w-4/5');
       expect(map.parentElement).toBe(main);
-      expect(map.nextElementSibling).toHaveClass('overflow-y-auto');
+      expect(map.nextElementSibling).toHaveClass(
+        'map-content-panel',
+        'overflow-x-hidden',
+        'overflow-y-auto',
+        'md:w-1/5',
+      );
 
       cleanup();
       resetApp();
