@@ -1,7 +1,7 @@
 # @qualroteiro/data-ingest
 
 Background ingestion jobs that populate real-world data into `apps/api`'s
-Postgres database.
+Postgres database, plus one on-demand, read-only audit job.
 
 ## `ingest-toll-plazas` (Wave 3 of journey `j-20260916-9y`)
 
@@ -110,6 +110,55 @@ pnpm --filter @qualroteiro/data-ingest ingest:osm:once
 # processes it alongside the ANTT job in the one shared BullMQ queue.
 ```
 
+## `audit-artesp-tariffs` (journey `j-20260916-x3`)
+
+**Not an ingestion job — read-only, never writes `TollPlazaRecord`.**
+Downloads ARTESP's official "Valor Atual das Tarifas" PDF, matches each
+plaza against the `source: 'osm'` rows from the job above, compares
+tariffs, and writes a Markdown divergence report. See
+`specs/003-x3-artesp-tariff-audit/spec.md` for the full design and real
+findings (why "same rodovia" — the obvious first idea — turned out
+unusable against the real OSM data, why `Comercial por eixo` compares
+against OSM's `truck_N_axle` divided back to a per-axle rate, and the exact
+real match/divergence counts from a real run).
+
+- **Source**: ARTESP's PDF, `GET`, no auth — fixed URL in
+  `src/artesp-pdf.ts` (`ARTESP_TARIFAS_PDF_URL`). No coordinate anywhere in
+  the document — this is why it can never become a new `TollPlazaRecord`
+  source the way ANTT/OSM did; it can only audit against a source that
+  already has coordinates.
+- **136 real plazas** parsed (simple 2/3-column format); **11 more**, under
+  one concessionaire (`L29 - ViaPaulista`) with a wholly different CAT-1..9
+  multiplier-table format, are deliberately out of scope for this V1 parser
+  — counted (`excludedCatFormatCount`), never silently dropped.
+- **Matching**: a São Paulo bounding box on OSM's real `lat`/`lng` (NOT
+  `highway`/`uf` — those are `'Não informado (OSM)'`/`'BR'` on 100% of the
+  real 489 `source: 'osm'` rows, confirmed against the live database) plus
+  fuzzy plaza-name matching (`normalizePlazaName` + Levenshtein
+  similarity), with concessionaire as a small scoring bonus only, never a
+  hard filter (real ARTESP legal names and OSM `operator` tags diverge too
+  much — rebrands, group-vs-SPE naming — for a hard filter to be safe).
+- **Real production run** (`localhost:5433`, see "Evidence" in
+  `specs/003-x3-artesp-tariff-audit/spec.md`): 136 ARTESP rows, 489 OSM
+  rows read, 227 outside the SP bounding box, **110 matched pairs (90
+  bate, 20 diverge, 0 matched-but-no-OSM-tariff), 26 ARTESP unmatched, 152
+  OSM unmatched**. Report committed at `docs/audits/artesp-tariff-audit.md`.
+
+### Running it
+
+```sh
+# On-demand only — no Redis, no BullMQ schedule (this is an audit, not a
+# live data source the app serves):
+pnpm --filter @qualroteiro/data-ingest audit:artesp:once
+
+# Writes docs/audits/artesp-tariff-audit.md by default; pass a different
+# path as the first CLI arg to override:
+pnpm --filter @qualroteiro/data-ingest audit:artesp:once -- /tmp/report.md
+```
+
+Needs `DATABASE_URL` (same as the two jobs above) — reads `TollPlazaRecord`,
+never writes it.
+
 ## Scripts
 
 - `build` — `tsc -p tsconfig.json`
@@ -119,4 +168,5 @@ pnpm --filter @qualroteiro/data-ingest ingest:osm:once
 - `prisma:generate` (also runs on `postinstall`) — `prisma generate --schema=../../apps/api/prisma/schema.prisma`
 - `ingest:once` — one-off run of `ingest-toll-plazas` (ANTT), no Redis required
 - `ingest:osm:once` — one-off run of `ingest-toll-plazas-osm` (OSM), no Redis required
+- `audit:artesp:once` — one-off run of `audit-artesp-tariffs` (read-only, no Redis required)
 - `worker` — long-running BullMQ worker + both monthly schedule registrations

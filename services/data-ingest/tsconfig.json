@@ -2,7 +2,16 @@
   "extends": "../../tsconfig.base.json",
   "compilerOptions": {
     "outDir": "dist",
-    "rootDir": "src"
+    "rootDir": "src",
+    // `DOM` added on top of the base `ES2022` lib (this package's own
+    // override, `tsconfig.base.json` untouched) purely for typing purposes —
+    // `pdfjs-dist`'s shipped `.d.ts` surface (`artesp-pdf.ts`'s PDF-parsing
+    // dependency) references browser types (`HTMLCanvasElement`, `Worker`,
+    // `ReadableStream`, ...) across its full API even though this package
+    // only imports `getDocument`/`getTextContent` — those types must resolve
+    // for the transitively-reached declaration files to type-check at all.
+    // No runtime behavior changes: this package never runs in a browser.
+    "lib": ["ES2022", "DOM"]
   },
   "include": ["src"]
 }

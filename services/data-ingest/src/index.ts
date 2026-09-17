@@ -1,7 +1,8 @@
 /**
- * `@qualroteiro/data-ingest` — background ingestion jobs for real-world data.
+ * `@qualroteiro/data-ingest` — background ingestion jobs for real-world data,
+ * plus one on-demand audit job.
  *
- * Two jobs share this package:
+ * Two ingestion jobs share this package:
  * - `ingest-toll-plazas` (Wave 3 of journey `j-20260916-9y`) — downloads
  *   ANTT's monthly toll-plaza CSV, parses it, and upserts it with
  *   `source: 'antt'`.
@@ -17,6 +18,13 @@
  * instead. Entrypoints: `cli.ts`/`cli-osm.ts` (on-demand / seed runs) and
  * `worker.ts` (BullMQ-scheduled monthly runs, one shared worker) — see
  * `README.md`.
+ *
+ * A third job, `audit-artesp-tariffs` (journey `j-20260916-x3`), is NOT an
+ * ingestion job and never writes `TollPlazaRecord` — it downloads ARTESP's
+ * official tariff PDF, matches it against the `source: 'osm'` rows above,
+ * and writes a Markdown divergence report. On-demand only
+ * (`cli-artesp-audit.ts`), no BullMQ schedule — see `artesp-audit.ts`'s
+ * doc-comment and `.aipe/journeys/j-20260916-x3/orientation.md`.
  */
 
 export { slugify, naturalKey } from './slug.js';
@@ -59,3 +67,39 @@ export {
   scheduleMonthlyOsmIngest,
   attachWorkerLogging,
 } from './queue.js';
+export {
+  downloadArtespTarifasPdf,
+  extractArtespPdfLines,
+  parseArtespTarifaLines,
+  downloadAndParseArtespTarifas,
+  ARTESP_TARIFAS_PDF_URL,
+  type ArtespTollRow,
+  type ArtespParseResult,
+} from './artesp-pdf.js';
+export {
+  matchArtespToOsm,
+  normalizePlazaName,
+  normalizeConcessionaire,
+  stringSimilarity,
+  isWithinSpBoundingBox,
+  SP_BBOX,
+  type OsmTollPlazaCandidate,
+  type ArtespOsmMatch,
+  type ArtespMatchResult,
+  type MatchOptions,
+} from './artesp-match.js';
+export {
+  compareTariffs,
+  DEFAULT_DIVERGENCE_THRESHOLD,
+  type TariffComparison,
+  type PlazaTariffComparison,
+  type DivergenceThreshold,
+  type ComparisonCategory,
+} from './artesp-compare.js';
+export {
+  runArtespAudit,
+  type ArtespAuditOptions,
+  type ArtespAuditSummary,
+  type ArtespAuditResult,
+  type OsmTollPlazaReadClient,
+} from './artesp-audit.js';
