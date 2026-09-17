@@ -122,7 +122,7 @@ function RestaurantPanel() {
   const peopleError = visit.people < 1 ? costResult.error : null;
 
   return (
-    <section className="mx-auto flex w-full max-w-5xl flex-col gap-5 px-4 py-6 md:px-8">
+    <section className="map-panel-content mx-auto flex w-full max-w-5xl flex-col gap-5 px-4 py-6 md:px-8">
       <header className="flex flex-col gap-1">
         <h1 className="text-2xl font-bold tracking-tight text-primary">Restaurantes</h1>
         <p className="text-sm text-muted-foreground">
@@ -130,7 +130,7 @@ function RestaurantPanel() {
         </p>
       </header>
 
-      <div className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_20rem]">
+      <div className="calculator-main-grid grid gap-5 lg:grid-cols-[minmax(0,1fr)_20rem]">
         <div className="grid gap-5">
           <Card>
             <CardHeader>
@@ -195,7 +195,7 @@ function RestaurantPanel() {
                   />
                 </div>
 
-                <div className="grid gap-4 sm:grid-cols-3">
+                <div className="calculator-form-grid grid gap-4 sm:grid-cols-3">
                   <div className="grid gap-1.5">
                     <Label htmlFor="restaurant-date">Data</Label>
                     <Input

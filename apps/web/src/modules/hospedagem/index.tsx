@@ -138,7 +138,7 @@ function HospedagemPanel() {
   const priceError = stay.pricePerNight < 0 ? result.error : null;
 
   return (
-    <section className="mx-auto flex w-full max-w-5xl flex-col gap-5 px-4 py-6 md:px-8">
+    <section className="map-panel-content mx-auto flex w-full max-w-5xl flex-col gap-5 px-4 py-6 md:px-8">
       <header className="flex flex-col gap-1">
         <h1 className="text-2xl font-bold tracking-tight text-primary">Hospedagem</h1>
         <p className="text-sm text-muted-foreground">
@@ -173,7 +173,7 @@ function HospedagemPanel() {
                 Nenhuma hospedagem encontrada nesta região.
               </p>
             ) : (
-              <ul aria-label="Hospedagens encontradas" className="grid gap-2 sm:grid-cols-2">
+              <ul aria-label="Hospedagens encontradas" className="calculator-nearby-grid grid gap-2 sm:grid-cols-2">
                 {nearbyPlaces.map((place) => (
                   <li key={place.id}>
                     <button
@@ -196,7 +196,7 @@ function HospedagemPanel() {
         </CardContent>
       </Card>
 
-      <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_20rem]">
+      <div className="calculator-main-grid grid gap-4 lg:grid-cols-[minmax(0,1fr)_20rem]">
         <Card>
           <CardHeader>
             <CardTitle>Dados da estadia</CardTitle>
@@ -222,7 +222,7 @@ function HospedagemPanel() {
                 />
               </div>
 
-              <div className="grid gap-3 sm:grid-cols-3">
+              <div className="calculator-form-grid grid gap-3 sm:grid-cols-3">
                 <div className="grid gap-1.5">
                   <Label htmlFor="lodging-check-in">Check-in</Label>
                   <Input

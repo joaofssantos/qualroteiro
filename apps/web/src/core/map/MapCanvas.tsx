@@ -27,9 +27,9 @@ import { DEFAULT_MARKER_STYLE, MARKER_STYLES, type MapLayerData, boundsOf } from
 const DEFAULT_STYLE_URL = 'https://tiles.openfreemap.org/styles/liberty';
 const STYLE_URL = import.meta.env.VITE_MAP_STYLE_URL ?? DEFAULT_STYLE_URL;
 
-/** Centred on the Sudeste, the corridors the F1 toll seed covers. */
-const INITIAL_CENTER: [number, number] = [-45.5, -22.5];
-const INITIAL_ZOOM = 6;
+/** A national starting point; routes and searched places fit themselves later. */
+const INITIAL_CENTER: [number, number] = [-52.5, -14.5];
+const INITIAL_ZOOM = 3.4;
 
 const ROUTE_SOURCE = 'route';
 const ROUTE_LINE_LAYER = 'route-line';
