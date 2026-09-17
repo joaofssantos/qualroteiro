@@ -30,6 +30,12 @@
     --sidebar: 202 80% 20%;
     --sidebar-foreground: 210 40% 98%;
 
+    /* Module wayfinding only — never CTAs; signage amber remains --accent. */
+    --module-planejamento: 255 45% 46%;
+    --module-hospedagem: 185 55% 32%;
+    --module-restaurantes: 14 65% 43%;
+    --module-atividades: 150 40% 31%;
+
     --secondary: 210 22% 94%;
     --secondary-foreground: 202 80% 20%;
 
@@ -64,6 +70,11 @@
     --primary-foreground: 210 30% 10%;
     --sidebar: 202 80% 14%;
     --sidebar-foreground: 210 40% 98%;
+
+    --module-planejamento: 255 55% 68%;
+    --module-hospedagem: 185 55% 57%;
+    --module-restaurantes: 14 65% 64%;
+    --module-atividades: 150 45% 59%;
 
     --secondary: 210 16% 20%;
     --secondary-foreground: 210 24% 96%;

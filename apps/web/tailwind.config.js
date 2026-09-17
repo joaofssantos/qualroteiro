@@ -29,6 +29,12 @@ export default {
           DEFAULT: 'hsl(var(--accent))',
           foreground: 'hsl(var(--accent-foreground))',
         },
+        module: {
+          planejamento: 'hsl(var(--module-planejamento))',
+          hospedagem: 'hsl(var(--module-hospedagem))',
+          restaurantes: 'hsl(var(--module-restaurantes))',
+          atividades: 'hsl(var(--module-atividades))',
+        },
         popover: {
           DEFAULT: 'hsl(var(--popover))',
           foreground: 'hsl(var(--popover-foreground))',

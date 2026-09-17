@@ -14,6 +14,13 @@ import { useTheme } from './useTheme';
 
 export const SIDEBAR_STORAGE_KEY = 'qualroteiro:sidebar-collapsed';
 
+const moduleWayfindingClass: Record<string, string> = {
+  'planejamento-viagem': 'text-module-planejamento',
+  hospedagem: 'text-module-hospedagem',
+  restaurantes: 'text-module-restaurantes',
+  atividades: 'text-module-atividades',
+};
+
 /**
  * The application chrome: a navigation whose entries are **generated from the
  * module registry**, and a content well.
@@ -112,15 +119,24 @@ export function AppShell({ children }: { children: ReactNode }) {
                 title={isSidebarCollapsed ? module.label : undefined}
                 className={({ isActive }) =>
                   cn(
-                    'flex items-center gap-2.5 whitespace-nowrap rounded-md px-2.5 py-2 text-sm font-medium transition-colors',
+                    'group flex items-center gap-2.5 whitespace-nowrap rounded-md px-2.5 py-2 text-sm font-medium transition-colors',
                     'text-primary-foreground/70 hover:bg-primary-foreground/10 hover:text-primary-foreground',
                     isActive && 'bg-primary-foreground/15 text-primary-foreground',
                     isSidebarCollapsed && 'md:justify-center md:px-2',
                   )
                 }
               >
-                <Icon className="size-4 shrink-0" />
-                <span className={cn(isSidebarCollapsed && 'md:sr-only')}>{module.label}</span>
+                {({ isActive }) => (
+                  <>
+                    <Icon
+                      className={cn(
+                        'size-4 shrink-0 transition-opacity group-hover:opacity-80',
+                        !isActive && moduleWayfindingClass[module.id],
+                      )}
+                    />
+                    <span className={cn(isSidebarCollapsed && 'md:sr-only')}>{module.label}</span>
+                  </>
+                )}
               </NavLink>
             );
           })}
