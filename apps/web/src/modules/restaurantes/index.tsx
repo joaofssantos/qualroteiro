@@ -154,7 +154,7 @@ function RestaurantPanel() {
               {nearbyPlaces !== null && nearbyPlaces.length === 0 ? (
                 <p className="text-sm text-muted-foreground">Nenhum restaurante encontrado nessa região.</p>
               ) : null}
-              {nearbyPlaces !== null && nearbyPlaces.length > 0 ? (
+              {nearbyPlaces !== null && selectedPlaceId === null && nearbyPlaces.length > 0 ? (
                 <ul aria-label="Restaurantes encontrados" className="grid gap-2">
                   {nearbyPlaces.map((place) => (
                     <li key={place.id}>
