@@ -35,6 +35,14 @@ export interface NearbySearchRequest {
   readonly lng: number;
   readonly category: PlaceCategory;
   readonly radiusMeters: number;
+  /**
+   * Curated Places API (New) types to search within `category` (see
+   * {@link PLACE_TYPE_ALLOWLIST}). Empty or absent falls back to today's
+   * behaviour: a single base type per category (see {@link toIncludedTypes}).
+   * The caller (`parseNearbyQuery`) is responsible for validating each value
+   * against that category's allow-list before it reaches here.
+   */
+  readonly types?: readonly string[];
 }
 
 export interface GooglePlacesProvider {
@@ -61,13 +69,42 @@ export const DEFAULT_GOOGLE_PLACES_BASE_URL = 'https://places.googleapis.com';
 const FIELD_MASK = 'places.id,places.displayName,places.formattedAddress,places.location';
 
 /**
- * Map a qualroteiro category to the Places API (New) `includedTypes` value.
- *
- * One type per category, not a list: a broader list would return results the
- * requesting module never asked for (e.g. a `restaurant` showing up in a
- * "Hospedagem" search).
+ * Curated Places API (New) types offered per category (Table A of the
+ * official Nearby Search docs has ~18 lodging types, ~150 food types and
+ * ~80 entertainment/culture types — too many to expose as UI chips). This is
+ * a small, product-focused subset, not the full Google taxonomy; a type
+ * outside this list for its category is rejected by `parseNearbyQuery`
+ * rather than forwarded to Google.
  */
-function toIncludedType(category: PlaceCategory): string {
+export const PLACE_TYPE_ALLOWLIST: Readonly<Record<PlaceCategory, readonly string[]>> = {
+  hospedagem: ['hotel', 'hostel', 'guest_house', 'resort_hotel', 'bed_and_breakfast', 'campground'],
+  restaurantes: [
+    'cafe',
+    'bar',
+    'bakery',
+    'fast_food_restaurant',
+    'pizza_restaurant',
+    'seafood_restaurant',
+    'steak_house',
+    'vegetarian_restaurant',
+  ],
+  atividades: [
+    'museum',
+    'park',
+    'amusement_park',
+    'art_gallery',
+    'zoo',
+    'historical_landmark',
+    'national_park',
+    'night_club',
+  ],
+};
+
+/**
+ * Map a qualroteiro category to the Places API (New) default `includedTypes`
+ * value — used when no curated type is selected.
+ */
+function baseIncludedType(category: PlaceCategory): string {
   switch (category) {
     case 'hospedagem':
       return 'lodging';
@@ -76,6 +113,23 @@ function toIncludedType(category: PlaceCategory): string {
     case 'atividades':
       return 'tourist_attraction';
   }
+}
+
+/**
+ * Build the `includedTypes` array for a Nearby Search request.
+ *
+ * No selected types (empty or absent) keeps today's behaviour: a single base
+ * type per category (`lodging`/`restaurant`/`tourist_attraction`) — a
+ * broader default list would return results the requesting module never
+ * asked for (e.g. a `restaurant` showing up in a "Hospedagem" search). One
+ * or more selected types REPLACES the base type (not additive to it) with
+ * the caller's selection.
+ */
+function toIncludedTypes(category: PlaceCategory, types?: readonly string[]): string[] {
+  if (types === undefined || types.length === 0) {
+    return [baseIncludedType(category)];
+  }
+  return [...types];
 }
 
 interface GooglePlace {
@@ -120,7 +174,7 @@ export function createGooglePlacesProvider(config: GooglePlacesConfig): GooglePl
   return {
     async searchNearby(req: NearbySearchRequest): Promise<PlaceResult[]> {
       const body = {
-        includedTypes: [toIncludedType(req.category)],
+        includedTypes: toIncludedTypes(req.category, req.types),
         maxResultCount: 20,
         locationRestriction: {
           circle: {

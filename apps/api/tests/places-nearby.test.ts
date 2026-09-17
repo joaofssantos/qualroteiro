@@ -111,6 +111,87 @@ describe('GET /places/nearby', () => {
     expect(google.calls[0]?.radiusMeters).toBe(8000);
   });
 
+  it('accepts radiusMeters exactly at the new ceiling (20000)', async () => {
+    const google = fakeGooglePlacesProvider([]);
+    const app = appWith({ googlePlaces: google });
+
+    const res = await app.inject({
+      method: 'GET',
+      url: '/places/nearby?lat=-23.5&lng=-45.1&category=hospedagem&radiusMeters=20000',
+    });
+
+    expect(res.statusCode).toBe(200);
+    expect(google.calls[0]?.radiusMeters).toBe(20000);
+  });
+
+  it('rejects radiusMeters above the new ceiling (20000) with 400 naming the field', async () => {
+    const google = fakeGooglePlacesProvider([]);
+    const app = appWith({ googlePlaces: google });
+
+    const res = await app.inject({
+      method: 'GET',
+      url: '/places/nearby?lat=-23.5&lng=-45.1&category=hospedagem&radiusMeters=20001',
+    });
+
+    expect(res.statusCode).toBe(400);
+    expect(res.json().error).toMatch(/\bradiusMeters\b/);
+    // Guarded BEFORE the provider is ever touched, same as the <= 0 case.
+    expect(google.calls).toHaveLength(0);
+  });
+
+  it('leaves types undefined when absent, keeping the pre-change base-type behaviour (zero regression)', async () => {
+    const google = fakeGooglePlacesProvider([]);
+    const app = appWith({ googlePlaces: google });
+
+    await app.inject({
+      method: 'GET',
+      url: '/places/nearby?lat=-23.5&lng=-45.1&category=restaurantes',
+    });
+
+    expect(google.calls[0]?.types).toBeUndefined();
+  });
+
+  it('parses a comma-separated types list valid for the requested category', async () => {
+    const google = fakeGooglePlacesProvider([]);
+    const app = appWith({ googlePlaces: google });
+
+    const res = await app.inject({
+      method: 'GET',
+      url: '/places/nearby?lat=-23.5&lng=-45.1&category=restaurantes&types=cafe,bakery',
+    });
+
+    expect(res.statusCode).toBe(200);
+    expect(google.calls[0]?.types).toEqual(['cafe', 'bakery']);
+  });
+
+  it('parses a repeated types param valid for the requested category', async () => {
+    const google = fakeGooglePlacesProvider([]);
+    const app = appWith({ googlePlaces: google });
+
+    const res = await app.inject({
+      method: 'GET',
+      url: '/places/nearby?lat=-23.5&lng=-45.1&category=atividades&types=museum&types=park',
+    });
+
+    expect(res.statusCode).toBe(200);
+    expect(google.calls[0]?.types).toEqual(['museum', 'park']);
+  });
+
+  it('rejects a type that belongs to a DIFFERENT category with 400 naming the field', async () => {
+    const google = fakeGooglePlacesProvider([]);
+    const app = appWith({ googlePlaces: google });
+
+    // 'hotel' is valid under hospedagem, not restaurantes.
+    const res = await app.inject({
+      method: 'GET',
+      url: '/places/nearby?lat=-23.5&lng=-45.1&category=restaurantes&types=hotel',
+    });
+
+    expect(res.statusCode).toBe(400);
+    expect(res.json().error).toMatch(/\btypes\b/);
+    expect(google.calls).toHaveLength(0);
+  });
+
   it.each([
     ['missing lat', '/places/nearby?lng=-45.1&category=hospedagem', 'lat'],
     ['missing lng', '/places/nearby?lat=-23.5&category=hospedagem', 'lng'],

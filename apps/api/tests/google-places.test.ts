@@ -88,6 +88,46 @@ describe('createGooglePlacesProvider', () => {
     expect(body['includedTypes']).toEqual([includedType]);
   });
 
+  it.each([
+    ['absent (no types field at all)', undefined],
+    ['empty array', [] as const],
+  ] as const)(
+    'falls back to the single base includedType when types is %s (zero regression)',
+    async (_label, types) => {
+      const stub = recordingFetch(() => jsonResponse({ places: [] }));
+      const provider = createGooglePlacesProvider({
+        apiKey: 'k',
+        baseUrl: 'https://places.example',
+        fetchImpl: stub.impl,
+      });
+
+      await provider.searchNearby({ ...SP, category: 'restaurantes', radiusMeters: 3000, types });
+
+      // Same includedTypes the pre-change behaviour sent: exactly the one
+      // base type for the category, nothing else.
+      expect(stub.body(0)['includedTypes']).toEqual(['restaurant']);
+    },
+  );
+
+  it('sends the selected types instead of the base type when types is non-empty', async () => {
+    const stub = recordingFetch(() => jsonResponse({ places: [] }));
+    const provider = createGooglePlacesProvider({
+      apiKey: 'k',
+      baseUrl: 'https://places.example',
+      fetchImpl: stub.impl,
+    });
+
+    await provider.searchNearby({
+      ...SP,
+      category: 'restaurantes',
+      radiusMeters: 3000,
+      types: ['cafe', 'bakery'],
+    });
+
+    // Replaces (does not append to) the base type.
+    expect(stub.body(0)['includedTypes']).toEqual(['cafe', 'bakery']);
+  });
+
   it('sends the requested radius in locationRestriction.circle', async () => {
     const stub = recordingFetch(() => jsonResponse({ places: [] }));
     const provider = createGooglePlacesProvider({
