@@ -1,4 +1,4 @@
-import { act, render, screen, waitFor } from '@testing-library/react';
+import { act, render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter } from 'react-router-dom';
 import { afterEach, describe, expect, it, vi } from 'vitest';
@@ -262,6 +262,37 @@ describe('restaurantes module', () => {
         'day-1',
         expect.objectContaining({
           payload: expect.objectContaining({ lat: RESTAURANT.lat, lng: RESTAURANT.lng }),
+        }),
+      );
+    });
+  });
+
+  it('clears selected coordinates when the address is edited manually before saving', async () => {
+    mockPlaceRequests();
+    const user = userEvent.setup();
+    const trips = await import('@/core/api/trips');
+    const Panel = restaurantesModule.Panel;
+
+    render(<MemoryRouter><Panel /></MemoryRouter>);
+    await chooseReference(user);
+    await user.click(await screen.findByRole('button', { name: /Casa do Porco/ }));
+
+    const addressInput = screen.getByLabelText('Endereço');
+    expect(addressInput).toHaveValue(RESTAURANT.address);
+    await user.clear(addressInput);
+    await user.type(addressInput, 'Rua Nova, 123');
+
+    await user.click(screen.getByRole('button', { name: 'Salvar na viagem' }));
+    const dialog = await screen.findByRole('dialog');
+    await user.click(within(dialog).getByRole('button', { name: 'Salvar' }));
+
+    await waitFor(() => {
+      expect(trips.createTripItem).toHaveBeenCalledWith(
+        getToken,
+        'trip-1',
+        'day-1',
+        expect.objectContaining({
+          payload: expect.objectContaining({ address: 'Rua Nova, 123', lat: null, lng: null }),
         }),
       );
     });
