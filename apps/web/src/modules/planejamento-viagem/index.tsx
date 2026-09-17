@@ -231,7 +231,7 @@ function TripListScreen() {
   return (
     <section className="map-panel-content mx-auto flex w-full max-w-5xl flex-col gap-5 px-4 py-6 md:px-8">
       <header className="flex flex-col gap-1">
-        <h1 className="text-2xl font-bold tracking-tight text-primary">Planejamento de Viagem</h1>
+        <h1 className="text-2xl font-bold tracking-tight text-module-planejamento">Planejamento de Viagem</h1>
         <p className="text-sm text-muted-foreground">
           Organize dias, itens salvos dos módulos e uma visão consolidada do orçamento.
         </p>
