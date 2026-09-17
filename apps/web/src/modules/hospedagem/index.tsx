@@ -173,7 +173,7 @@ function HospedagemPanel() {
           {nearbyError ? (
             <p role="alert" className="text-sm text-destructive">{nearbyError}</p>
           ) : null}
-          {nearbyPlaces !== null && !searchingNearby && !nearbyError ? (
+          {nearbyPlaces !== null && selectedPlaceId === null && !searchingNearby && !nearbyError ? (
             nearbyPlaces.length === 0 ? (
               <p className="text-sm text-muted-foreground">
                 Nenhuma hospedagem encontrada nesta região.

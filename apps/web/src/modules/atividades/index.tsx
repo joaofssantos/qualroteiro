@@ -182,7 +182,7 @@ function AtividadesPanel() {
               {searchState === 'empty' ? (
                 <p className="text-sm text-muted-foreground">Nenhuma atividade encontrada nesta região.</p>
               ) : null}
-              {searchState === 'results' ? (
+              {searchState === 'results' && selectedPlaceId === null ? (
                 <ul aria-label="Atividades encontradas" className="grid gap-2">
                   {places.map((place) => (
                     <li key={place.id}>
