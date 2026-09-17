@@ -15,7 +15,7 @@ const MS_PER_DAY = 24 * 60 * 60 * 1000;
 
 export function calculateLodgingCost(stay: LodgingStay): LodgingCost {
   if (stay.pricePerNight < 0) {
-    throw new Error('pricePerNight must be non-negative');
+    throw new Error('O preço por noite não pode ser negativo.');
   }
 
   const checkIn = parseIsoDate(stay.checkIn, 'checkIn');

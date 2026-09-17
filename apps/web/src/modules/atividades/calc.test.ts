@@ -17,13 +17,13 @@ describe('calculateActivityCost', () => {
 
   it('rejects fewer than one person', () => {
     expect(() => calculateActivityCost({ ...PLAN, people: 0 })).toThrow(
-      'people must be at least 1',
+      'Informe pelo menos uma pessoa.',
     );
   });
 
   it('rejects a negative price per person', () => {
     expect(() => calculateActivityCost({ ...PLAN, pricePerPerson: -1 })).toThrow(
-      'pricePerPerson must be non-negative',
+      'O preço por pessoa não pode ser negativo.',
     );
   });
 });

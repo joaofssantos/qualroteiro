@@ -33,4 +33,10 @@ describe('calculateLodgingCost', () => {
       }),
     ).toThrow('checkOut must be after checkIn');
   });
+
+  it('rejects a negative nightly price in Portuguese', () => {
+    expect(() => calculateLodgingCost({ ...STAY, pricePerNight: -1 })).toThrow(
+      'O preço por noite não pode ser negativo.',
+    );
+  });
 });

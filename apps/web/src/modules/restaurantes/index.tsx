@@ -119,18 +119,19 @@ function RestaurantPanel() {
       };
     }
   }, [visit]);
+  const peopleError = visit.people < 1 ? costResult.error : null;
 
   return (
-    <section className="min-h-screen bg-background px-4 py-6 md:px-8">
-      <div className="mx-auto grid max-w-5xl gap-5 lg:grid-cols-[minmax(0,1fr)_320px]">
-        <div className="grid gap-5">
-          <div>
-            <h1 className="text-2xl font-semibold tracking-tight text-primary">Restaurantes</h1>
-            <p className="mt-1 max-w-2xl text-sm text-muted-foreground">
-              Calcule refeições por pessoa e salve o custo no planejamento da viagem.
-            </p>
-          </div>
+    <section className="mx-auto flex w-full max-w-5xl flex-col gap-5 px-4 py-6 md:px-8">
+      <header className="flex flex-col gap-1">
+        <h1 className="text-2xl font-bold tracking-tight text-primary">Restaurantes</h1>
+        <p className="text-sm text-muted-foreground">
+          Calcule refeições por pessoa e salve o custo no planejamento da viagem.
+        </p>
+      </header>
 
+      <div className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_20rem]">
+        <div className="grid gap-5">
           <Card>
             <CardHeader>
               <CardTitle>Buscar perto de</CardTitle>
@@ -224,9 +225,16 @@ function RestaurantPanel() {
                       type="number"
                       min="1"
                       step="1"
+                      aria-invalid={peopleError ? true : undefined}
+                      aria-describedby={peopleError ? 'restaurant-people-error' : undefined}
                       value={people}
                       onChange={(event) => setPeople(event.target.value)}
                     />
+                    {peopleError ? (
+                      <p id="restaurant-people-error" role="alert" className="text-xs font-medium text-destructive">
+                        {peopleError}
+                      </p>
+                    ) : null}
                   </div>
                 </div>
               </form>
@@ -234,12 +242,17 @@ function RestaurantPanel() {
           </Card>
         </div>
 
-        <aside className="lg:pt-[76px]">
+        <aside>
           <Card className="lg:sticky lg:top-6">
             <CardHeader>
               <CardTitle>Resumo</CardTitle>
             </CardHeader>
             <CardContent className="grid gap-4">
+              {costResult.error && !peopleError ? (
+                <p role="alert" className="rounded-md border border-destructive/30 bg-destructive/10 px-3 py-2 text-sm text-destructive">
+                  {costResult.error}
+                </p>
+              ) : null}
               <div className="grid gap-3 text-sm">
                 <div className="flex items-center justify-between gap-3">
                   <span className="text-muted-foreground">Lugar</span>
@@ -255,18 +268,14 @@ function RestaurantPanel() {
                 </div>
               </div>
 
-              {costResult.error ? (
-                <p className="rounded-md border border-destructive/30 bg-destructive/10 px-3 py-2 text-sm text-destructive">
-                  {costResult.error}
-                </p>
-              ) : (
+              {costResult.cost ? (
                 <div className="rounded-md border border-border bg-secondary/50 p-4">
                   <span className="text-xs font-medium uppercase text-muted-foreground">Total estimado</span>
                   <p className="mt-1 text-3xl font-semibold text-primary">
                     {formatCurrency(costResult.cost!.totalCost)}
                   </p>
                 </div>
-              )}
+              ) : null}
 
               <div className="flex flex-wrap gap-2">
                 {costResult.cost ? (

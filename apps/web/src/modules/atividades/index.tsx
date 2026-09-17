@@ -137,6 +137,7 @@ function AtividadesPanel() {
       };
     }
   }, [plan]);
+  const peopleError = plan.people < 1 ? result.error : null;
 
   return (
     <section className="mx-auto flex w-full max-w-5xl flex-col gap-5 px-4 py-6 md:px-8">
@@ -251,9 +252,16 @@ function AtividadesPanel() {
                     type="number"
                     min="1"
                     step="1"
+                    aria-invalid={peopleError ? true : undefined}
+                    aria-describedby={peopleError ? 'activity-people-error' : undefined}
                     value={people}
                     onChange={(event) => setPeople(event.target.value)}
                   />
+                  {peopleError ? (
+                    <p id="activity-people-error" role="alert" className="text-xs font-medium text-destructive">
+                      {peopleError}
+                    </p>
+                  ) : null}
                 </div>
               </div>
             </form>
@@ -265,16 +273,17 @@ function AtividadesPanel() {
             <CardTitle>Resumo</CardTitle>
           </CardHeader>
           <CardContent className="grid gap-4">
+            {result.error && !peopleError ? (
+              <p role="alert" className="rounded-md border border-destructive/30 bg-destructive/10 px-3 py-2 text-sm text-destructive">
+                {result.error}
+              </p>
+            ) : null}
             {result.cost ? (
               <>
                 <Metric label="Total" value={formatCurrency(result.cost.totalCost)} />
                 <SaveActivityToTripDialog plan={plan} totalCost={result.cost.totalCost} />
               </>
-            ) : (
-              <p className="rounded-md border border-destructive/30 bg-destructive/10 px-3 py-2 text-sm text-destructive">
-                {result.error}
-              </p>
-            )}
+            ) : null}
             <Button
               type="button"
               variant="outline"
