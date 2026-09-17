@@ -13,16 +13,21 @@
  * `j-20260916-y9`, merged) —
  *
  * ```sql
- * select highway, uf, count(*) from "TollPlazaRecord"
- *   where source = 'osm' group by highway, uf;
- * -- highway = 'Não informado (OSM)', uf = 'BR'  |  489   (100%, every row)
+ * select
+ *   count(*) filter (where highway = 'Não informado (OSM)') as missing_highway,
+ *   count(*) filter (where uf = 'BR') as missing_uf,
+ *   count(*) as total
+ * from "TollPlazaRecord" where source = 'osm';
+ * -- highway = 'Não informado (OSM)'            |  476/489 (97.3%)
+ * -- uf = 'BR'                                  |  488/489 (99.8%)
  * ```
  *
  * `osm-toll-plazas.ts`'s own doc-comment already predicted this (`ref` tag
  * coverage: 26/957 Overpass nodes, 3%) — confirmed here against the REAL
- * ingested rows: it rounds down to **zero usable rows**. A hard filter on
- * `highway` would therefore reject every single ARTESP row before matching
- * even starts. Two real, verified signals replace it:
+ * ingested rows: the 13 real highway values are all outside São Paulo, so
+ * the SP-bbox candidate set still has **zero usable highway rows**. A hard
+ * filter on `highway` would therefore reject every in-scope ARTESP row before
+ * matching even starts. Two real, verified signals replace it:
  *
  * 1. **A coarse São Paulo bounding box on OSM's `lat`/`lng`** (real,
  *    accurate coordinates — unlike `highway`/`uf`, this is the one thing
