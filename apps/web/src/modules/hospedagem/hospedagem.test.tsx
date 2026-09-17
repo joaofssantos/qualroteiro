@@ -251,6 +251,38 @@ describe('Hospedagem module', () => {
     });
   });
 
+  it('clears selected coordinates when the address is edited manually before saving', async () => {
+    const user = userEvent.setup();
+    mockApi({ places: [REFERENCE], nearbyPlaces: [HOTEL] });
+    const trips = await import('@/core/api/trips');
+
+    renderApp('/hospedagem');
+    await user.type(screen.getByLabelText('Cidade, bairro ou endereço'), 'Rio');
+    await user.click(await screen.findByRole('option', { name: /Rio de Janeiro/ }));
+    const results = await screen.findByRole('list', { name: 'Hospedagens encontradas' });
+    await user.click(within(results).getByRole('button', { name: /Hotel Atlântico/ }));
+
+    const addressInput = screen.getByLabelText('Endereço');
+    expect(addressInput).toHaveValue(HOTEL.address);
+    await user.clear(addressInput);
+    await user.type(addressInput, 'Rua Nova, 123');
+
+    await user.click(screen.getByRole('button', { name: 'Salvar na viagem' }));
+    const dialog = await screen.findByRole('dialog');
+    await user.click(within(dialog).getByRole('button', { name: 'Salvar' }));
+
+    await waitFor(() => {
+      expect(trips.createTripItem).toHaveBeenCalledWith(
+        getToken,
+        'trip-1',
+        'day-1',
+        expect.objectContaining({
+          payload: expect.objectContaining({ address: 'Rua Nova, 123', lat: null, lng: null }),
+        }),
+      );
+    });
+  });
+
   it('keeps lat/lng null when the stay is entered manually, without selecting a search result', async () => {
     const user = userEvent.setup();
     mockApi();
