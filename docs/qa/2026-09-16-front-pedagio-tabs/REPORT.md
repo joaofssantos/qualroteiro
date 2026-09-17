@@ -4,6 +4,7 @@
 
 - Base: `origin/main` em `5fa985a` (PR #38, antes desta alteração).
 - Branch: `codex/fix-rota-tabs-long-list`.
+- Commit: `b9b2c99` (`fix(web): keep route tabs stable with long toll lists`).
 - Alteração: em `ResultScreen`, `Tabs` deixa de encolher no eixo vertical
   (`flex-none`) e a `TabsList` recebe `min-h-10 shrink-0`. Os triggers continuam
   com largura mínima de conteúdo e a rolagem horizontal fica limitada à faixa de
