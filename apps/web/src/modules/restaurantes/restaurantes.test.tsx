@@ -135,7 +135,7 @@ describe('restaurantes module', () => {
 
     expect(await screen.findByRole('button', { name: /Casa do Porco/ })).toBeInTheDocument();
     expect(fetchSpy).toHaveBeenCalledWith(
-      '/api/places/nearby?lat=-23.5505&lng=-46.6333&category=restaurantes',
+      '/api/places/nearby?lat=-23.5505&lng=-46.6333&category=restaurantes&radiusMeters=3000',
       expect.objectContaining({ signal: expect.any(AbortSignal) }),
     );
     expect(useMapStore.getState().layers[0]?.markers).toEqual([
@@ -157,6 +157,54 @@ describe('restaurantes module', () => {
     await user.clear(referenceInput);
     await chooseReference(user);
     expect(await screen.findByRole('list', { name: 'Restaurantes encontrados' })).toBeInTheDocument();
+  });
+
+  it('changing the radius re-queries with the new radiusMeters, and type chips add/remove types', async () => {
+    const fetchSpy = mockPlaceRequests();
+    const user = userEvent.setup();
+    const Panel = restaurantesModule.Panel;
+
+    render(<MemoryRouter><Panel /></MemoryRouter>);
+    await chooseReference(user);
+    await screen.findByRole('button', { name: /Casa do Porco/ });
+
+    expect(fetchSpy).toHaveBeenCalledWith(
+      '/api/places/nearby?lat=-23.5505&lng=-46.6333&category=restaurantes&radiusMeters=3000',
+      expect.objectContaining({ signal: expect.any(AbortSignal) }),
+    );
+
+    await user.selectOptions(screen.getByLabelText('Raio de busca'), '5000');
+    await waitFor(() =>
+      expect(fetchSpy).toHaveBeenCalledWith(
+        '/api/places/nearby?lat=-23.5505&lng=-46.6333&category=restaurantes&radiusMeters=5000',
+        expect.objectContaining({ signal: expect.any(AbortSignal) }),
+      ),
+    );
+
+    await user.click(screen.getByRole('button', { name: 'Café' }));
+    await waitFor(() =>
+      expect(fetchSpy).toHaveBeenCalledWith(
+        '/api/places/nearby?lat=-23.5505&lng=-46.6333&category=restaurantes&radiusMeters=5000&types=cafe',
+        expect.objectContaining({ signal: expect.any(AbortSignal) }),
+      ),
+    );
+
+    await user.click(screen.getByRole('button', { name: 'Bar' }));
+    await waitFor(() =>
+      expect(fetchSpy).toHaveBeenLastCalledWith(
+        '/api/places/nearby?lat=-23.5505&lng=-46.6333&category=restaurantes&radiusMeters=5000&types=cafe%2Cbar',
+        expect.objectContaining({ signal: expect.any(AbortSignal) }),
+      ),
+    );
+
+    await user.click(screen.getByRole('button', { name: 'Café' }));
+    await user.click(screen.getByRole('button', { name: 'Bar' }));
+    await waitFor(() =>
+      expect(fetchSpy).toHaveBeenLastCalledWith(
+        '/api/places/nearby?lat=-23.5505&lng=-46.6333&category=restaurantes&radiusMeters=5000',
+        expect.objectContaining({ signal: expect.any(AbortSignal) }),
+      ),
+    );
   });
 
   it('keeps the cost calculator usable when nearby search fails', async () => {

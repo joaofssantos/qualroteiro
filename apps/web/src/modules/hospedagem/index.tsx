@@ -6,7 +6,9 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { searchNearbyPlaces } from '@/core/api/client';
+import { DEFAULT_RADIUS_METERS } from '@/core/api/placeTypes';
 import type { PlaceResult } from '@/core/api/types';
+import { NearbySearchControls } from '@/core/components/NearbySearchControls';
 import { PlaceSearch, type PlaceFieldValue } from '@/core/components/PlaceSearch';
 import type { MapLayerData } from '@/core/map/layers';
 import { useMapStore } from '@/core/map/mapStore';
@@ -42,6 +44,14 @@ function HospedagemPanel() {
   const [nearbyError, setNearbyError] = useState<string | null>(null);
   const [searchingNearby, setSearchingNearby] = useState(false);
   const [selectedPlaceId, setSelectedPlaceId] = useState<string | null>(null);
+  const [radiusMeters, setRadiusMeters] = useState(DEFAULT_RADIUS_METERS);
+  const [selectedTypes, setSelectedTypes] = useState<readonly string[]>([]);
+
+  function toggleType(value: string): void {
+    setSelectedTypes((current) =>
+      current.includes(value) ? current.filter((type) => type !== value) : [...current, value],
+    );
+  }
 
   const setMapLayers = useMapStore((state) => state.setMapLayers);
   const setOnMarkerClick = useMapStore((state) => state.setOnMarkerClick);
@@ -60,7 +70,7 @@ function HospedagemPanel() {
     setSearchingNearby(true);
     setNearbyError(null);
     setSelectedPlaceId(null);
-    searchNearbyPlaces(point.lat, point.lng, 'hospedagem', undefined, controller.signal)
+    searchNearbyPlaces(point.lat, point.lng, 'hospedagem', radiusMeters, selectedTypes, controller.signal)
       .then(setNearbyPlaces)
       .catch((cause: unknown) => {
         if (cause instanceof DOMException && cause.name === 'AbortError') return;
@@ -72,7 +82,10 @@ function HospedagemPanel() {
       .finally(() => setSearchingNearby(false));
 
     return () => controller.abort();
-  }, [reference.place]);
+    // Changing the radius or the selected types re-runs the search automatically —
+    // same pattern as reacting to a new reference point, so the results stay in
+    // sync with the controls without an extra "buscar novamente" click.
+  }, [reference.place, radiusMeters, selectedTypes]);
 
   const mapLayers = useMemo<readonly (MapLayerData & { visible: boolean })[]>(
     () =>
@@ -163,6 +176,15 @@ function HospedagemPanel() {
             value={reference}
             onChange={setReference}
             placeholder="Ex.: Copacabana, Rio de Janeiro"
+          />
+
+          <NearbySearchControls
+            idPrefix="lodging"
+            category="hospedagem"
+            radiusMeters={radiusMeters}
+            onRadiusChange={setRadiusMeters}
+            selectedTypes={selectedTypes}
+            onToggleType={toggleType}
           />
 
           {searchingNearby ? (

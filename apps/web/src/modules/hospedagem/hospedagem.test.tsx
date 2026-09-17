@@ -124,7 +124,7 @@ describe('Hospedagem module', () => {
     const results = await screen.findByRole('list', { name: 'Hospedagens encontradas' });
     expect(within(results).getByRole('button', { name: /Hotel Atlântico/ })).toBeInTheDocument();
     expect(fetchSpy).toHaveBeenCalledWith(
-      '/api/places/nearby?lat=-22.9068&lng=-43.1729&category=hospedagem',
+      '/api/places/nearby?lat=-22.9068&lng=-43.1729&category=hospedagem&radiusMeters=3000',
       expect.anything(),
     );
 
@@ -150,6 +150,52 @@ describe('Hospedagem module', () => {
     expect(useMapStore.getState().layers).toEqual([]);
     expect(useMapStore.getState().trace).toBeNull();
     expect(useMapStore.getState().onMarkerClick).toBeUndefined();
+  });
+
+  it('changing the radius re-queries with the new radiusMeters, and type chips add/remove types', async () => {
+    const user = userEvent.setup();
+    const fetchSpy = mockApi({ places: [REFERENCE], nearbyPlaces: [HOTEL] });
+
+    renderApp('/hospedagem');
+
+    await user.type(screen.getByLabelText('Cidade, bairro ou endereço'), 'Rio');
+    await waitFor(() =>
+      expect(screen.getByRole('option', { name: /Rio de Janeiro/ })).toBeInTheDocument(),
+    );
+    await user.click(screen.getByRole('option', { name: /Rio de Janeiro/ }));
+    await screen.findByRole('list', { name: 'Hospedagens encontradas' });
+
+    // Default radius (3km), no types selected.
+    expect(fetchSpy).toHaveBeenCalledWith(
+      '/api/places/nearby?lat=-22.9068&lng=-43.1729&category=hospedagem&radiusMeters=3000',
+      expect.anything(),
+    );
+
+    await user.selectOptions(screen.getByLabelText('Raio de busca'), '10000');
+    await waitFor(() =>
+      expect(fetchSpy).toHaveBeenCalledWith(
+        '/api/places/nearby?lat=-22.9068&lng=-43.1729&category=hospedagem&radiusMeters=10000',
+        expect.anything(),
+      ),
+    );
+
+    await user.click(screen.getByRole('button', { name: 'Hotel' }));
+    await waitFor(() =>
+      expect(fetchSpy).toHaveBeenCalledWith(
+        '/api/places/nearby?lat=-22.9068&lng=-43.1729&category=hospedagem&radiusMeters=10000&types=hotel',
+        expect.anything(),
+      ),
+    );
+    expect(screen.getByRole('button', { name: 'Hotel' })).toHaveAttribute('aria-pressed', 'true');
+
+    // Deselecting the only chip goes back to sending no `types` at all.
+    await user.click(screen.getByRole('button', { name: 'Hotel' }));
+    await waitFor(() =>
+      expect(fetchSpy).toHaveBeenLastCalledWith(
+        '/api/places/nearby?lat=-22.9068&lng=-43.1729&category=hospedagem&radiusMeters=10000',
+        expect.anything(),
+      ),
+    );
   });
 
   it('keeps the manual calculator usable when nearby search fails', async () => {

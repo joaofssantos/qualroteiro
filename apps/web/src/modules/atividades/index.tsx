@@ -6,6 +6,8 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { searchNearbyPlaces } from '@/core/api/client';
+import { DEFAULT_RADIUS_METERS } from '@/core/api/placeTypes';
+import { NearbySearchControls } from '@/core/components/NearbySearchControls';
 import { PlaceSearch, type PlaceFieldValue } from '@/core/components/PlaceSearch';
 import type { PlaceResult } from '@/core/api/types';
 import type { MapLayerData } from '@/core/map/layers';
@@ -43,6 +45,8 @@ function AtividadesPanel() {
   const [places, setPlaces] = useState<readonly PlaceResult[]>([]);
   const [searchState, setSearchState] = useState<SearchState>('idle');
   const [selectedPlaceId, setSelectedPlaceId] = useState<string | null>(null);
+  const [radiusMeters, setRadiusMeters] = useState(DEFAULT_RADIUS_METERS);
+  const [selectedTypes, setSelectedTypes] = useState<readonly string[]>([]);
 
   const setMapLayers = useMapStore((state) => state.setMapLayers);
   const setMapTrace = useMapStore((state) => state.setMapTrace);
@@ -63,7 +67,7 @@ function AtividadesPanel() {
     setPlaces([]);
     setSelectedPlaceId(null);
 
-    searchNearbyPlaces(point.lat, point.lng, 'atividades', undefined, controller.signal)
+    searchNearbyPlaces(point.lat, point.lng, 'atividades', radiusMeters, selectedTypes, controller.signal)
       .then((results) => {
         setPlaces(results);
         setSearchState(results.length === 0 ? 'empty' : 'results');
@@ -75,7 +79,9 @@ function AtividadesPanel() {
       });
 
     return () => controller.abort();
-  }, [reference.place]);
+    // Changing the radius or the selected types re-runs the search automatically —
+    // same pattern as reacting to a new reference point.
+  }, [reference.place, radiusMeters, selectedTypes]);
 
   const mapLayers = useMemo<readonly (MapLayerData & { visible: boolean })[]>(
     () => [
@@ -105,6 +111,12 @@ function AtividadesPanel() {
     setPlaceName(place.name);
     setAddress(place.address);
     setCoords({ lat: place.lat, lng: place.lng });
+  }, []);
+
+  const toggleType = useCallback((value: string) => {
+    setSelectedTypes((current) =>
+      current.includes(value) ? current.filter((type) => type !== value) : [...current, value],
+    );
   }, []);
 
   useEffect(() => {
@@ -167,6 +179,15 @@ function AtividadesPanel() {
                 value={reference}
                 onChange={setReference}
                 placeholder="Cidade, bairro ou endereço"
+              />
+
+              <NearbySearchControls
+                idPrefix="activity"
+                category="atividades"
+                radiusMeters={radiusMeters}
+                onRadiusChange={setRadiusMeters}
+                selectedTypes={selectedTypes}
+                onToggleType={toggleType}
               />
 
               {searchState === 'loading' ? (

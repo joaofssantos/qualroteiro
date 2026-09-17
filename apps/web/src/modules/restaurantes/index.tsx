@@ -6,7 +6,9 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { searchNearbyPlaces } from '@/core/api/client';
+import { DEFAULT_RADIUS_METERS } from '@/core/api/placeTypes';
 import type { PlaceResult } from '@/core/api/types';
+import { NearbySearchControls } from '@/core/components/NearbySearchControls';
 import { PlaceSearch, type PlaceFieldValue } from '@/core/components/PlaceSearch';
 import { useMapStore } from '@/core/map/mapStore';
 import type { ModuleDefinition } from '@/core/registry/types';
@@ -32,6 +34,8 @@ function RestaurantPanel() {
   const [nearbyError, setNearbyError] = useState<string | null>(null);
   const [nearbyLoading, setNearbyLoading] = useState(false);
   const [selectedPlaceId, setSelectedPlaceId] = useState<string | null>(null);
+  const [radiusMeters, setRadiusMeters] = useState(DEFAULT_RADIUS_METERS);
+  const [selectedTypes, setSelectedTypes] = useState<readonly string[]>([]);
   const setMapLayers = useMapStore((state) => state.setMapLayers);
   const setOnMarkerClick = useMapStore((state) => state.setOnMarkerClick);
   const clearMap = useMapStore((state) => state.clearMap);
@@ -41,6 +45,12 @@ function RestaurantPanel() {
     setPlaceName(place.name);
     setAddress(place.address);
     setCoords({ lat: place.lat, lng: place.lng });
+  }, []);
+
+  const toggleType = useCallback((value: string) => {
+    setSelectedTypes((current) =>
+      current.includes(value) ? current.filter((type) => type !== value) : [...current, value],
+    );
   }, []);
 
   useEffect(() => {
@@ -58,7 +68,7 @@ function RestaurantPanel() {
     setNearbyPlaces(null);
     setSelectedPlaceId(null);
 
-    searchNearbyPlaces(point.lat, point.lng, 'restaurantes', undefined, controller.signal)
+    searchNearbyPlaces(point.lat, point.lng, 'restaurantes', radiusMeters, selectedTypes, controller.signal)
       .then(setNearbyPlaces)
       .catch((cause: unknown) => {
         if (cause instanceof DOMException && cause.name === 'AbortError') return;
@@ -67,7 +77,9 @@ function RestaurantPanel() {
       .finally(() => setNearbyLoading(false));
 
     return () => controller.abort();
-  }, [reference.place]);
+    // Changing the radius or the selected types re-runs the search automatically —
+    // same pattern as reacting to a new reference point.
+  }, [reference.place, radiusMeters, selectedTypes]);
 
   useEffect(() => {
     if (nearbyPlaces === null) {
@@ -147,6 +159,15 @@ function RestaurantPanel() {
                 placeholder="Cidade, bairro ou endereço"
                 value={reference}
                 onChange={setReference}
+              />
+
+              <NearbySearchControls
+                idPrefix="restaurant"
+                category="restaurantes"
+                radiusMeters={radiusMeters}
+                onRadiusChange={setRadiusMeters}
+                selectedTypes={selectedTypes}
+                onToggleType={toggleType}
               />
 
               {nearbyLoading ? <p className="text-sm text-muted-foreground">Buscando restaurantes…</p> : null}
