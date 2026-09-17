@@ -26,6 +26,9 @@ mapa.
 - A classe `dark` é aplicada em `<html>`. As cores do design system continuam
   sendo tokens CSS em `apps/web/src/index.css`; não introduzir paleta direta
   em módulos para novos componentes.
+- A barra lateral usa `--sidebar`/`--sidebar-foreground`, separados do token
+  `primary`: no tema escuro ela permanece azul-petróleo escura com texto e
+  ícones claros, mesmo que `primary` fique mais luminoso para títulos.
 - O canvas do MapLibre recebe redução visual de brilho/saturação no tema escuro
   sem alterar dados de rota, marcadores ou o estilo remoto do provedor.
 
@@ -51,6 +54,10 @@ mapa.
   formulários tornam-se coluna única e o container bloqueia overflow horizontal;
   não usar larguras mínimas ou grids por breakpoint de viewport sem considerar
   esse container.
+- Atividades tem um card de busca que normalmente ocupa duas colunas; ele usa
+  `activity-search-card` e volta explicitamente a uma coluna dentro do painel
+  compacto. Sem essa regra, o CSS grid cria colunas implícitas e estreita os
+  cards de dados e resumo.
 - O enquadramento inicial é Brasil (`center: [-52.5, -14.5]`, `zoom: 3.4`).
   A lógica existente de `fitBounds` ainda assume a visualização quando houver
   uma rota ou marcadores publicados.

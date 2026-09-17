@@ -39,7 +39,7 @@
     "storedTheme": "dark"
   },
   "sidebar": {
-    "navClass": "relative z-10 flex shrink-0 items-center gap-3 border-border bg-primary px-3 py-2.5 border-b md:flex-col md:items-stretch md:gap-1 md:border-b-0 md:border-r md:py-5 md:w-16",
+    "navClass": "app-sidebar relative z-10 flex shrink-0 items-center gap-3 border-border bg-primary px-3 py-2.5 border-b md:flex-col md:items-stretch md:gap-1 md:border-b-0 md:border-r md:py-5 md:w-16",
     "hotelLinkTitle": "Hospedagem"
   }
 }
