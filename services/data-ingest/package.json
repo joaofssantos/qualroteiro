@@ -23,13 +23,15 @@
     "prisma:generate": "prisma generate --schema=../../apps/api/prisma/schema.prisma",
     "ingest:once": "tsx src/cli.ts",
     "ingest:osm:once": "tsx src/cli-osm.ts",
+    "audit:artesp:once": "tsx src/cli-artesp-audit.ts",
     "worker": "tsx src/worker.ts"
   },
   "dependencies": {
     "@prisma/client": "^5.20.0",
     "@qualroteiro/tolls": "workspace:*",
     "bullmq": "^5.81.5",
-    "ioredis": "^5.11.1"
+    "ioredis": "^5.11.1",
+    "pdfjs-dist": "4.10.38"
   },
   "devDependencies": {
     "@eslint/js": "^9.12.0",
