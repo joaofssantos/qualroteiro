@@ -192,6 +192,25 @@ describe('POST /routes/plan', () => {
       expect(route.tolls.total).toBeCloseTo(14.5, 2);
     });
 
+    it('treats a partially malformed persisted tariff as absent', async () => {
+      const app = buildApp({
+        routing: fakeRoutingProvider(),
+        geocode: fakeGeocodeProvider(),
+        tollPlazas: fakeTollPlazaStore([{
+          ...OSM_TOLL_PLAZA_RECORD_WITH_TARIFF,
+          tariff: {
+            ...(OSM_TOLL_PLAZA_RECORD_WITH_TARIFF.tariff as Record<string, number>),
+            truck_4_axle: 'not a number',
+          },
+        }]),
+      });
+
+      const res = await app.inject({ method: 'POST', url: '/routes/plan', payload: VALID_BODY });
+
+      expect(res.statusCode).toBe(200);
+      expect(res.json().routes[0].tolls.plazas[0].tariffByAxleCategory).toBeUndefined();
+    });
+
     it('an antt row (no tariff) keeps behaving exactly as before — zero regression from Fase 1', async () => {
       const app = buildApp({
         routing: fakeRoutingProvider(),
