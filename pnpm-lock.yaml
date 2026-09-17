@@ -258,6 +258,9 @@ importers:
       '@prisma/client':
         specifier: ^5.20.0
         version: 5.22.0(prisma@5.22.0)
+      '@qualroteiro/tolls':
+        specifier: workspace:*
+        version: link:../../packages/tolls
       bullmq:
         specifier: ^5.81.5
         version: 5.81.5
