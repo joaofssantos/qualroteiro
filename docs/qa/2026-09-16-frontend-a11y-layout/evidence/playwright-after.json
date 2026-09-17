@@ -1,0 +1,45 @@
+{
+  "viewport": "1440x1050",
+  "forms": {
+    "hospedagem": {
+      "selector": "#lodging-price",
+      "ariaInvalid": "true",
+      "ariaDescribedBy": "lodging-price-error",
+      "alert": "O preço por noite não pode ser negativo."
+    },
+    "atividades": {
+      "selector": "#activity-people",
+      "ariaInvalid": "true",
+      "ariaDescribedBy": "activity-people-error",
+      "alert": "Informe pelo menos uma pessoa."
+    },
+    "restaurantes": {
+      "selector": "#restaurant-people",
+      "ariaInvalid": "true",
+      "ariaDescribedBy": "restaurant-people-error",
+      "alert": "Informe pelo menos uma pessoa."
+    }
+  },
+  "layouts": {
+    "hospedagem": {
+      "sectionClass": "mx-auto flex w-full max-w-5xl flex-col gap-5 px-4 py-6 md:px-8",
+      "headerClass": "flex flex-col gap-1",
+      "sectionLeft": 416,
+      "sectionWidth": 1024,
+      "paddingLeft": "32px",
+      "paddingRight": "32px",
+      "headingClass": "text-2xl font-bold tracking-tight text-primary",
+      "headingWeight": "700"
+    },
+    "restaurantes": {
+      "sectionClass": "mx-auto flex w-full max-w-5xl flex-col gap-5 px-4 py-6 md:px-8",
+      "headerClass": "flex flex-col gap-1",
+      "sectionLeft": 416,
+      "sectionWidth": 1024,
+      "paddingLeft": "32px",
+      "paddingRight": "32px",
+      "headingClass": "text-2xl font-bold tracking-tight text-primary",
+      "headingWeight": "700"
+    }
+  }
+}

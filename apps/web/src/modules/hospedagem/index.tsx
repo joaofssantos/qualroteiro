@@ -135,6 +135,7 @@ function HospedagemPanel() {
       };
     }
   }, [stay]);
+  const priceError = stay.pricePerNight < 0 ? result.error : null;
 
   return (
     <section className="mx-auto flex w-full max-w-5xl flex-col gap-5 px-4 py-6 md:px-8">
@@ -247,9 +248,16 @@ function HospedagemPanel() {
                     type="number"
                     min="0"
                     step="0.01"
+                    aria-invalid={priceError ? true : undefined}
+                    aria-describedby={priceError ? 'lodging-price-error' : undefined}
                     value={pricePerNight}
                     onChange={(event) => setPricePerNight(event.target.value)}
                   />
+                  {priceError ? (
+                    <p id="lodging-price-error" role="alert" className="text-xs font-medium text-destructive">
+                      {priceError}
+                    </p>
+                  ) : null}
                 </div>
               </div>
             </form>
@@ -261,6 +269,11 @@ function HospedagemPanel() {
             <CardTitle>Resumo</CardTitle>
           </CardHeader>
           <CardContent className="grid gap-4">
+            {result.error && !priceError ? (
+              <p role="alert" className="rounded-md border border-destructive/30 bg-destructive/10 px-3 py-2 text-sm text-destructive">
+                {result.error}
+              </p>
+            ) : null}
             {result.cost ? (
               <>
                 <div className="grid grid-cols-2 gap-3">
@@ -269,11 +282,7 @@ function HospedagemPanel() {
                 </div>
                 <SaveStayToTripDialog stay={stay} totalCost={result.cost.totalCost} />
               </>
-            ) : (
-              <p className="rounded-md border border-destructive/30 bg-destructive/10 px-3 py-2 text-sm text-destructive">
-                {result.error}
-              </p>
-            )}
+            ) : null}
             <Button type="button" variant="outline" onClick={() => {
               setPlaceName(DEFAULT_STAY.placeName);
               setAddress('');

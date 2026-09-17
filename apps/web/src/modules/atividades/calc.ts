@@ -12,11 +12,11 @@ export interface ActivityCost {
 
 export function calculateActivityCost(plan: ActivityPlan): ActivityCost {
   if (plan.people < 1) {
-    throw new Error('people must be at least 1');
+    throw new Error('Informe pelo menos uma pessoa.');
   }
 
   if (plan.pricePerPerson < 0) {
-    throw new Error('pricePerPerson must be non-negative');
+    throw new Error('O preço por pessoa não pode ser negativo.');
   }
 
   return {

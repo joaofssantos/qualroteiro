@@ -48,6 +48,20 @@ describe('Hospedagem module', () => {
     expect(fetchSpy).not.toHaveBeenCalled();
   });
 
+  it('associates a price validation error with its input', async () => {
+    const user = userEvent.setup();
+    mockApi();
+    renderApp('/hospedagem');
+
+    const input = screen.getByLabelText('Preço/noite');
+    await user.clear(input);
+    await user.type(input, '-1');
+
+    expect(input).toHaveAttribute('aria-invalid', 'true');
+    expect(input).toHaveAttribute('aria-describedby', 'lodging-price-error');
+    expect(screen.getByRole('alert')).toHaveTextContent('O preço por noite não pode ser negativo.');
+  });
+
   it('searches lodging near the selected reference and selects from the list or map', async () => {
     const user = userEvent.setup();
     const fetchSpy = mockApi({ places: [REFERENCE], nearbyPlaces: [HOTEL] });

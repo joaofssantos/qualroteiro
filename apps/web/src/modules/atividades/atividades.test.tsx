@@ -74,7 +74,13 @@ describe('Atividades module', () => {
     await user.clear(screen.getByLabelText('Nº de pessoas'));
     await user.type(screen.getByLabelText('Nº de pessoas'), '0');
 
-    expect(screen.getByText('people must be at least 1')).toBeInTheDocument();
+    expect(screen.getByText('Informe pelo menos uma pessoa.')).toBeInTheDocument();
+    expect(screen.getByLabelText('Nº de pessoas')).toHaveAttribute('aria-invalid', 'true');
+    expect(screen.getByLabelText('Nº de pessoas')).toHaveAttribute(
+      'aria-describedby',
+      'activity-people-error',
+    );
+    expect(screen.getByRole('alert')).toHaveTextContent('Informe pelo menos uma pessoa.');
   });
 
   it('searches nearby activities from a resolved reference and uses a list selection in the form', async () => {

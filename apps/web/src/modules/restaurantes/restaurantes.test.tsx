@@ -72,6 +72,25 @@ describe('restaurantes module', () => {
     expect(fetchSpy).not.toHaveBeenCalled();
   });
 
+  it('associates a people validation error with its input', async () => {
+    const user = userEvent.setup();
+    const Panel = restaurantesModule.Panel;
+
+    render(
+      <MemoryRouter>
+        <Panel />
+      </MemoryRouter>,
+    );
+
+    const input = screen.getByLabelText('Pessoas');
+    await user.clear(input);
+    await user.type(input, '0');
+
+    expect(input).toHaveAttribute('aria-invalid', 'true');
+    expect(input).toHaveAttribute('aria-describedby', 'restaurant-people-error');
+    expect(screen.getByRole('alert')).toHaveTextContent('Informe pelo menos uma pessoa.');
+  });
+
   it('finds restaurants near the resolved reference and selection from list or map fills the existing form', async () => {
     const fetchSpy = mockPlaceRequests();
     const user = userEvent.setup();
