@@ -58,6 +58,20 @@ describe('AppShell', () => {
     expect(window.localStorage.getItem(SIDEBAR_STORAGE_KEY)).toBe('true');
   });
 
+  it.each([
+    ['Planejamento', 'text-module-planejamento'],
+    ['Hospedagem', 'text-module-hospedagem'],
+    ['Restaurantes', 'text-module-restaurantes'],
+    ['Atividades', 'text-module-atividades'],
+  ])('uses the module wayfinding colour for the inactive %s icon', (label, colourClass) => {
+    renderApp('/rota-custos');
+
+    expect(screen.getByRole('link', { name: label }).querySelector('svg')).toHaveClass(colourClass);
+
+    cleanup();
+    resetApp();
+  });
+
   it.each(['/rota-custos', '/hospedagem', '/restaurantes', '/atividades'])(
     'uses the 80/20 map-and-content split for %s',
     (path) => {

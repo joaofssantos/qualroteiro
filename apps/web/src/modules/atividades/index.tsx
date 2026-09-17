@@ -160,7 +160,7 @@ function AtividadesPanel() {
   return (
     <section className="map-panel-content mx-auto flex w-full max-w-5xl flex-col gap-5 px-4 py-6 md:px-8">
       <header className="flex flex-col gap-1">
-        <h1 className="text-2xl font-bold tracking-tight text-primary">Atividades</h1>
+        <h1 className="text-2xl font-bold tracking-tight text-module-atividades">Atividades</h1>
         <p className="text-sm text-muted-foreground">
           Calcule o custo total de um passeio ou ingresso para incluir no roteiro.
         </p>

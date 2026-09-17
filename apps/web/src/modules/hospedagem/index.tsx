@@ -159,7 +159,7 @@ function HospedagemPanel() {
   return (
     <section className="map-panel-content mx-auto flex w-full max-w-5xl flex-col gap-5 px-4 py-6 md:px-8">
       <header className="flex flex-col gap-1">
-        <h1 className="text-2xl font-bold tracking-tight text-primary">Hospedagem</h1>
+        <h1 className="text-2xl font-bold tracking-tight text-module-hospedagem">Hospedagem</h1>
         <p className="text-sm text-muted-foreground">
           Calcule noites e custo total de uma estadia para incluir no roteiro.
         </p>
