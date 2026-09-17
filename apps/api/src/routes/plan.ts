@@ -10,7 +10,9 @@ import type { FastifyInstance } from 'fastify';
 import type { GeocodeProvider, LineString, LngLat } from '@qualroteiro/geo';
 import type { RouteAlternative, RoutingProvider } from '@qualroteiro/routing';
 import {
+  AXLE_CATEGORIES,
   type FuelStationSeed,
+  type TariffByAxleCategory,
   type TollPlaza,
   matchFuelStations,
   matchTolls,
@@ -62,15 +64,45 @@ export interface PlanRouteDeps {
 }
 
 /**
+ * Validate and narrow a persisted `tariff` JSON value back into
+ * `@qualroteiro/tolls`'s `TariffByAxleCategory` shape.
+ *
+ * `record.tariff` is `unknown` at this boundary (see
+ * `store/toll-plaza-store.ts`'s doc-comment) — a `Json` column proves nothing
+ * about its own shape. This requires every {@link AXLE_CATEGORIES} key to be
+ * present and a finite number before trusting it; anything else (`null`, a
+ * missing key, a non-numeric value, a JSON array/primitive) returns
+ * `undefined` rather than throwing. Same "skip, don't crash" philosophy
+ * `@qualroteiro/tolls`'s `parseOsmCharge` uses for a `charge` tag it can't
+ * parse: a plaza with no tariff is a normal, already-handled state
+ * (`matchTolls` lists it and excludes it from `total`); a malformed row
+ * making `/routes/plan` 500 is not.
+ */
+function toTariff(tariff: unknown): TariffByAxleCategory | undefined {
+  if (tariff === null || typeof tariff !== 'object' || Array.isArray(tariff)) {
+    return undefined;
+  }
+
+  const raw = tariff as Record<string, unknown>;
+  const entries = AXLE_CATEGORIES.map((category) => [category, raw[category]] as const);
+
+  const allNumeric = entries.every(([, value]) => typeof value === 'number' && Number.isFinite(value));
+  if (!allNumeric) return undefined;
+
+  return Object.fromEntries(entries) as TariffByAxleCategory;
+}
+
+/**
  * Map one persisted, real-world plaza to the shape `matchTolls` matches
  * against a route.
  *
- * `tariffByAxleCategory` is always `undefined` here — the persisted
- * `TollPlazaRecord` carries no tariff column at all (see
- * `prisma/schema.prisma`'s doc-comment: per-concessionaire fare scraping is a
- * separate, future phase). `matchTolls` still matches and lists a plaza with
- * no tariff; it simply contributes nothing to `total` (`@qualroteiro/tolls`'s
- * own doc-comment on `matchTolls`).
+ * `tariffByAxleCategory` comes from `record.tariff` when it validates as a
+ * real {@link TariffByAxleCategory} (`toTariff`), `undefined` otherwise —
+ * every ANTT row today (Fase 1 never had a tariff column, and the migration
+ * that added one backfilled every existing row's `tariff` as `null`) and any
+ * OSM row whose `charge` tag didn't parse. `matchTolls` still matches and
+ * lists a plaza with no tariff; it simply contributes nothing to `total`
+ * (`@qualroteiro/tolls`'s own doc-comment on `matchTolls`).
  */
 function toTollPlaza(record: TollPlazaRecord): TollPlaza {
   return {
@@ -81,7 +113,7 @@ function toTollPlaza(record: TollPlazaRecord): TollPlaza {
     km: record.km,
     lat: record.lat,
     lng: record.lng,
-    tariffByAxleCategory: undefined,
+    tariffByAxleCategory: toTariff(record.tariff),
   };
 }
 
