@@ -24,6 +24,13 @@ const tollLayer = (visible: boolean): MapLayerData & { visible: boolean } => ({
 });
 
 describe('MapCanvas', () => {
+  it('opens with a Brazil-wide viewport before a route or places are selected', async () => {
+    render(<MapCanvas trace={null} layers={[]} />);
+
+    await waitFor(() => expect(lastMap().options['center']).toEqual([-52.5, -14.5]));
+    expect(lastMap().options['zoom']).toBe(3.4);
+  });
+
   it('draws the route trace into the map source', async () => {
     render(<MapCanvas trace={TRACE} layers={[]} />);
 
