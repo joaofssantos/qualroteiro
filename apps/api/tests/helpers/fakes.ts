@@ -17,6 +17,7 @@ import type {
 import type { ApiUsageStore, UsageCounterSnapshot } from '../../src/store/api-usage.js';
 import type {
   TollPlazaRecord,
+  TollPlazaSource,
   TollPlazaStatus,
   TollPlazaStore,
 } from '../../src/store/toll-plaza-store.js';
@@ -215,12 +216,15 @@ export function fakeApiUsageStore(
  * Real-world-shaped toll plaza records mirroring the Dutra demo corridor's
  * plazas — same ids/coordinates/highway as `@qualroteiro/tolls`'s own seed,
  * but through the T5 Wave 2 store shape (`uf`/`municipality`/`active`/
- * `ingestedAt`, and deliberately NO tariff field). Stands in for what Wave
- * 3's real ANTT ingestion would eventually store for this stretch of
- * BR-116: lets `POST /routes/plan` tests prove the real geometric match
- * against `SP_RJ_GEOMETRY` (itself `corridorPolyline('sp-rj-dutra')`) without
- * going through `@qualroteiro/tolls`'s in-package seed, which the production
- * path no longer reads.
+ * `ingestedAt`). `source: 'antt'` and `tariff: null` on every row — this is
+ * the Fase 1 (ANTT) shape, unchanged by `j-20260916-y9`'s `source`/`tariff`
+ * columns (that migration backfilled every existing row exactly this way).
+ * Stands in for what Wave 3's real ANTT ingestion would eventually store for
+ * this stretch of BR-116: lets `POST /routes/plan` tests prove the real
+ * geometric match against `SP_RJ_GEOMETRY` (itself
+ * `corridorPolyline('sp-rj-dutra')`) without going through
+ * `@qualroteiro/tolls`'s in-package seed, which the production path no
+ * longer reads.
  */
 export const DUTRA_TOLL_PLAZA_RECORDS: readonly TollPlazaRecord[] = dutraCorridor.plazas.map(
   (plaza) => ({
@@ -235,8 +239,51 @@ export const DUTRA_TOLL_PLAZA_RECORDS: readonly TollPlazaRecord[] = dutraCorrido
     lng: plaza.lng,
     active: true,
     ingestedAt: new Date('2026-09-01T00:00:00.000Z'),
+    source: 'antt' satisfies TollPlazaSource,
+    tariff: null,
   }),
 );
+
+/**
+ * One OSM-sourced record, real tariff attached — same corridor/geometry as
+ * {@link DUTRA_TOLL_PLAZA_RECORDS} (so a test seeding this alongside them
+ * exercises the real geometric match, not a stubbed one) but `source: 'osm'`
+ * and a filled-in `tariff` JSON blob, standing in for what Wave 3 of
+ * `j-20260916-y9`'s OSM ingestion job would eventually write via
+ * `parseOsmCharge` + `clusterTollBooths` (`@qualroteiro/tolls`). Placed
+ * exactly at the first Dutra plaza's coordinates so it real-matches
+ * `SP_RJ_GEOMETRY` the same way the ANTT fixture does.
+ */
+export const OSM_TOLL_PLAZA_RECORD_WITH_TARIFF: TollPlazaRecord = (() => {
+  const first = dutraCorridor.plazas[0];
+  if (first === undefined) {
+    throw new Error('dutraCorridor.plazas is unexpectedly empty');
+  }
+  return {
+    id: 'osm-9001',
+    concessionaire: 'Ecovias',
+    name: `${first.name} (OSM)`,
+    highway: first.highway,
+    uf: 'SP',
+    municipality: first.name,
+    km: first.km,
+    lat: first.lat,
+    lng: first.lng,
+    active: true,
+    ingestedAt: new Date('2026-09-16T00:00:00.000Z'),
+    source: 'osm' satisfies TollPlazaSource,
+    tariff: {
+      motorcycle: 5.5,
+      car: 14.5,
+      car_with_trailer: 14.5,
+      truck_2_axle: 14.5,
+      truck_3_axle: 21.75,
+      truck_4_axle: 29,
+      truck_5_axle: 36.25,
+      truck_6_axle: 43.5,
+    },
+  };
+})();
 
 /**
  * An in-memory {@link TollPlazaStore}.
@@ -256,11 +303,14 @@ export function fakeTollPlazaStore(
       return records.filter((r) => r.active);
     },
     async status(): Promise<TollPlazaStatus> {
+      const bySource: Record<TollPlazaSource, number> = { antt: 0, osm: 0 };
+      for (const r of records) bySource[r.source] += 1;
+
       if (records.length === 0) {
-        return { count: 0, lastIngestedAt: null };
+        return { count: 0, lastIngestedAt: null, bySource };
       }
       const lastIngestedAt = new Date(Math.max(...records.map((r) => r.ingestedAt.getTime())));
-      return { count: records.length, lastIngestedAt };
+      return { count: records.length, lastIngestedAt, bySource };
     },
   };
 }

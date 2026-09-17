@@ -134,17 +134,24 @@ model ApiUsageCounter {
 }
 
 /// T5 Wave 2 "Pedágio real, Fase 1 (geo/identidade)": one row per real-world
-/// toll plaza, as published monthly by ANTT
-/// (`dados.antt.gov.br/dataset/praca-de-pedagio`). Geography and identity
-/// only — see `apps/api/specs/007-t5-wave2-toll-plazas/spec.md` for why a
-/// tariff column is deliberately NOT here: ANTT's own dataset carries none
-/// (each concessionaire publishes its own fare table separately), so pricing
-/// is a distinct, later phase.
+/// toll plaza. Originally ANTT-only, geography and identity only — see
+/// `apps/api/specs/007-t5-wave2-toll-plazas/spec.md` for why `tariff` was
+/// deliberately absent at first: ANTT's own dataset carries none (each
+/// concessionaire publishes its own fare table separately).
 ///
-/// Written by `services/data-ingest`'s monthly ingestion job (Wave 3),
-/// pointed at THIS schema (`prisma generate --schema=apps/api/prisma/schema.prisma`)
-/// rather than defining its own — see `orientation.md` decision 4, one schema
-/// per database. Read by `apps/api`'s `TollPlazaStore` — `listActive()` feeds
+/// `j-20260916-y9` ("Pedágio — OSM como fonte rápida") adds `source` and
+/// `tariff` on top of that: OpenStreetMap rows carry a real fare table
+/// (`packages/tolls`'s `parseOsmCharge`), while ANTT rows keep `tariff: null`
+/// — see `apps/api/specs/008-pedagio-osm-wave2/spec.md`. Rows from different
+/// sources are NOT deduplicated against each other (orientation.md decision
+/// 5): the same physical plaza can legitimately appear twice, once per
+/// source, and that is intentional redundancy, not a bug.
+///
+/// Written by `services/data-ingest`'s monthly ingestion jobs (ANTT: Wave 3
+/// of `j-20260916-9y`; OSM: Wave 3 of `j-20260916-y9`), pointed at THIS
+/// schema (`prisma generate --schema=apps/api/prisma/schema.prisma`) rather
+/// than defining their own — see `orientation.md` decision 4, one schema per
+/// database. Read by `apps/api`'s `TollPlazaStore` — `listActive()` feeds
 /// `matchTolls`'s `plazas` list in `routes/plan.ts`, replacing the in-package
 /// demo seed on the production path.
 model TollPlazaRecord {
@@ -180,7 +187,38 @@ model TollPlazaRecord {
   /// data is without needing database access.
   ingestedAt DateTime
 
+  /// Which ingestion pipeline wrote this row. `@default(antt)` so the
+  /// migration that adds this column backfills all 277 pre-existing rows
+  /// (Fase 1's ANTT ingestion, which predates this column and this enum) as
+  /// `antt` without touching a single one of them — see
+  /// `apps/api/specs/008-pedagio-osm-wave2/spec.md`.
+  source TollPlazaSource @default(antt)
+
+  /// The plaza's fare table, mirroring `@qualroteiro/tolls`'s
+  /// `TariffByAxleCategory` shape (`Record<AxleCategory, number>`) — stored
+  /// as `Json` rather than a typed column because Prisma has no native
+  /// "record keyed by a closed string union" column type, and this table
+  /// otherwise has zero I/O framework dependency on `@qualroteiro/tolls`.
+  /// `null` for every ANTT row (unchanged from Fase 1: ANTT's dataset
+  /// carries no tariff of its own) and for any OSM row whose `charge` tag
+  /// didn't parse (`parseOsmCharge` returns `null` rather than a guess).
+  /// `routes/plan.ts`'s `toTollPlaza()` is the only place this gets read
+  /// back into the domain shape, and it validates the JSON before trusting
+  /// it rather than casting blindly.
+  tariff Json?
+
   /// `listActive()`'s own filter — the only way `/routes/plan` ever reads
   /// this table.
   @@index([active])
+}
+
+/// Which ingestion pipeline wrote a {@link TollPlazaRecord}. Closed by a
+/// Prisma enum (not a free-form string) because every current and near-term
+/// planned source (ANTT, OSM, and orientation.md's future ARTESP/Power BI) is
+/// known up front, and a typo here would silently split what should be one
+/// source's rows into two — a real Postgres CHECK, not a convention to
+/// remember.
+enum TollPlazaSource {
+  antt
+  osm
 }

@@ -10,6 +10,7 @@ import { describe, expect, it } from 'vitest';
 import { buildApp } from '../src/app.js';
 import {
   DUTRA_TOLL_PLAZA_RECORDS,
+  OSM_TOLL_PLAZA_RECORD_WITH_TARIFF,
   SP_RJ_DISTANCE_KM,
   fakeGeocodeProvider,
   fakeRoutingProvider,
@@ -162,6 +163,86 @@ describe('POST /routes/plan', () => {
 
       expect(res.statusCode).toBe(200);
       expect(res.json().routes[0].tolls.plazas).toEqual([]);
+    });
+  });
+
+  describe('OSM-sourced plazas carry a real tariff (j-20260916-y9)', () => {
+    it('a source: "osm" row with tariff appears with a real tariffByAxleCategory, counting in total', async () => {
+      const app = buildApp({
+        routing: fakeRoutingProvider(),
+        geocode: fakeGeocodeProvider(),
+        tollPlazas: fakeTollPlazaStore([OSM_TOLL_PLAZA_RECORD_WITH_TARIFF]),
+      });
+
+      const res = await app.inject({ method: 'POST', url: '/routes/plan', payload: VALID_BODY });
+
+      expect(res.statusCode).toBe(200);
+      const route = res.json().routes[0];
+
+      expect(route.tolls.plazas).toHaveLength(1);
+      const [plaza] = route.tolls.plazas;
+      expect(plaza.id).toBe(OSM_TOLL_PLAZA_RECORD_WITH_TARIFF.id);
+      // The real tariff round-tripped through the store's Json column and
+      // toTollPlaza()'s validation — not undefined, and matches what was
+      // seeded.
+      expect(plaza.tariffByAxleCategory).toEqual(OSM_TOLL_PLAZA_RECORD_WITH_TARIFF.tariff);
+
+      // VALID_BODY's vehicle.axleCategory is 'car' — the seeded tariff's
+      // car rate (14.5) is what should land in total.
+      expect(route.tolls.total).toBeCloseTo(14.5, 2);
+    });
+
+    it('an antt row (no tariff) keeps behaving exactly as before — zero regression from Fase 1', async () => {
+      const app = buildApp({
+        routing: fakeRoutingProvider(),
+        geocode: fakeGeocodeProvider(),
+        tollPlazas: fakeTollPlazaStore(DUTRA_TOLL_PLAZA_RECORDS),
+      });
+
+      const res = await app.inject({ method: 'POST', url: '/routes/plan', payload: VALID_BODY });
+
+      expect(res.statusCode).toBe(200);
+      const route = res.json().routes[0];
+
+      expect(route.tolls.plazas.length).toBeGreaterThan(0);
+      expect(route.tolls.total).toBe(0);
+      for (const plaza of route.tolls.plazas) {
+        expect(plaza.tariffByAxleCategory).toBeUndefined();
+      }
+    });
+
+    it('antt and osm rows coexist — antt plazas stay tariff-less while the osm plaza contributes to total', async () => {
+      const app = buildApp({
+        routing: fakeRoutingProvider(),
+        geocode: fakeGeocodeProvider(),
+        tollPlazas: fakeTollPlazaStore([
+          ...DUTRA_TOLL_PLAZA_RECORDS,
+          OSM_TOLL_PLAZA_RECORD_WITH_TARIFF,
+        ]),
+      });
+
+      const res = await app.inject({ method: 'POST', url: '/routes/plan', payload: VALID_BODY });
+
+      expect(res.statusCode).toBe(200);
+      const route = res.json().routes[0];
+
+      const anttPlazas = route.tolls.plazas.filter(
+        (p: { id: string }) => p.id !== OSM_TOLL_PLAZA_RECORD_WITH_TARIFF.id,
+      );
+      const osmPlaza = route.tolls.plazas.find(
+        (p: { id: string }) => p.id === OSM_TOLL_PLAZA_RECORD_WITH_TARIFF.id,
+      );
+
+      expect(anttPlazas.length).toBeGreaterThan(0);
+      for (const plaza of anttPlazas) {
+        expect(plaza.tariffByAxleCategory).toBeUndefined();
+      }
+      expect(osmPlaza).toBeDefined();
+      expect(osmPlaza.tariffByAxleCategory).toEqual(OSM_TOLL_PLAZA_RECORD_WITH_TARIFF.tariff);
+
+      // Only the osm plaza's car tariff feeds total — every antt plaza still
+      // contributes nothing.
+      expect(route.tolls.total).toBeCloseTo(14.5, 2);
     });
   });
 
