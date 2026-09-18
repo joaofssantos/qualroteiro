@@ -1,0 +1,336 @@
+{
+  "light": {
+    "rota-custos": {
+      "title": "Quanto custa essa viagem?",
+      "titleColor": "rgb(10, 62, 92)",
+      "accentButtons": [
+        {
+          "label": "Calcular rota",
+          "background": "rgb(245, 159, 10)"
+        }
+      ],
+      "nav": [
+        {
+          "label": "Rota & Custos",
+          "active": true,
+          "iconColor": "rgb(248, 250, 252)"
+        },
+        {
+          "label": "Planejamento",
+          "active": false,
+          "iconColor": "rgb(91, 65, 170)"
+        },
+        {
+          "label": "Hospedagem",
+          "active": false,
+          "iconColor": "rgb(37, 119, 126)"
+        },
+        {
+          "label": "Atividades",
+          "active": false,
+          "iconColor": "rgb(47, 111, 79)"
+        },
+        {
+          "label": "Restaurantes",
+          "active": false,
+          "iconColor": "rgb(181, 72, 38)"
+        }
+      ]
+    },
+    "planejamento-viagem": {
+      "title": null,
+      "titleColor": null,
+      "accentButtons": [],
+      "nav": [
+        {
+          "label": "Rota & Custos",
+          "active": false,
+          "iconColor": "rgba(248, 250, 252, 0.7)"
+        },
+        {
+          "label": "Planejamento",
+          "active": true,
+          "iconColor": "rgb(248, 250, 252)"
+        },
+        {
+          "label": "Hospedagem",
+          "active": false,
+          "iconColor": "rgb(37, 119, 126)"
+        },
+        {
+          "label": "Atividades",
+          "active": false,
+          "iconColor": "rgb(47, 111, 79)"
+        },
+        {
+          "label": "Restaurantes",
+          "active": false,
+          "iconColor": "rgb(181, 72, 38)"
+        }
+      ]
+    },
+    "hospedagem": {
+      "title": "Hospedagem",
+      "titleColor": "rgb(37, 119, 126)",
+      "accentButtons": [],
+      "nav": [
+        {
+          "label": "Rota & Custos",
+          "active": false,
+          "iconColor": "rgba(248, 250, 252, 0.7)"
+        },
+        {
+          "label": "Planejamento",
+          "active": false,
+          "iconColor": "rgb(91, 65, 170)"
+        },
+        {
+          "label": "Hospedagem",
+          "active": true,
+          "iconColor": "rgb(248, 250, 252)"
+        },
+        {
+          "label": "Atividades",
+          "active": false,
+          "iconColor": "rgb(47, 111, 79)"
+        },
+        {
+          "label": "Restaurantes",
+          "active": false,
+          "iconColor": "rgb(181, 72, 38)"
+        }
+      ]
+    },
+    "restaurantes": {
+      "title": "Restaurantes",
+      "titleColor": "rgb(181, 72, 38)",
+      "accentButtons": [],
+      "nav": [
+        {
+          "label": "Rota & Custos",
+          "active": false,
+          "iconColor": "rgba(248, 250, 252, 0.7)"
+        },
+        {
+          "label": "Planejamento",
+          "active": false,
+          "iconColor": "rgb(91, 65, 170)"
+        },
+        {
+          "label": "Hospedagem",
+          "active": false,
+          "iconColor": "rgb(37, 119, 126)"
+        },
+        {
+          "label": "Atividades",
+          "active": false,
+          "iconColor": "rgb(47, 111, 79)"
+        },
+        {
+          "label": "Restaurantes",
+          "active": true,
+          "iconColor": "rgb(248, 250, 252)"
+        }
+      ]
+    },
+    "atividades": {
+      "title": "Atividades",
+      "titleColor": "rgb(47, 111, 79)",
+      "accentButtons": [],
+      "nav": [
+        {
+          "label": "Rota & Custos",
+          "active": false,
+          "iconColor": "rgba(248, 250, 252, 0.7)"
+        },
+        {
+          "label": "Planejamento",
+          "active": false,
+          "iconColor": "rgb(91, 65, 170)"
+        },
+        {
+          "label": "Hospedagem",
+          "active": false,
+          "iconColor": "rgb(37, 119, 126)"
+        },
+        {
+          "label": "Atividades",
+          "active": true,
+          "iconColor": "rgb(248, 250, 252)"
+        },
+        {
+          "label": "Restaurantes",
+          "active": false,
+          "iconColor": "rgb(181, 72, 38)"
+        }
+      ]
+    }
+  },
+  "dark": {
+    "rota-custos": {
+      "title": "Quanto custa essa viagem?",
+      "titleColor": "rgb(60, 172, 221)",
+      "accentButtons": [
+        {
+          "label": "Calcular rota",
+          "background": "rgb(246, 168, 35)"
+        }
+      ],
+      "nav": [
+        {
+          "label": "Rota & Custos",
+          "active": true,
+          "iconColor": "rgb(248, 250, 252)"
+        },
+        {
+          "label": "Planejamento",
+          "active": false,
+          "iconColor": "rgb(151, 129, 218)"
+        },
+        {
+          "label": "Hospedagem",
+          "active": false,
+          "iconColor": "rgb(85, 196, 206)"
+        },
+        {
+          "label": "Atividades",
+          "active": false,
+          "iconColor": "rgb(103, 197, 150)"
+        },
+        {
+          "label": "Restaurantes",
+          "active": false,
+          "iconColor": "rgb(223, 131, 104)"
+        }
+      ]
+    },
+    "planejamento-viagem": {
+      "title": null,
+      "titleColor": null,
+      "accentButtons": [],
+      "nav": [
+        {
+          "label": "Rota & Custos",
+          "active": false,
+          "iconColor": "rgba(248, 250, 252, 0.7)"
+        },
+        {
+          "label": "Planejamento",
+          "active": true,
+          "iconColor": "rgb(248, 250, 252)"
+        },
+        {
+          "label": "Hospedagem",
+          "active": false,
+          "iconColor": "rgb(85, 196, 206)"
+        },
+        {
+          "label": "Atividades",
+          "active": false,
+          "iconColor": "rgb(103, 197, 150)"
+        },
+        {
+          "label": "Restaurantes",
+          "active": false,
+          "iconColor": "rgb(223, 131, 104)"
+        }
+      ]
+    },
+    "hospedagem": {
+      "title": "Hospedagem",
+      "titleColor": "rgb(85, 196, 206)",
+      "accentButtons": [],
+      "nav": [
+        {
+          "label": "Rota & Custos",
+          "active": false,
+          "iconColor": "rgba(248, 250, 252, 0.7)"
+        },
+        {
+          "label": "Planejamento",
+          "active": false,
+          "iconColor": "rgb(151, 129, 218)"
+        },
+        {
+          "label": "Hospedagem",
+          "active": true,
+          "iconColor": "rgb(248, 250, 252)"
+        },
+        {
+          "label": "Atividades",
+          "active": false,
+          "iconColor": "rgb(103, 197, 150)"
+        },
+        {
+          "label": "Restaurantes",
+          "active": false,
+          "iconColor": "rgb(223, 131, 104)"
+        }
+      ]
+    },
+    "restaurantes": {
+      "title": "Restaurantes",
+      "titleColor": "rgb(223, 131, 104)",
+      "accentButtons": [],
+      "nav": [
+        {
+          "label": "Rota & Custos",
+          "active": false,
+          "iconColor": "rgba(248, 250, 252, 0.7)"
+        },
+        {
+          "label": "Planejamento",
+          "active": false,
+          "iconColor": "rgb(151, 129, 218)"
+        },
+        {
+          "label": "Hospedagem",
+          "active": false,
+          "iconColor": "rgb(85, 196, 206)"
+        },
+        {
+          "label": "Atividades",
+          "active": false,
+          "iconColor": "rgb(103, 197, 150)"
+        },
+        {
+          "label": "Restaurantes",
+          "active": true,
+          "iconColor": "rgb(248, 250, 252)"
+        }
+      ]
+    },
+    "atividades": {
+      "title": "Atividades",
+      "titleColor": "rgb(103, 197, 150)",
+      "accentButtons": [],
+      "nav": [
+        {
+          "label": "Rota & Custos",
+          "active": false,
+          "iconColor": "rgba(248, 250, 252, 0.7)"
+        },
+        {
+          "label": "Planejamento",
+          "active": false,
+          "iconColor": "rgb(151, 129, 218)"
+        },
+        {
+          "label": "Hospedagem",
+          "active": false,
+          "iconColor": "rgb(85, 196, 206)"
+        },
+        {
+          "label": "Atividades",
+          "active": true,
+          "iconColor": "rgb(248, 250, 252)"
+        },
+        {
+          "label": "Restaurantes",
+          "active": false,
+          "iconColor": "rgb(223, 131, 104)"
+        }
+      ]
+    }
+  }
+}
