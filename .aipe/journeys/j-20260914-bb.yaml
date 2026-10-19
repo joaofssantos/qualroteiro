@@ -1,0 +1,105 @@
+id: j-20260914-bb
+dispatches:
+  - repo: qualroteiro
+    package: root
+    specialist: Lane Pryce
+    branch: aipe/j-20260914-bb/root--lane-pryce
+    worktree: /Users/joaofsantos/Documents/code/qualroteiro/repos/qualroteiro/.worktrees/j-20260914-bb-root--lane-pryce
+    status: merged
+    round: 1
+    at: 2026-09-15T17:23:54.685Z
+    tier: standard
+    mode: subagent
+    intensity: normal
+    harness: claude-code
+    size: small
+    taskType: feature
+    base: dev
+    title: Seed de postos de combustivel + matchFuelStations
+    description: 4-6 postos demo por corredor em packages/tolls, dentro do buffer da
+      polyline real; matchFuelStations espelhando matchTolls.
+  - repo: qualroteiro
+    package: root
+    specialist: Bertram Cooper
+    branch: aipe/j-20260914-bb/root--bertram-cooper
+    worktree: /Users/joaofsantos/Documents/code/qualroteiro/repos/qualroteiro/.worktrees/j-20260914-bb-root--bertram-cooper
+    evidence:
+      by: qa
+      commands:
+        - git reset --hard origin/aipe/j-20260914-bb/root--lane-pryce; tolls
+          build/typecheck/test; pnpm -w test; matchFuelStations exercised
+          directly; self-consistency all 3 corridors; diff scope
+      summary: "PASS 8/8, 0 critical/important. tolls 67/67, pnpm -w test 10/10.
+        matchFuelStations proven on Dutra polyline (6 stations, ordered,
+        in-buffer) and empty on far polyline. Self-consistency confirmed for all
+        17 seeded stations across 3 corridors within 500m buffer. 44
+        pre-existing tests byte-identical diff (genuinely unchanged). Scope only
+        packages/tolls/**. 2 minor/info: SDD says isWithinBuffer helper but code
+        uses nearestPointOnLine+manual compare (matches existing matchTolls
+        pattern, doc nit); filter-only build needs geo built first (pre-existing
+        monorepo shape, not introduced by this PR)."
+    status: closed
+    filedQaVerdict: true
+    round: 2
+    verifiedRound: 2
+    at: 2026-09-15T17:23:37.489Z
+    tier: standard
+    mode: subagent
+    intensity: normal
+    harness: claude-code
+    closedReason: unit qualroteiro/root landed
+      (https://github.com/joaofssantos/qualroteiro/pull/8) — this record's work
+      is finished with it
+  - repo: qualroteiro
+    package: api
+    specialist: Pete Campbell
+    branch: aipe/j-20260914-bb/api--pete-campbell
+    worktree: /Users/joaofsantos/Documents/code/qualroteiro/repos/qualroteiro/.worktrees/j-20260914-bb-api--pete-campbell
+    status: merged
+    round: 1
+    at: 2026-09-15T17:43:32.297Z
+    tier: standard
+    mode: subagent
+    intensity: normal
+    harness: claude-code
+    size: small
+    taskType: feature
+    base: dev
+    title: "T4 Wave 2: popular points.fuelStations no POST /routes/plan"
+    description: Importa matchFuelStations de @qualroteiro/tolls e popula
+      points.fuelStations por alternativa, igual matchTolls.
+  - repo: qualroteiro
+    package: api
+    specialist: Joan Holloway
+    branch: aipe/j-20260914-bb/api--joan-holloway
+    worktree: /Users/joaofsantos/Documents/code/qualroteiro/repos/qualroteiro/.worktrees/j-20260914-bb-api--joan-holloway
+    evidence:
+      by: qa
+      commands:
+        - "git reset to PR #11 head a781616; build deps; api
+          test/typecheck/lint; diff scope; packages/tolls zero-diff check; gh pr
+          checks 11"
+      summary: "PASS 8/8. matchFuelStations genuinely imported (zero diff in
+        packages/tolls). Diff scoped to apps/api/** (5 files). 38/38 tests incl.
+        both required scenarios. typecheck+lint clean. spec.md accurate,
+        non-overclaiming. SDD present. CI 'verify' check PASSED (26s). 1 minor:
+        filtered pnpm test needs deps prebuilt, pre-existing at merge-base, not
+        introduced by this PR, out of apps/api scope."
+    status: closed
+    filedQaVerdict: true
+    round: 1
+    verifiedRound: 1
+    at: 2026-09-15T17:43:31.983Z
+    tier: standard
+    mode: subagent
+    intensity: normal
+    harness: claude-code
+    closedReason: unit qualroteiro/api landed
+      (https://github.com/joaofssantos/qualroteiro/pull/11) — this record's work
+      is finished with it
+authorizations: []
+spec:
+  path: .aipe/journeys/j-20260914-bb/orientation.md
+  version: 1
+  approved: true
+  contentHash: f878eff6

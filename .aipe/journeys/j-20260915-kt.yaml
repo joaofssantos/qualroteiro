@@ -1,0 +1,112 @@
+id: j-20260915-kt
+dispatches:
+  - repo: qualroteiro
+    package: root
+    specialist: Lane Pryce
+    branch: aipe/j-20260915-kt/root--lane-pryce
+    worktree: /Users/joaofsantos/Documents/code/qualroteiro/repos/qualroteiro/.worktrees/j-20260915-kt-root--lane-pryce
+    status: merged
+    round: 1
+    at: 2026-09-15T22:28:06.801Z
+    tier: reasoning
+    mode: subagent
+    intensity: normal
+    harness: claude-code
+    size: medium
+    taskType: feature
+    base: dev
+    title: "F2a: pacote @qualroteiro/trips (Trip/TripDay/TripItem)"
+    description: Tipos + validacao pura pro dominio de viagem, base pro modulo
+      Planejamento de Viagem. Contrato ja fechado no F2-COORDINATION.md.
+  - repo: qualroteiro
+    package: root
+    specialist: Bertram Cooper
+    branch: aipe/j-20260915-kt/root--bertram-cooper
+    worktree: /Users/joaofsantos/Documents/code/qualroteiro/repos/qualroteiro/.worktrees/j-20260915-kt-root--bertram-cooper
+    evidence:
+      by: qa
+      commands:
+        - own mutation test (title->name, confirmed typecheck fails, reverted);
+          type fidelity vs F2-COORDINATION.md sec3; trips build/typecheck/test;
+          turbo --force 21/21; lockfile diff inspection; SDD commit order
+      summary: "PASS 8/8, 0 findings. Own mutation test confirmed the contract-freeze
+        guard is real (not decorative). Type shapes match sec3 field-for-field.
+        All validation rules have pass+fail test coverage. No I/O in src/.
+        Scope: packages/trips/** + purely-additive 9-line lockfile delta. SDD
+        precedes RED precedes GREEN commit order confirmed. Deliberately-refused
+        rules documented in README.md."
+    status: closed
+    filedQaVerdict: true
+    round: 2
+    verifiedRound: 2
+    at: 2026-09-15T22:27:55.555Z
+    tier: standard
+    mode: subagent
+    intensity: normal
+    harness: claude-code
+    closedReason: unit qualroteiro/root landed
+      (https://github.com/joaofssantos/qualroteiro/pull/13) — this record's work
+      is finished with it
+  - repo: qualroteiro
+    package: api
+    specialist: Pete Campbell
+    branch: aipe/j-20260915-kt/api--pete-campbell
+    worktree: /Users/joaofsantos/Documents/code/qualroteiro/repos/qualroteiro/.worktrees/j-20260915-kt-api--pete-campbell
+    status: merged
+    round: 1
+    at: 2026-09-15T23:04:00.766Z
+    tier: standard
+    mode: subagent
+    intensity: normal
+    harness: claude-code
+    size: medium
+    taskType: feature
+    base: dev
+    title: "F2a: Prisma Trip/TripDay/TripItem + middleware Clerk + endpoints /trips*"
+    description: Schema Prisma + migration, verificacao de token Clerk, 8 endpoints
+      REST conforme F2-COORDINATION.md sec3, importando @qualroteiro/trips.
+  - repo: qualroteiro
+    package: api
+    specialist: Joan Holloway
+    branch: aipe/j-20260915-kt/api--joan-holloway
+    worktree: /Users/joaofsantos/Documents/code/qualroteiro/repos/qualroteiro/.worktrees/j-20260915-kt-api--joan-holloway
+    evidence:
+      by: qa
+      commands:
+        - CI check on head SHA; TURBO_FORCE clean rebuild; own probe test file
+          covering all 10 registered routes; cross-user 404 matrix; 6
+          independent mutations (M1-M6)
+      summary: "PASS. CI green on exact head SHA (2206128), confirmed with a genuine
+        cache-free rebuild (TURBO_FORCE=true). All 8 sec3 endpoints match
+        exactly (key-set asserted). Auth: 401 on all 10 registered /trips*
+        routes (incl. Fastify auto-HEAD, which dev never mentioned) across 5
+        forged/malformed token variants. Ownership: every cross-user op returns
+        404 byte-identical to nonexistent id, including a day id borrowed from
+        caller's own other trip. Validators imported not reimplemented. Scope
+        clean, no secrets. 2 Important findings, both explicitly non-blocking
+        per QA: (1) dev's costEstimate-finiteness mutation claim was false -
+        guard works (verified via raw 1e999 -> 400) but untested, add 1 test;
+        (2) Prisma adapter ownership filters (not the route layer, which IS
+        well-tested) survive deletion with tests green - quantifies the
+        already-disclosed no-live-DB limit, needs a real-Postgres integration
+        test once Docker is up. 2 Minor notes (payload:null rejected,
+        documented; offline migration adds postgis extension, unapplied, watch
+        for permission issues on first real apply)."
+    status: closed
+    filedQaVerdict: true
+    round: 2
+    verifiedRound: 2
+    at: 2026-09-15T23:03:48.490Z
+    tier: standard
+    mode: subagent
+    intensity: normal
+    harness: claude-code
+    closedReason: unit qualroteiro/api landed
+      (https://github.com/joaofssantos/qualroteiro/pull/14) — this record's work
+      is finished with it
+authorizations: []
+spec:
+  path: .aipe/journeys/j-20260915-kt/orientation.md
+  version: 1
+  approved: true
+  contentHash: 1226764f

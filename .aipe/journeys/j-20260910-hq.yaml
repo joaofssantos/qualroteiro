@@ -1,0 +1,100 @@
+id: j-20260910-hq
+dispatches:
+  - repo: qualroteiro
+    package: root
+    specialist: Lane Pryce
+    branch: aipe/j-20260910-hq/root--lane-pryce
+    worktree: /Users/joaofsantos/Documents/code/qualroteiro/repos/qualroteiro/.worktrees/j-20260910-hq-root--lane-pryce
+    status: merged
+    round: 1
+    at: 2026-09-15T17:36:26.078Z
+    tier: standard
+    mode: subagent
+    intensity: normal
+    harness: claude-code
+    size: small
+    taskType: chore
+    base: dev
+    title: "CI: GitHub Actions rodando build/typecheck/lint/test em PR (Wave 2)"
+    description: Agora que apps/api tem eslint.config.js, o workflow
+      .github/workflows/ci.yml roda a sequencia completa incluindo lint.
+  - repo: qualroteiro
+    package: api
+    specialist: Pete Campbell
+    branch: aipe/j-20260910-hq/api--pete-campbell
+    worktree: /Users/joaofsantos/Documents/code/qualroteiro/repos/qualroteiro/.worktrees/j-20260910-hq-api--pete-campbell
+    status: merged
+    round: 1
+    at: 2026-09-15T17:15:18.866Z
+    tier: standard
+    mode: subagent
+    intensity: normal
+    harness: claude-code
+    size: small
+    taskType: chore
+    base: dev
+    title: eslint.config.js para apps/api (pre-requisito do CI)
+    description: Espelha o flat config do apps/web sem plugins de React; adiciona
+      devDeps; faz pnpm -w lint passar em todos os pacotes.
+  - repo: qualroteiro
+    package: api
+    specialist: Joan Holloway
+    branch: aipe/j-20260910-hq/api--joan-holloway
+    worktree: /Users/joaofsantos/Documents/code/qualroteiro/repos/qualroteiro/.worktrees/j-20260910-hq-api--joan-holloway
+    evidence:
+      by: qa
+      commands:
+        - git reset --hard origin/aipe/j-20260910-hq/api--pete-campbell; pnpm
+          install; api lint/typecheck/test; pnpm -w lint
+      summary: PASS 6/6, 0 findings. api lint exit 0; typecheck+test green 34/34, zero
+        src/ diff (no behavior change); pnpm -w lint 2/2 (web+api); scope only
+        eslint.config.js+package.json+specs/003-*+lockfile; devDep versions
+        match apps/web exactly; SDD present; the one customized rule carries an
+        inline justifying comment.
+    status: closed
+    filedQaVerdict: true
+    round: 2
+    verifiedRound: 2
+    at: 2026-09-15T17:15:06.365Z
+    tier: standard
+    mode: subagent
+    intensity: normal
+    harness: claude-code
+    closedReason: unit qualroteiro/api landed
+      (https://github.com/joaofssantos/qualroteiro/pull/7) — this record's work
+      is finished with it
+  - repo: qualroteiro
+    package: root
+    specialist: Bertram Cooper
+    branch: aipe/j-20260910-hq/root--bertram-cooper
+    worktree: /Users/joaofsantos/Documents/code/qualroteiro/repos/qualroteiro/.worktrees/j-20260910-hq-root--bertram-cooper
+    evidence:
+      by: qa
+      commands:
+        - gh run view 35001863258; local build/typecheck/lint/test; merge-base
+          diff scope check
+      summary: "PASS, 1 minor (Node24 runtime deprecation notice on GH actions,
+        unrelated to app's node-version:20, not a defect). Live GHA run
+        35001863258 confirmed success, all 10 steps green. Local: build 6/6,
+        typecheck 10/10, lint 2/2, test 10/10 tasks/203 tests. Scope (via
+        merge-base diff, matches gh pr diff): only .github/workflows/ci.yml,
+        README.md badge, specs/002-ci-github-actions/. concurrency correctly
+        per-ref. No secrets/deploy steps."
+    status: closed
+    filedQaVerdict: true
+    round: 2
+    verifiedRound: 2
+    at: 2026-09-15T17:36:14.242Z
+    tier: standard
+    mode: subagent
+    intensity: normal
+    harness: claude-code
+    closedReason: unit qualroteiro/root landed
+      (https://github.com/joaofssantos/qualroteiro/pull/10) — this record's work
+      is finished with it
+authorizations: []
+spec:
+  path: .aipe/journeys/j-20260910-hq/orientation.md
+  version: 2
+  approved: true
+  contentHash: 852f4687

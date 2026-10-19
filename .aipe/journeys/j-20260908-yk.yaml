@@ -1,0 +1,209 @@
+id: j-20260908-yk
+dispatches:
+  - repo: qualroteiro
+    package: root
+    specialist: Lane Pryce
+    branch: aipe/j-20260908-yk/root--lane-pryce
+    worktree: /Users/joaofsantos/Documents/code/qualroteiro/repos/qualroteiro/.worktrees/j-20260908-yk-root--lane-pryce
+    status: merged
+    round: 1
+    at: 2026-09-09T00:31:39.453Z
+    tier: reasoning
+    mode: subagent
+    intensity: normal
+    harness: claude-code
+    size: large
+    taskType: feature
+    base: dev
+    title: "Pacotes de dominio F1: geo, routing, tolls, fuel"
+    description: Cria os 4 pacotes de dominio (tipos + logica pura) que a API vai
+      compor, com seed de pedagio de 3 corredores.
+  - repo: qualroteiro
+    package: root
+    specialist: Bertram Cooper
+    branch: aipe/j-20260908-yk/root--bertram-cooper
+    worktree: /Users/joaofsantos/Documents/code/qualroteiro/repos/qualroteiro/.worktrees/j-20260908-yk-root--bertram-cooper
+    evidence:
+      by: qa
+      commands:
+        - pnpm -w exec turbo run build/typecheck/test --force; node ESM import
+          of built dist/; grep HTTP-clients over routing+geo dist; base-commit
+          repro of the vite/client failure
+      summary: "PASS, all 9 acceptance criteria exercised against dist/ with turbo
+        cache bypassed: build 6/6, typecheck 7/7 (apps included), test 81/81;
+        estimateFuel(430,10,6)={liters:43,cost:258}; matchTolls Dutra seed = 6
+        plazas tariffs>0 total 52.9=sum, no-plaza polyline {[]，0};
+        isWithinBuffer proven in(33m)/out(11km); routing/geo dist free of
+        fetch/undici/axios, routing/dist/types.js = 'export {}'; SDD commit
+        cb31cfc precedes impl 186f16d; scope clean (packages/+specs/+lockfile+1
+        backward-compat turbo.json line, no apps/infra/services). 4 minor notes.
+        pnpm -w install vite/client failure confirmed PRE-EXISTING on base
+        8724065."
+    status: closed
+    filedQaVerdict: true
+    round: 2
+    verifiedRound: 2
+    at: 2026-09-08T22:22:03.406Z
+    tier: standard
+    mode: subagent
+    intensity: normal
+    harness: claude-code
+    closedReason: unit qualroteiro/root landed
+      (https://github.com/joaofssantos/qualroteiro/pull/1) — this record's work
+      is finished with it
+  - repo: qualroteiro
+    package: api
+    specialist: Pete Campbell
+    branch: aipe/j-20260908-yk/api--pete-campbell
+    worktree: /Users/joaofsantos/Documents/code/qualroteiro/repos/qualroteiro/.worktrees/j-20260908-yk-api--pete-campbell
+    pr: https://github.com/joaofssantos/qualroteiro/pull/2
+    evidence:
+      by: dev
+      commands:
+        - rm -rf apps/api/dist packages/*/dist && pnpm install --frozen-lockfile
+          && pnpm --filter ./packages/* build && pnpm --filter @qualroteiro/api
+          build/typecheck/test && node dist/server.js + curl over real socket
+      summary: "clean-slate: build+typecheck emit nothing, 34 tests pass (4 files),
+        RED confirmed first (endpoint suites failed to resolve ../src/app.js
+        pre-impl). Real socket on built server: POST /routes/plan acceptance
+        body -> 200, routes=1, distanceKm=429.7 (400..470), tolls.total=52.9
+        over 6 Dutra plazas, fuel {liters:42.97,cost:257.82}; no destination ->
+        400 naming 'destination'; GET /places/search?q=Sao Paulo -> 200 with
+        place, missing q -> 400 naming q; CORS preflight from :5173 -> 204 with
+        ACAO header. Injectable seam buildApp({routing,geocode}) in src/app.ts.
+        SDD apps/api/specs/002-rota-custos-api/{spec,plan}.md committed before
+        impl. Only root file touched: pnpm-lock.yaml (devDeps)."
+    status: closed
+    ciBypass: no-checks
+    round: 1
+    at: 2026-09-09T00:58:49.327Z
+    tier: reasoning
+    mode: subagent
+    intensity: normal
+    harness: claude-code
+    size: medium
+    taskType: feature
+    base: dev
+    title: "Contrato HTTP F1: POST /routes/plan e GET /places/search"
+    description: "Fastify compondo os pacotes de dominio: rota via provider
+      gerenciado, pedagio do seed, combustivel, e busca de lugar. Adapter
+      injetavel."
+    closedReason: unit qualroteiro/api landed — this record's work is finished with it
+  - repo: qualroteiro
+    package: api
+    specialist: Joan Holloway
+    branch: aipe/j-20260908-yk/api--joan-holloway
+    worktree: /Users/joaofsantos/Documents/code/qualroteiro/repos/qualroteiro/.worktrees/j-20260908-yk-api--joan-holloway
+    status: merged
+    round: 2
+    at: 2026-09-09T01:10:16.796Z
+    tier: standard
+    mode: subagent
+    intensity: normal
+    harness: claude-code
+    verifiedRound: 2
+    filedQaVerdict: true
+  - repo: qualroteiro
+    package: web
+    specialist: Peggy Olson
+    branch: aipe/j-20260908-yk/web--peggy-olson
+    worktree: /Users/joaofsantos/Documents/code/qualroteiro/repos/qualroteiro/.worktrees/j-20260908-yk-web--peggy-olson
+    evidence:
+      by: dev
+      commands:
+        - pnpm -w build; pnpm --filter @qualroteiro/web typecheck; pnpm --filter
+          @qualroteiro/web lint; pnpm --filter @qualroteiro/web test
+      summary: "coordinator re-verified the merged branch after the dev subagent died
+        on a rate limit mid-verification: pnpm -w build 6/6 (FULL TURBO), web
+        typecheck clean, web lint clean, vitest 46/46 across 6 files incl.
+        extensibility.test.tsx ('adds a module to the shell nav and routes to
+        it, with no core edit') and rotaCustos.test.tsx ('submits the contract
+        body and shows the result screen'). vite/client fix confirmed
+        (env.d.ts). PR #3 merged into dev at d61eb03. The stray local commit
+        9dfb8e1 (.openai/hosting.json homologation config, unrequested) was NOT
+        part of PR #3 and is absent on dev."
+    status: merged
+    round: 1
+    at: 2026-09-09T10:44:46.170Z
+    tier: reasoning
+    mode: subagent
+    intensity: normal
+    harness: claude-code
+    size: large
+    taskType: feature
+    base: dev
+    title: Shell de modulos + modulo F1 Rota & Custos (3 telas)
+    description: App shell com moduleRegistry, primitivas compartilhadas (MapCanvas,
+      PlaceSearch, VehicleProfileForm) e o modulo Rota & Custos consumindo o
+      contrato HTTP da onda 2.
+  - repo: qualroteiro
+    package: web
+    specialist: Stan Rizzo
+    branch: aipe/j-20260908-yk/web--peggy-olson
+    worktree: /Users/joaofsantos/Documents/code/qualroteiro/repos/qualroteiro/.worktrees/j-20260908-yk-web--peggy-olson
+    evidence:
+      by: qa
+      commands: []
+      summary: ""
+      items:
+        - label: US1 route costs
+          commands:
+            - pnpm --filter @qualroteiro/web test
+          summary: Vitest passed 6 files / 46 tests, including submit SP->RJ, route trace
+            source update, summary values, Pedágios list, Combustível math and
+            alternatives changing trace/summary.
+        - label: US2 plaza detail
+          commands:
+            - pnpm --filter @qualroteiro/web test
+          summary: Tests opened the drawer from both toll list and map marker and asserted
+            concessionaire/highway/tariff rows.
+        - label: US3 place search
+          commands:
+            - pnpm --filter @qualroteiro/web test
+          summary: PlaceSearch tests covered debounce, one GET /places/search?q= per
+            window, abort of superseded request and coordinate emission after
+            selecting a hit.
+        - label: US4 errors
+          commands:
+            - pnpm --filter @qualroteiro/web test
+          summary: Tests distinguished 422 field-level destination address error, 400
+            validation path, 502 provider failure and empty 200 route result.
+        - label: US5 extensibility
+          commands:
+            - pnpm --filter @qualroteiro/web test
+          summary: Registry tests registered a demo module outside core, verified nav and
+            /demo route, and architecture tests assert src/core does not import
+            src/modules.
+        - label: US6 route points
+          commands:
+            - pnpm --filter @qualroteiro/web test
+          summary: Layer tests toggled toll markers off/on in the map and asserted the F1
+            fuel-station empty state.
+        - label: build gates
+          commands:
+            - pnpm --filter @qualroteiro/web typecheck && pnpm --filter
+              @qualroteiro/web lint && pnpm --filter @qualroteiro/web build &&
+              pnpm -w build
+          summary: Typecheck and lint exited 0; web build completed with Vite with only
+            the >500k MapLibre chunk warning; pnpm -w build reported 6
+            successful tasks across api, packages and web.
+        - label: runtime smoke
+          commands:
+            - pnpm dev --host 127.0.0.1 --port 5174; curl -sS -D -
+              http://127.0.0.1:5174/ -o /tmp/qualroteiro-web-index.html
+          summary: "Vite served / with HTTP 200. Limit: no real browser click was
+            established because the in-app browser control tool was unavailable;
+            UI interactions were exercised through Testing Library with mocked
+            API and MapLibre."
+    status: closed
+    filedQaVerdict: true
+    round: 1
+    verifiedRound: 1
+    at: 2026-09-09T02:36:14.428Z
+    closedReason: unit qualroteiro/web landed — this record's work is finished with it
+authorizations: []
+spec:
+  path: .aipe/journeys/j-20260908-yk/orientation.md
+  version: 1
+  approved: true
+  contentHash: 1b4977c4

@@ -1,0 +1,68 @@
+id: j-20260909-ym
+dispatches:
+  - repo: qualroteiro
+    package: web
+    specialist: Peggy Olson
+    branch: aipe/j-20260909-ym/web--peggy-olson
+    worktree: /Users/joaofsantos/Documents/code/qualroteiro/repos/qualroteiro/.worktrees/j-20260909-ym-web--peggy-olson
+    status: merged
+    round: 1
+    at: 2026-09-10T03:21:49.888Z
+    tier: standard
+    mode: subagent
+    intensity: normal
+    harness: claude-code
+    size: small
+    taskType: feature
+    base: dev
+    title: Demo mode do apps/web (VITE_DEMO_MODE) pra homolog estatico
+    description: "Flag de build que serve fixtures dos 3 corredores semeados sem
+      backend, derivadas dos dados reais do repo. Regressao: demo off
+      inalterado."
+  - repo: qualroteiro
+    package: web
+    specialist: Stan Rizzo
+    branch: aipe/j-20260909-ym/web--stan-rizzo
+    worktree: /Users/joaofsantos/Documents/code/qualroteiro/repos/qualroteiro/.worktrees/j-20260909-ym-web--stan-rizzo
+    evidence:
+      by: qa
+      commands:
+        - git reset --hard origin/aipe/j-20260909-ym/web--peggy-olson (a995b1d);
+          pnpm install; pnpm -w build --force; web typecheck/lint; vitest run;
+          VITE_DEMO_MODE=true build + vite preview curl; grep built chunks; git
+          diff d61eb03..HEAD
+      summary: "PASS 10/10. build 6/6, web typecheck+lint clean, 63/63 tests (46
+        pre-existing untouched + 17 new). Demo ON e2e: 3 corridors from fixtures
+        with fetch sentinel asserted never called (SP-RJ 429,7km / Combustivel
+        257,82; Curitiba 244,80; Campinas 57,60). fixtures import REAL
+        matchTolls/estimateFuel/getCorridor (verified in source + built lazy
+        chunk) - not reimplemented. Non-demo client.ts fetch path
+        character-identical, wrapped in else of isDemoMode(); flag-off test
+        asserts fetch('/api/routes/plan') still called; client.test.ts
+        untouched+green. /places/search offline + 400 blank q. 422
+        'destination:'-prefixed for no-corridor known-city pair. role=status
+        badge gated both ways. VITE_DEMO_MODE=true dist/ self-contained, served
+        OK. Demo module = 6.5kB lazy chunk, absent from 123kB main bundle.
+        Scope: only apps/web/** + 1 pnpm-lock importer entry. SDD
+        spec/tasks/evidence present. 1 MINOR: @qualroteiro/tolls seed data
+        (~4.4kB) hoists into non-demo main bundle; docs overstate 'drops all
+        demo code'. LIMITS: no real browser run of dist/, no deploy; did not
+        re-derive toll/fuel numbers; car axleCategory only."
+    status: closed
+    filedQaVerdict: true
+    round: 2
+    verifiedRound: 2
+    at: 2026-09-10T03:21:49.311Z
+    tier: standard
+    mode: subagent
+    intensity: normal
+    harness: claude-code
+    closedReason: unit qualroteiro/web landed
+      (https://github.com/joaofssantos/qualroteiro/pull/4) — this record's work
+      is finished with it
+authorizations: []
+spec:
+  path: .aipe/journeys/j-20260909-ym/orientation.md
+  version: 1
+  approved: true
+  contentHash: 3644b214

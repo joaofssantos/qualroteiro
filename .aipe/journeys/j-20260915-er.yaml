@@ -1,0 +1,58 @@
+id: j-20260915-er
+dispatches:
+  - repo: qualroteiro
+    package: api
+    specialist: Pete Campbell
+    branch: aipe/j-20260915-er/api--pete-campbell
+    worktree: /Users/joaofsantos/Documents/code/qualroteiro/repos/qualroteiro/.worktrees/j-20260915-er-api--pete-campbell
+    status: merged
+    round: 1
+    at: 2026-09-15T17:33:29.370Z
+    tier: standard
+    mode: subagent
+    intensity: normal
+    harness: claude-code
+    size: small
+    taskType: feature
+    base: dev
+    title: "T2: primeira chamada real ao OpenRouteService"
+    description: Roda POST /routes/plan e GET /places/search contra o ORS de verdade
+      (key ja no .env), corrige o que a chamada real revelar, documenta
+      evidencia.
+  - repo: qualroteiro
+    package: api
+    specialist: Joan Holloway
+    branch: aipe/j-20260915-er/api--joan-holloway
+    worktree: /Users/joaofsantos/Documents/code/qualroteiro/repos/qualroteiro/.worktrees/j-20260915-er-api--joan-holloway
+    evidence:
+      by: qa
+      commands:
+        - git reset to PR branch; test/typecheck/lint 37/37 no-network; boot
+          from .env only with shell key unset; live POST /routes/plan
+          SP->Campinas; diff scope + git history for .env/key
+      summary: "PASS 6/6. 37/37 tests green, zero network dependency in the new tests.
+        Real .env-only boot confirmed (shell key unset). Live POST /routes/plan
+        returned 818-point road-following geometry. Diff scoped to apps/api/**
+        only, .env absent from all git history. ors-routing.ts/ors-geocode.ts
+        adapter logic untouched. SDD justifies rejecting both dotenv and
+        --env-file. LIMIT: did not independently re-verify GET /places/search
+        live, nor D-107 alternative-routes retry or driving-hgv profile (SDD
+        already flags those as fake-tested only)."
+    status: closed
+    filedQaVerdict: true
+    round: 2
+    verifiedRound: 2
+    at: 2026-09-15T17:33:18.227Z
+    tier: standard
+    mode: subagent
+    intensity: normal
+    harness: claude-code
+    closedReason: unit qualroteiro/api landed
+      (https://github.com/joaofssantos/qualroteiro/pull/9) — this record's work
+      is finished with it
+authorizations: []
+spec:
+  path: .aipe/journeys/j-20260915-er/orientation.md
+  version: 1
+  approved: true
+  contentHash: 8bcca868

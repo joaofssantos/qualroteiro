@@ -1,0 +1,139 @@
+id: j-20260916-y9
+dispatches:
+  - repo: qualroteiro
+    package: root
+    task: osm-wave1-parsing
+    specialist: Lane Pryce
+    branch: aipe/j-20260916-y9/root--lane-pryce
+    worktree: /Users/joaofsantos/Documents/code/qualroteiro/repos/qualroteiro/.worktrees/j-20260916-y9-root--lane-pryce
+    evidence:
+      by: dev
+      commands:
+        - pnpm exec turbo run typecheck test --force
+          --filter=@qualroteiro/tolls; pnpm -w build
+        - ran parseOsmCharge against the 4 real charge examples collected live
+          from Overpass API before speccing (not dev's fixtures) - all matched
+          exactly, including Mo-Fr/Sa-Su picking weekday, malformed -> null
+        - ran clusterTollBooths against real coordinates collected from Overpass
+          (3 real Ecovias Raposo Castello booths + 1 adversarial same-coordinate
+          different-operator point) - correct grouping, correct non-grouping
+      summary: "89/89 tests green (21 new), pnpm -w build 8/8 green. Independently
+        reproduced parseOsmCharge and clusterTollBooths against real OSM data
+        collected directly, not just the dev's fixtures - both functions behave
+        exactly as expected including the adversarial
+        same-coordinate/different-operator clustering edge case. Diff scoped to
+        packages/tolls/**. PR #36 CI green."
+    status: closed
+    round: 1
+    at: 2026-09-16T20:27:10.901Z
+    tier: reasoning
+    mode: subagent
+    intensity: normal
+    harness: claude-code
+    size: medium
+    taskType: feature
+    base: main
+    closedReason: unit qualroteiro/root landed — this record's work is finished with it
+  - repo: qualroteiro
+    package: root
+    task: osm-wave1-parsing
+    specialist: Bertram Cooper
+    branch: aipe/j-20260916-y9/root--bertram-cooper
+    worktree: /Users/joaofsantos/Documents/code/qualroteiro/repos/qualroteiro/.worktrees/j-20260916-y9-root--bertram-cooper
+    status: merged
+    round: 2
+    at: 2026-09-16T20:35:50.619Z
+    tier: standard
+    mode: subagent
+    intensity: normal
+    harness: claude-code
+    size: medium
+    taskType: feature
+    verifiedRound: 2
+    base: main
+    filedQaVerdict: true
+  - repo: qualroteiro
+    package: api
+    specialist: Pete Campbell
+    branch: aipe/j-20260916-y9/api--pete-campbell
+    worktree: /Users/joaofsantos/Documents/code/qualroteiro/repos/qualroteiro/.worktrees/j-20260916-y9-api--pete-campbell
+    evidence:
+      by: dev
+      commands:
+        - pnpm --filter @qualroteiro/api typecheck/lint/test; pnpm -w build; gh
+          pr checks 41
+      summary: "PR #41 aberta, CI real PASS (verify), 163/163 testes api (+4 novos),
+        typecheck/lint limpos, build workspace 8/8, migration real aplicada e
+        round-trip provado contra Postgres compartilhado (277 antt preservadas,
+        insert/delete OSM de teste limpo), escopo git diff só apps/api/**"
+    status: closed
+    round: 1
+    at: 2026-09-17T02:15:08.840Z
+    base: main
+    closedReason: unit qualroteiro/api landed — this record's work is finished with it
+  - repo: qualroteiro
+    package: api
+    specialist: Joan Holloway
+    branch: aipe/j-20260916-y9/api--joan-holloway
+    worktree: /Users/joaofsantos/Documents/code/qualroteiro/repos/qualroteiro/.worktrees/j-20260916-y9-api--joan-holloway
+    evidence:
+      by: dev
+      commands:
+        - gh pr view 41 --json state,mergedAt,mergeCommit; git push origin
+          origin/main:refs/heads/dev
+      summary: "PR #41 mergeada (721ddc0), dev ressincronizado"
+    status: merged
+    round: 2
+    at: 2026-09-17T02:21:30.664Z
+    verifiedRound: 2
+    base: main
+    filedQaVerdict: true
+  - repo: qualroteiro
+    package: root
+    task: osm-wave3-ingest
+    specialist: Lane Pryce
+    branch: aipe/j-20260916-y9/root--lane-pryce__osm-wave3-ingest
+    worktree: /Users/joaofsantos/Documents/code/qualroteiro/repos/qualroteiro/.worktrees/j-20260916-y9-root--lane-pryce__osm-wave3-ingest
+    evidence:
+      by: dev
+      commands:
+        - pnpm --filter @qualroteiro/data-ingest typecheck/lint/test; pnpm -w
+          build; gh pr checks 43
+      summary: "PR #43 aberta, CI real PASS. Overpass real: 957 nós no Brasil inteiro,
+        489 clusters, 487 tarifas parseadas, upsert idempotente provado (2
+        rodadas, mesma contagem, ingestedAt atualizado). Postgres real: antt=277
+        preservado, osm=489, total=766, confirmado via
+        /admin/toll-plazas-status. 41 testes verdes, build 8/8. Escopo
+        services/data-ingest/** + 3 linhas pnpm-lock.yaml (dependência workspace
+        nova)."
+    status: closed
+    round: 1
+    at: 2026-09-17T02:44:29.905Z
+    base: main
+    closedReason: unit qualroteiro/root landed — this record's work is finished with it
+  - repo: qualroteiro
+    package: root
+    task: osm-wave3-ingest
+    specialist: Bertram Cooper
+    branch: aipe/j-20260916-y9/root--bertram-cooper__osm-wave3-ingest
+    worktree: /Users/joaofsantos/Documents/code/qualroteiro/repos/qualroteiro/.worktrees/j-20260916-y9-root--bertram-cooper__osm-wave3-ingest
+    evidence:
+      by: dev
+      commands:
+        - gh pr view 43 --json state,mergedAt,mergeCommit
+      summary: "PR #43 mergeada (67c6549) em main. NÃO sincronizei dev (main e dev
+        divergiram de verdade agora: main +1 commit que dev não tem, dev +5
+        commits que main não tem — PR #42/#44 do Codex). Aguardando decisão do
+        PE sobre reconciliação."
+    status: merged
+    round: 2
+    at: 2026-09-17T02:53:23.787Z
+    verifiedRound: 2
+    base: main
+    filedQaVerdict: true
+authorizations: []
+spec:
+  path: .aipe/journeys/j-20260916-y9/orientation.md
+  version: 1
+  approved: true
+  contentHash: 4c43f982

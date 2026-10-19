@@ -1,0 +1,28 @@
+id: j-20260915-bp
+dispatches:
+  - repo: qualroteiro
+    package: api
+    specialist: Pete Campbell
+    branch: aipe/j-20260915-bp/api--pete-campbell
+    worktree: /Users/joaofsantos/Documents/code/qualroteiro/repos/qualroteiro/.worktrees/j-20260915-bp-api--pete-campbell
+    status: closed
+    closedReason: "superseded: F2f reorder landed via Codex PRs #20 and #22 (fix);
+      no PR from this dispatch"
+    round: 1
+    at: 2026-10-19T11:42:37.347Z
+    tier: reasoning
+    mode: subagent
+    intensity: normal
+    harness: claude-code
+    size: medium
+    taskType: feature
+    base: dev
+    title: "F2f Wave 1: PATCH de reordenacao de dias/itens"
+    description: PATCH /trips/:id/days/:dayId e .../items/:itemId (order + mover
+      item entre dias da mesma trip), mesma disciplina de ownership de A2.
+authorizations: []
+spec:
+  path: .aipe/journeys/j-20260915-bp/orientation.md
+  version: 1
+  approved: true
+  contentHash: 0418f4a9

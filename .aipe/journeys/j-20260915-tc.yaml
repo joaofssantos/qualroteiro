@@ -1,0 +1,59 @@
+id: j-20260915-tc
+dispatches:
+  - repo: qualroteiro
+    package: web
+    specialist: Peggy Olson
+    branch: aipe/j-20260915-tc/web--peggy-olson
+    worktree: /Users/joaofsantos/Documents/code/qualroteiro/repos/qualroteiro/.worktrees/j-20260915-tc-web--peggy-olson
+    status: merged
+    round: 1
+    at: 2026-09-16T00:25:42.189Z
+    tier: standard
+    mode: subagent
+    intensity: normal
+    harness: claude-code
+    size: small
+    taskType: feature
+    base: dev
+    title: "F2d: modulo Atividades (custo por pessoa + salvar na viagem)"
+    description: "Mesma forma de Hospedagem/Restaurantes: calculo puro preco/pessoa
+      x pessoas, tela standalone sem login, salvar na viagem espelhando
+      SaveRouteToTripDialog."
+  - repo: qualroteiro
+    package: web
+    specialist: Stan Rizzo
+    branch: aipe/j-20260915-tc/web--stan-rizzo
+    worktree: /Users/joaofsantos/Documents/code/qualroteiro/repos/qualroteiro/.worktrees/j-20260915-tc-web--stan-rizzo
+    evidence:
+      by: qa
+      commands:
+        - rebuild workspace; web build/typecheck/lint/test; diff line-by-line
+          SaveActivityToTripDialog vs SaveRouteToTripDialog; gh pr checks 17;
+          commit order check
+      summary: PASS 8/8, 0 findings. 14 test files/83 tests match claim exactly.
+        calc.ts arithmetic + both error cases genuinely exercised. Live calc
+        proven via real vi.stubGlobal fetch spy asserted never called.
+        SaveActivityToTripDialog confirmed line-by-line genuine structural
+        mirror of SaveRouteToTripDialog (not divergent reimpl), signed-out
+        renders no save button at all. modules/index.ts diff = 1 import + 1
+        array entry + comment, no core file touched, extensibility.test.tsx
+        still passes. SDD committed alone before implementation. CI verify PASS
+        on exact head SHA (matches HEAD, branch tip, PR headRefOid).
+    status: closed
+    filedQaVerdict: true
+    round: 2
+    verifiedRound: 2
+    at: 2026-09-16T00:23:04.778Z
+    tier: standard
+    mode: subagent
+    intensity: normal
+    harness: claude-code
+    closedReason: unit qualroteiro/web landed
+      (https://github.com/joaofssantos/qualroteiro/pull/17) — this record's work
+      is finished with it
+authorizations: []
+spec:
+  path: .aipe/journeys/j-20260915-tc/orientation.md
+  version: 1
+  approved: true
+  contentHash: e41b4c38
