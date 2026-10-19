@@ -1,0 +1,59 @@
+id: j-20260916-gl
+dispatches:
+  - repo: qualroteiro
+    package: web
+    specialist: Peggy Olson
+    branch: aipe/j-20260916-gl/web--peggy-olson
+    worktree: /Users/joaofsantos/Documents/code/qualroteiro/repos/qualroteiro/.worktrees/j-20260916-gl-web--peggy-olson
+    evidence:
+      by: dev
+      commands:
+        - pnpm --filter @qualroteiro/web typecheck/lint/test
+        - "mutation: removed clearMap() call from RotaCustosLayout.tsx cleanup,
+          ran mapPersistence.test.tsx alone"
+      summary: "Fix round 2 for QA FAIL. Added a 4th test in mapPersistence.test.tsx
+        that mounts rota-custos (the real module the QA's mutation targeted),
+        unmounts by navigating to a no-showMap module (so nothing republishes
+        layers to mask the gap), then asserts directly on useMapStore.getState()
+        (layers=[], trace=null, onMarkerClick=undefined) instead of via another
+        module's DOM. Reproduced independently by coordinator: applying the
+        exact same mutation QA used (removing clearMap() from the cleanup) makes
+        exactly 1 test fail (the new one) while the other 3 in the file still
+        pass - proving the new test has teeth and closes the coverage gap.
+        Reverted, full suite 113/113 green, typecheck/lint clean. Diff scope
+        unchanged (apps/web/** only, same 11 files as before + the one test file
+        edit). PR #25 CI 'verify' green on the new HEAD."
+    status: closed
+    round: 3
+    at: 2026-09-16T14:54:50.724Z
+    tier: standard
+    mode: subagent
+    intensity: normal
+    harness: claude-code
+    size: small
+    taskType: fix
+    base: dev
+    closedReason: unit qualroteiro/web landed — this record's work is finished with it
+  - repo: qualroteiro
+    package: web
+    specialist: Stan Rizzo
+    branch: aipe/j-20260916-gl/web--stan-rizzo
+    worktree: /Users/joaofsantos/Documents/code/qualroteiro/repos/qualroteiro/.worktrees/j-20260916-gl-web--stan-rizzo
+    status: merged
+    round: 4
+    at: 2026-09-16T14:59:20.185Z
+    tier: standard
+    mode: subagent
+    intensity: normal
+    harness: claude-code
+    size: small
+    taskType: feature
+    verifiedRound: 4
+    base: dev
+    filedQaVerdict: true
+authorizations: []
+spec:
+  path: .aipe/journeys/j-20260916-gl/orientation.md
+  version: 1
+  approved: true
+  contentHash: c5ec5353

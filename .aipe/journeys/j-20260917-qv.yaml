@@ -1,0 +1,79 @@
+id: j-20260917-qv
+dispatches:
+  - repo: qualroteiro
+    package: api
+    specialist: Pete Campbell
+    branch: aipe/j-20260917-qv/api--pete-campbell
+    worktree: /Users/joaofsantos/Documents/code/qualroteiro/repos/qualroteiro/.worktrees/j-20260917-qv-api--pete-campbell
+    evidence:
+      by: dev
+      commands:
+        - pnpm --filter @qualroteiro/api typecheck/lint/test; pnpm -w build
+      summary: "PR #51 aberta, CI real PASS. Allow-list de tipos por categoria +
+        validação cross-category + teto de radiusMeters (20000). 173/173 testes
+        (+9 novos), build 19/19. Verificado por mim de forma independente antes
+        de registrar. Escopo só apps/api/**."
+    status: closed
+    round: 1
+    at: 2026-09-17T18:06:59.422Z
+    base: main
+    closedReason: unit qualroteiro/api landed — this record's work is finished with it
+  - repo: qualroteiro
+    package: api
+    specialist: Joan Holloway
+    branch: aipe/j-20260917-qv/api--joan-holloway
+    worktree: /Users/joaofsantos/Documents/code/qualroteiro/repos/qualroteiro/.worktrees/j-20260917-qv-api--joan-holloway
+    evidence:
+      by: dev
+      commands:
+        - gh pr view 51 --json state,mergedAt,mergeCommit
+      summary: "PR #51 mergeada (ad0168f) em main."
+    status: merged
+    round: 2
+    at: 2026-09-17T18:14:53.708Z
+    verifiedRound: 2
+    base: main
+    filedQaVerdict: true
+  - repo: qualroteiro
+    package: web
+    specialist: Peggy Olson
+    branch: aipe/j-20260917-qv/web--peggy-olson
+    worktree: /Users/joaofsantos/Documents/code/qualroteiro/repos/qualroteiro/.worktrees/j-20260917-qv-web--peggy-olson
+    evidence:
+      by: dev
+      commands:
+        - pnpm --filter @qualroteiro/web typecheck/lint/test; pnpm -w build
+      summary: "PR #52 aberta, CI real PASS. Controle de raio (select 1/3/5/10/20km) +
+        chips de tipo (multi-seleção) nos 3 módulos, mudança auto-dispara busca.
+        Verificado por mim: 19/19 gates, 151/151 testes isolado. Escopo só
+        apps/web/**. searchNearbyPlaces() inseriu 'types' antes de 'signal' na
+        assinatura — conferi manualmente todos os call sites reais, todos
+        atualizados certo, TypeScript pegaria qualquer um esquecido."
+    status: closed
+    round: 1
+    at: 2026-09-17T18:33:16.993Z
+    base: main
+    closedReason: unit qualroteiro/web landed — this record's work is finished with it
+  - repo: qualroteiro
+    package: web
+    specialist: Stan Rizzo
+    branch: aipe/j-20260917-qv/web--stan-rizzo
+    worktree: /Users/joaofsantos/Documents/code/qualroteiro/repos/qualroteiro/.worktrees/j-20260917-qv-web--stan-rizzo
+    evidence:
+      by: dev
+      commands:
+        - gh pr view 52 --json state,mergedAt,mergeCommit
+      summary: "PR #52 mergeada (a0c56f2) em main. Jornada j-20260917-qv completa —
+        Wave 1+2."
+    status: merged
+    round: 2
+    at: 2026-09-17T18:39:53.331Z
+    verifiedRound: 2
+    base: main
+    filedQaVerdict: true
+authorizations: []
+spec:
+  path: .aipe/journeys/j-20260917-qv/orientation.md
+  version: 1
+  approved: true
+  contentHash: 626bf36d

@@ -1,0 +1,82 @@
+id: j-20260916-9p
+dispatches:
+  - repo: qualroteiro
+    package: api
+    specialist: Pete Campbell
+    branch: aipe/j-20260916-9p/api--pete-campbell
+    worktree: /Users/joaofsantos/Documents/code/qualroteiro/repos/qualroteiro/.worktrees/j-20260916-9p-api--pete-campbell
+    status: closed
+    closedReason: "unit qualroteiro/api landed via PR #31 (merged)"
+    round: 1
+    at: 2026-10-19T11:42:37.497Z
+    tier: fast
+    mode: subagent
+    intensity: normal
+    harness: claude-code
+    size: small
+    taskType: fix
+    base: main
+  - repo: qualroteiro
+    package: web
+    specialist: Peggy Olson
+    branch: aipe/j-20260916-9p/web--peggy-olson
+    worktree: /Users/joaofsantos/Documents/code/qualroteiro/repos/qualroteiro/.worktrees/j-20260916-9p-web--peggy-olson
+    evidence:
+      by: dev
+      commands:
+        - pnpm --filter @qualroteiro/web build/typecheck/lint/test
+      summary: "125/125 tests green, build/typecheck/lint clean. apps/web/.env.example
+        VITE_API_BASE_URL changed from a concrete value to commented/unset,
+        matching the file's own documented default and fixing 27+ false-negative
+        test failures when .env.example is copied literally to .env. Single-line
+        diff. PR #30 merged."
+    status: closed
+    round: 1
+    at: 2026-09-16T19:11:26.226Z
+    tier: fast
+    mode: subagent
+    intensity: normal
+    harness: claude-code
+    size: small
+    taskType: fix
+    base: main
+    closedReason: unit qualroteiro/web landed — this record's work is finished with it
+  - repo: qualroteiro
+    package: api
+    specialist: Joan Holloway
+    branch: aipe/j-20260916-9p/api--joan-holloway
+    worktree: /Users/joaofsantos/Documents/code/qualroteiro/repos/qualroteiro/.worktrees/j-20260916-9p-api--joan-holloway
+    status: closed
+    closedReason: "QA PASS recorded; unit qualroteiro/api landed via PR #31 (merged)"
+    round: 1
+    at: 2026-10-19T11:42:37.649Z
+    tier: fast
+    mode: subagent
+    intensity: normal
+    harness: claude-code
+    size: small
+    taskType: feature
+    base: main
+  - repo: qualroteiro
+    package: web
+    specialist: Stan Rizzo
+    branch: aipe/j-20260916-9p/web--stan-rizzo
+    worktree: /Users/joaofsantos/Documents/code/qualroteiro/repos/qualroteiro/.worktrees/j-20260916-9p-web--stan-rizzo
+    status: merged
+    round: 1
+    at: 2026-09-16T19:11:33.828Z
+    tier: fast
+    mode: subagent
+    intensity: normal
+    harness: claude-code
+    size: small
+    taskType: feature
+    verifiedRound: 1
+    base: main
+    filedQaVerdict: true
+authorizations: []
+spec:
+  path: .aipe/journeys/j-20260916-9p/orientation.md
+  version: 1
+  approved: true
+  contentHash: 92b1dae0

@@ -1,0 +1,122 @@
+id: j-20260917-up
+dispatches:
+  - repo: qualroteiro
+    package: web
+    specialist: Peggy Olson
+    branch: aipe/j-20260917-up/web--peggy-olson
+    worktree: /Users/joaofsantos/Documents/code/qualroteiro/repos/qualroteiro/.worktrees/j-20260917-up-web--peggy-olson
+    evidence:
+      by: dev
+      commands:
+        - pnpm --filter @qualroteiro/web typecheck/lint/test; pnpm -w build
+      summary: "PR #49 aberta, CI real PASS. lat/lng propagados em
+        LodgingStay/RestaurantVisit/ActivityPlan a partir do PlaceResult
+        selecionado, resetado pra null em edição manual. 146/146 testes web,
+        build 8/8. Escopo só apps/web/**."
+    status: closed
+    round: 1
+    at: 2026-09-17T17:39:09.967Z
+    base: main
+    closedReason: unit qualroteiro/web landed — this record's work is finished with it
+  - repo: qualroteiro
+    package: web
+    specialist: Stan Rizzo
+    branch: aipe/j-20260917-up/web--stan-rizzo
+    worktree: /Users/joaofsantos/Documents/code/qualroteiro/repos/qualroteiro/.worktrees/j-20260917-up-web--stan-rizzo
+    evidence:
+      by: dev
+      commands:
+        - gh pr view 49 --json state,mergedAt,mergeCommit
+      summary: "PR #49 já estava mergeada (10a9fd4) antes do QA retroativo confirmar —
+        ledger fechado agora."
+    status: merged
+    round: 2
+    at: 2026-09-17T17:52:04.051Z
+    verifiedRound: 2
+    base: main
+    filedQaVerdict: true
+  - repo: qualroteiro
+    package: web
+    task: up-wave2-query
+    specialist: Peggy Olson
+    branch: aipe/j-20260917-up/web--peggy-olson__up-wave2-query
+    worktree: /Users/joaofsantos/Documents/code/qualroteiro/repos/qualroteiro/.worktrees/j-20260917-up-web--peggy-olson__up-wave2-query
+    evidence:
+      by: dev
+      commands:
+        - pnpm --filter @qualroteiro/web typecheck/lint/test; pnpm -w build
+      summary: "PR #54 aberta, CI real PASS. payload muda de route para {...route,
+        query} (spread), restoreRoute() nova no routeStore, describeTripItem
+        regressão confirmada com payload antigo. Verificado por mim: 19/19
+        gates, 159/159 testes isolado (2 timeouts eram carga concorrente minha,
+        confirmados limpos isolado). Escopo só apps/web/**."
+    status: closed
+    round: 1
+    at: 2026-09-17T19:45:23.315Z
+    base: main
+    closedReason: unit qualroteiro/web landed — this record's work is finished with it
+  - repo: qualroteiro
+    package: web
+    task: up-wave2-query
+    specialist: Stan Rizzo
+    branch: aipe/j-20260917-up/web--stan-rizzo__up-wave2-query
+    worktree: /Users/joaofsantos/Documents/code/qualroteiro/repos/qualroteiro/.worktrees/j-20260917-up-web--stan-rizzo__up-wave2-query
+    evidence:
+      by: dev
+      commands:
+        - gh pr view 54 --json state,mergedAt,mergeCommit
+      summary: "PR #54 mergeada (d295b28) em main."
+    status: merged
+    round: 2
+    at: 2026-09-17T19:52:37.978Z
+    verifiedRound: 2
+    base: main
+    filedQaVerdict: true
+  - repo: qualroteiro
+    package: web
+    task: up-wave3-map
+    specialist: Peggy Olson
+    branch: aipe/j-20260917-up/web--peggy-olson__up-wave3-map
+    worktree: /Users/joaofsantos/Documents/code/qualroteiro/repos/qualroteiro/.worktrees/j-20260917-up-web--peggy-olson__up-wave3-map
+    evidence:
+      by: dev
+      commands:
+        - pnpm --filter @qualroteiro/web typecheck/lint/test; pnpm -w build;
+          Playwright real (Chromium+MapLibre, sem stub)
+      summary: "PR #56 aberta, CI real PASS. tripItemGeo.ts novo (extração defensiva
+        de coordenada/rota salva por moduleId, mesma disciplina de
+        describeTripItem.ts). Mapa 80/20 na tela de detalhe, pin por item com
+        coordenada, botão 'Reabrir rota' condicionado a query salva. Verificado
+        por mim: 19/19 gates, 181/181 testes isolado, screenshots reais
+        confirmam pins corretos (item manual e rota pré-Wave-2 corretamente sem
+        pin) e reabertura da rota com valores exatos salvos (429,7km/R,90/R,82).
+        Escopo só apps/web/**."
+    status: closed
+    round: 1
+    at: 2026-09-17T23:48:57.614Z
+    base: main
+    closedReason: unit qualroteiro/web landed — this record's work is finished with it
+  - repo: qualroteiro
+    package: web
+    task: up-wave3-map
+    specialist: Stan Rizzo
+    branch: aipe/j-20260917-up/web--stan-rizzo__up-wave3-map
+    worktree: /Users/joaofsantos/Documents/code/qualroteiro/repos/qualroteiro/.worktrees/j-20260917-up-web--stan-rizzo__up-wave3-map
+    evidence:
+      by: dev
+      commands:
+        - gh pr view 56 --json state,mergedAt,mergeCommit
+      summary: "PR #56 mergeada (a976a44) em main. Jornada j-20260917-up completa —
+        Wave 1/2/3 todas em main."
+    status: merged
+    round: 2
+    at: 2026-09-17T23:54:14.375Z
+    verifiedRound: 2
+    base: main
+    filedQaVerdict: true
+authorizations: []
+spec:
+  path: .aipe/journeys/j-20260917-up/orientation.md
+  version: 1
+  approved: true
+  contentHash: 83cf936d

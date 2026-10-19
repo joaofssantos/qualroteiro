@@ -1,0 +1,35 @@
+personas:
+  - name: Don Drapper
+    role: coordinator
+    repo: null
+    path: null
+  - name: Bertram Cooper
+    role: qa
+    repo: qualroteiro
+    path: ./repos/qualroteiro/.claude/skills/bertram-cooper
+    package: root
+  - name: Stan Rizzo
+    role: qa
+    repo: qualroteiro
+    path: ./repos/qualroteiro/.claude/skills/stan-rizzo
+    package: web
+  - name: Pete Campbell
+    role: dev-fullstack
+    repo: qualroteiro
+    path: ./repos/qualroteiro/.claude/skills/pete-campbell
+    package: api
+  - name: Peggy Olson
+    role: dev-fullstack
+    repo: qualroteiro
+    path: ./repos/qualroteiro/.claude/skills/peggy-olson
+    package: web
+  - name: Joan Holloway
+    role: qa
+    repo: qualroteiro
+    path: ./repos/qualroteiro/.claude/skills/joan-holloway
+    package: api
+  - name: Lane Pryce
+    role: dev-fullstack
+    repo: qualroteiro
+    path: ./repos/qualroteiro/.claude/skills/lane-pryce
+    package: root

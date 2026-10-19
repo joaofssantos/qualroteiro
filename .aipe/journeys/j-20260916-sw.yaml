@@ -1,0 +1,56 @@
+id: j-20260916-sw
+dispatches:
+  - repo: qualroteiro
+    package: api
+    specialist: Pete Campbell
+    branch: aipe/j-20260916-sw/api--pete-campbell
+    worktree: /Users/joaofsantos/Documents/code/qualroteiro/repos/qualroteiro/.worktrees/j-20260916-sw-api--pete-campbell
+    evidence:
+      by: dev
+      commands:
+        - pnpm --filter @qualroteiro/api typecheck
+        - pnpm --filter @qualroteiro/api lint
+        - pnpm --filter @qualroteiro/api test
+        - prisma migrate deploy against local Postgres; real Google Places API
+          call
+      summary: "152/152 tests pass (7 files), typecheck/lint clean, reproduced
+        independently by coordinator (not just dev self-report). Real Prisma
+        migration 20260916060000_g1_api_usage_counter applied against local
+        Postgres. Real Google Places API call verified end-to-end. Circuit
+        breaker test inspected line-by-line: asserts google.calls has length 0
+        at cap, not just 503 status. Diff scoped to apps/api/** only. No
+        secret-shaped strings in diff. PR #24 CI check 'verify' passed (51s)."
+    status: closed
+    round: 1
+    at: 2026-09-16T09:37:49.697Z
+    tier: reasoning
+    mode: subagent
+    intensity: normal
+    harness: claude-code
+    size: medium
+    taskType: feature
+    base: dev
+    closedReason: unit qualroteiro/api landed — this record's work is finished with it
+  - repo: qualroteiro
+    package: api
+    specialist: Joan Holloway
+    branch: aipe/j-20260916-sw/api--joan-holloway
+    worktree: /Users/joaofsantos/Documents/code/qualroteiro/repos/qualroteiro/.worktrees/j-20260916-sw-api--joan-holloway
+    status: merged
+    round: 2
+    at: 2026-09-16T09:52:12.348Z
+    tier: standard
+    mode: subagent
+    intensity: normal
+    harness: claude-code
+    size: medium
+    taskType: feature
+    verifiedRound: 2
+    base: dev
+    filedQaVerdict: true
+authorizations: []
+spec:
+  path: .aipe/journeys/j-20260916-sw/orientation.md
+  version: 1
+  approved: true
+  contentHash: 81ae5729

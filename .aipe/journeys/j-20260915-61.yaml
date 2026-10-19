@@ -1,0 +1,61 @@
+id: j-20260915-61
+dispatches:
+  - repo: qualroteiro
+    package: web
+    specialist: Peggy Olson
+    branch: aipe/j-20260915-61/web--peggy-olson
+    worktree: /Users/joaofsantos/Documents/code/qualroteiro/repos/qualroteiro/.worktrees/j-20260915-61-web--peggy-olson
+    status: merged
+    round: 1
+    at: 2026-09-16T00:59:00.943Z
+    tier: standard
+    mode: subagent
+    intensity: normal
+    harness: claude-code
+    size: small
+    taskType: feature
+    base: dev
+    title: "F2e: remover item/dia + exibicao rica por modulo na timeline"
+    description: deleteTripItem no client + botao remover; TripDetailScreen le o
+      payload de cada item pra mostrar resumo especifico em vez de texto cru,
+      com fallback seguro pra moduleId desconhecido.
+  - repo: qualroteiro
+    package: web
+    specialist: Stan Rizzo
+    branch: aipe/j-20260915-61/web--stan-rizzo
+    worktree: /Users/joaofsantos/Documents/code/qualroteiro/repos/qualroteiro/.worktrees/j-20260915-61-web--stan-rizzo
+    evidence:
+      by: qa
+      commands:
+        - rebuild workspace; web build/typecheck/lint/test; ad-hoc
+          malformed-payload probes on describeTripItem; gh pr checks 19; commit
+          order check
+      summary: "PASS, 0 critical/important, 2 minor. 21 test files/100 tests match
+        claim. Delete flow fully tested (confirm shown, correct ids, item
+        removed, budget updates, decline-skips-delete). describeTripItem uses
+        only typeof/property-guard narrowing, no unsafe casts - independently
+        probed with 4 malformed hospedagem payloads (missing fields, null,
+        primitive), all fall back gracefully, no throw/NaN/undefined. Diff scope
+        apps/web/** only. SDD precedes impl commit. CI verify PASS on exact head
+        SHA. Signed-out empty-state unaffected (zero diff). Minor: reload effect
+        dropped an unmount-cancellation guard (cosmetic, React dev-warning risk
+        only); malformed-payload case not in the permanent test suite (QA
+        covered it ad-hoc, recommend adding)."
+    status: closed
+    filedQaVerdict: true
+    round: 2
+    verifiedRound: 2
+    at: 2026-09-16T00:58:45.812Z
+    tier: standard
+    mode: subagent
+    intensity: normal
+    harness: claude-code
+    closedReason: unit qualroteiro/web landed
+      (https://github.com/joaofssantos/qualroteiro/pull/19) — this record's work
+      is finished with it
+authorizations: []
+spec:
+  path: .aipe/journeys/j-20260915-61/orientation.md
+  version: 1
+  approved: true
+  contentHash: b8e175d4

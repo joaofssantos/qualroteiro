@@ -1,0 +1,50 @@
+id: j-20260916-x3
+dispatches:
+  - repo: qualroteiro
+    package: root
+    specialist: Lane Pryce
+    branch: aipe/j-20260916-x3/root--lane-pryce
+    worktree: /Users/joaofsantos/Documents/code/qualroteiro/repos/qualroteiro/.worktrees/j-20260916-x3-root--lane-pryce
+    evidence:
+      by: dev
+      commands:
+        - pnpm --filter @qualroteiro/data-ingest typecheck/lint/test; pnpm -w
+          build; gh pr checks 47
+      summary: "PR #47 aberta, CI real PASS. 78/78 testes (4 novos arquivos). Rodada
+        real contra Postgres compartilhado: 136 linhas ARTESP parseadas (11
+        excluídas, formato CAT sob L29-ViaPaulista), 489 linhas OSM lidas, 227
+        fora do bbox SP, 110 casadas (90 bate, 20 diverge), 26 ARTESP sem match,
+        152 OSM sem match. Desvio real e documentado da spec: highway/uf são
+        sentinelas em 100% das linhas OSM reais ('Não informado (OSM)'/'BR'),
+        então o filtro duro por rodovia sugerido na spec foi substituído por
+        bounding box de SP sobre lat/lng real. Achado de qualidade de match
+        documentado (nomes de cidade comuns podem casar praça errada). Escopo
+        services/data-ingest + docs/audits + pnpm-lock/tsconfig (dep pdfjs-dist
+        nova)."
+    status: closed
+    round: 1
+    at: 2026-09-17T14:52:38.578Z
+    base: main
+    closedReason: unit qualroteiro/root landed — this record's work is finished with it
+  - repo: qualroteiro
+    package: root
+    specialist: Bertram Cooper
+    branch: aipe/j-20260916-x3/root--bertram-cooper
+    worktree: /Users/joaofsantos/Documents/code/qualroteiro/repos/qualroteiro/.worktrees/j-20260916-x3-root--bertram-cooper
+    evidence:
+      by: dev
+      commands:
+        - gh pr view 47 --json state,mergedAt,mergeCommit
+      summary: "PR #47 mergeada (0764508) em main."
+    status: merged
+    round: 2
+    at: 2026-09-17T14:59:39.921Z
+    verifiedRound: 2
+    base: main
+    filedQaVerdict: true
+authorizations: []
+spec:
+  path: .aipe/journeys/j-20260916-x3/orientation.md
+  version: 1
+  approved: true
+  contentHash: 9f8750d2

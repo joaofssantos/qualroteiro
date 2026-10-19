@@ -1,0 +1,59 @@
+id: j-20260916-w0
+dispatches:
+  - repo: qualroteiro
+    package: web
+    specialist: Peggy Olson
+    branch: aipe/j-20260916-w0/web--peggy-olson
+    worktree: /Users/joaofsantos/Documents/code/qualroteiro/repos/qualroteiro/.worktrees/j-20260916-w0-web--peggy-olson
+    evidence:
+      by: dev
+      commands:
+        - pnpm exec turbo run build typecheck lint test --force
+          --filter=@qualroteiro/web
+        - "own mutation: removed the fix line
+          (marker.getElement().setAttribute), reran the new test, failed exactly
+          as the reported bug (aria-label='Map marker'), reverted, green again"
+      summary: "127/127 tests green (7/7 turbo tasks). Root cause confirmed by reading
+        MapLibre's own installed source: Marker.addTo() overwrites aria-label on
+        the SAME element reference (no wrapper) after markerElement() already
+        set the correct one. Fix reapplies aria-label post-addTo. New test uses
+        the real (unmocked) MapLibre Marker class - the project's standard test
+        stub would never have caught this, since its addTo() reimplementation
+        never touched aria-label. Reproduced the mutation proof independently:
+        removing the fix line breaks exactly the new test with the exact
+        reported symptom, reverted and reconfirmed green. Diff scoped to
+        apps/web/**. PR #37 CI green."
+    status: closed
+    round: 1
+    at: 2026-09-16T20:54:28.895Z
+    tier: standard
+    mode: subagent
+    intensity: normal
+    harness: claude-code
+    size: small
+    taskType: fix
+    base: main
+    closedReason: unit qualroteiro/web landed — this record's work is finished with it
+  - repo: qualroteiro
+    package: web
+    specialist: Stan Rizzo
+    branch: aipe/j-20260916-w0/web--stan-rizzo
+    worktree: /Users/joaofsantos/Documents/code/qualroteiro/repos/qualroteiro/.worktrees/j-20260916-w0-web--stan-rizzo
+    status: merged
+    round: 2
+    at: 2026-09-16T20:58:41.821Z
+    tier: standard
+    mode: subagent
+    intensity: normal
+    harness: claude-code
+    size: small
+    taskType: fix
+    verifiedRound: 2
+    base: main
+    filedQaVerdict: true
+authorizations: []
+spec:
+  path: .aipe/journeys/j-20260916-w0/orientation.md
+  version: 1
+  approved: true
+  contentHash: 67df3c1e

@@ -1,0 +1,41 @@
+context:
+  name: qualroteiro
+  coordinator: Don Drapper
+  pe: Joao
+  statusUpdates:
+    auto: true
+    format: detailed
+repos:
+  - name: qualroteiro
+    url: git@github.com:joaofssantos/qualroteiro.git
+    path: ./repos/qualroteiro
+    stack:
+      - typescript
+      - node
+      - pnpm
+      - turbo
+    packages:
+      - name: root
+        path: .
+        stack:
+          - typescript
+          - node
+          - pnpm
+          - turbo
+      - name: api
+        path: apps/api
+        stack:
+          - typescript
+          - node
+          - fastify
+          - prisma
+          - postgresql
+          - postgis
+      - name: web
+        path: apps/web
+        stack:
+          - typescript
+          - react
+          - vite
+          - maplibre-gl
+          - tailwindcss

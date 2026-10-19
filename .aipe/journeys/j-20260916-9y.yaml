@@ -1,0 +1,110 @@
+id: j-20260916-9y
+dispatches:
+  - repo: qualroteiro
+    package: root
+    specialist: Lane Pryce
+    branch: aipe/j-20260916-9y/root--lane-pryce
+    worktree: /Users/joaofsantos/Documents/code/qualroteiro/repos/qualroteiro/.worktrees/j-20260916-9y-root--lane-pryce
+    evidence:
+      by: dev
+      commands:
+        - pnpm exec turbo run build typecheck lint test --force (cache-free,
+          coordinator-reproduced)
+        - gh pr checks 32
+      summary: "26/26 turbo tasks green, forced no-cache rebuild reproduced
+        independently by coordinator (125 web tests, api/tolls/data-ingest all
+        passing). matchTolls signature changed to explicit plazas param,
+        TollPlaza.tariffByAxleCategory optional, matchFuelStations untouched.
+        Existing match.ts tests rewritten to pass plazas explicitly, reproducing
+        prior corridor-based behavior byte for byte (regression zero).
+        services/data-ingest scaffolded, picked up by existing services/*
+        workspace glob, no root config changes needed. Bridge patch (2
+        call-sites + 6 type-narrowing points in apps/api/apps/web) keeps pnpm -w
+        build fully green pending Wave 2, marked with TODOs. Diff scoped to
+        packages/tolls/**, services/data-ingest/**, and the 8 documented
+        bridge-patch files. PR #32 CI 'verify' green."
+    status: closed
+    round: 1
+    at: 2026-09-16T17:21:25.701Z
+    tier: reasoning
+    mode: subagent
+    intensity: normal
+    harness: claude-code
+    size: small
+    taskType: fix
+    base: main
+    closedReason: unit qualroteiro/root landed — this record's work is finished with it
+    task: pedagio-wave3-ingestao
+  - repo: qualroteiro
+    package: root
+    specialist: Bertram Cooper
+    branch: aipe/j-20260916-9y/root--bertram-cooper
+    worktree: /Users/joaofsantos/Documents/code/qualroteiro/repos/qualroteiro/.worktrees/j-20260916-9y-root--bertram-cooper
+    status: merged
+    round: 2
+    at: 2026-09-16T17:30:02.143Z
+    tier: standard
+    mode: subagent
+    intensity: normal
+    harness: claude-code
+    size: medium
+    taskType: feature
+    verifiedRound: 2
+    base: main
+    filedQaVerdict: true
+  - repo: qualroteiro
+    package: api
+    specialist: Pete Campbell
+    branch: aipe/j-20260916-9y/api--pete-campbell
+    worktree: /Users/joaofsantos/Documents/code/qualroteiro/repos/qualroteiro/.worktrees/j-20260916-9y-api--pete-campbell
+    evidence:
+      by: dev
+      commands:
+        - pnpm exec turbo run typecheck lint test --force
+          --filter=@qualroteiro/api
+        - "real Postgres round-trip: inserted a plaza with real ANTT coordinates
+          (Conselheiro Josino, -21.552594/-41.331597), read back via findMany,
+          confirmed lat/lng match exactly with no swap, cleaned up"
+        - gh pr checks 33
+      summary: "159/159 tests green (7 net-new), pnpm -w build 8/8 green, diff scoped
+        to apps/api/**. TollPlazaRecord model + real applied migration + store
+        port/adapter verified. POST /routes/plan now sources plazas from the
+        store (Wave 1 bridge TODO removed). GET /admin/toll-plazas-status wired.
+        Reproduced independently by coordinator including a fresh real-DB
+        round-trip with actual ANTT coordinates proving lat/lng map through
+        correctly (no swap) - directly answers the PE's question about pin
+        placement. PR #33 CI green."
+    status: closed
+    round: 1
+    at: 2026-09-16T17:51:38.355Z
+    tier: reasoning
+    mode: subagent
+    intensity: normal
+    harness: claude-code
+    size: medium
+    taskType: feature
+    base: main
+    closedReason: unit qualroteiro/api landed — this record's work is finished with it
+  - repo: qualroteiro
+    package: api
+    specialist: Joan Holloway
+    branch: aipe/j-20260916-9y/api--joan-holloway
+    worktree: /Users/joaofsantos/Documents/code/qualroteiro/repos/qualroteiro/.worktrees/j-20260916-9y-api--joan-holloway
+    status: merged
+    round: 2
+    at: 2026-09-16T19:10:50.220Z
+    tier: standard
+    mode: subagent
+    intensity: normal
+    harness: claude-code
+    size: medium
+    taskType: feature
+    verifiedRound: 2
+    base: main
+    filedQaVerdict: true
+authorizations: []
+spec:
+  path: .aipe/journeys/j-20260916-9y/orientation.md
+  version: 1
+  approved: true
+  contentHash: f1f4da5f

@@ -21,3 +21,7 @@ coverage/
 .aipe/**/.reports/
 # isolated dispatch worktrees
 **/.worktrees/
+
+# local repo materialization (nested clones) — never committed
+/repos/
+/.aipe/runtime/
