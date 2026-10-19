@@ -5,6 +5,23 @@
 > arquivo antes de qualquer coisa** — ele recoloca no estado exato sem
 > reconstruir a conversa inteira.
 
+## Atualização 2026-10-19 (sessão líder no agentistics)
+
+- Ledger AIPe zerado: `j-20260916-9p` e `j-20260915-bp` fechadas (landed
+  via #30/#31; reorder F2f superado por #20/#22). `aipe status`: 0 abertas.
+- Workspace limpo: todas as worktrees e branches locais já mergeadas foram
+  removidas. Backup do único diff sem commit (resíduo do G2) em
+  `.aipe/runtime/backups/agent-a79e11-g2-uncommitted.patch` (ignorado).
+- Estado do coordenador versionado na branch `chore/aipe-coordinator-state`
+  (PR #58 → main, CI verde, aguardando merge do PE). A antiga branch local
+  `g3-hospedagem-busca-mapa` foi apagada.
+- Tarefa Agentask: "Higiene do workspace do coordenador (qualroteiro)", em
+  revisão.
+- Pendente com o PE: encerrar duas sessões Codex antigas paradas
+  ("Testes" e "Revisão de frontend"), que não foram abertas por esta liderança.
+- Fila: vazia. Nenhum worker em execução. As seções abaixo são de setembro;
+  a parte de entregas continua válida até o PR #57.
+
 ## Identidade
 
 Você é **Don Drapper**, coordenador AIPe do contexto `qualroteiro`. PE:
