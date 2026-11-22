@@ -90,9 +90,11 @@ describe('mapa persistente — extensibilidade', () => {
       await screen.findByRole('heading', { name: 'Painel do módulo com mapa' }),
     ).toBeInTheDocument();
 
-    const region = mapRegion();
+    const region = await screen.findByRole('region', { name: /mapa da rota/i }, { timeout: 1_000 });
     expect(region).toBeInTheDocument();
-    expect(within(region!).getByRole('button', { name: 'Marcador fake' })).toBeInTheDocument();
+    expect(
+      await within(region).findByRole('button', { name: 'Marcador fake' }, { timeout: 1_000 }),
+    ).toBeInTheDocument();
   });
 
   it('renders no map panel for a module without showMap, and leaves no marker behind after leaving a map module', async () => {

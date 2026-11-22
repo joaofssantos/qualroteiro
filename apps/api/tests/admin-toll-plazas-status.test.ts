@@ -31,7 +31,7 @@ describe('GET /admin/toll-plazas-status', () => {
     expect(res.json()).toEqual({
       count: 0,
       lastIngestedAt: null,
-      bySource: { antt: 0, osm: 0 },
+      bySource: { antt: 0, osm: 0, artesp: 0 },
     });
   });
 
@@ -50,7 +50,7 @@ describe('GET /admin/toll-plazas-status', () => {
     expect(res.json()).toEqual({
       count: DUTRA_TOLL_PLAZA_RECORDS.length,
       lastIngestedAt: newer.toISOString(),
-      bySource: { antt: DUTRA_TOLL_PLAZA_RECORDS.length, osm: 0 },
+      bySource: { antt: DUTRA_TOLL_PLAZA_RECORDS.length, osm: 0, artesp: 0 },
     });
   });
 
@@ -65,6 +65,7 @@ describe('GET /admin/toll-plazas-status', () => {
     expect(res.json().bySource).toEqual({
       antt: DUTRA_TOLL_PLAZA_RECORDS.length,
       osm: 1,
+      artesp: 0,
     });
   });
 

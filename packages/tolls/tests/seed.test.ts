@@ -48,11 +48,15 @@ describe('seed dataset', () => {
 
     it('prices a motorcycle below a car, and a car below a 6-axle truck', () => {
       for (const plaza of corridor.plazas) {
-        expect(plaza.tariffByAxleCategory, plaza.id).toBeDefined();
-        // Every seeded demo plaza carries a tariff (asserted above) — safe to assert non-null.
-        const t = plaza.tariffByAxleCategory!;
-        expect(t.motorcycle).toBeLessThan(t.car);
-        expect(t.car).toBeLessThan(t.truck_6_axle);
+        const t = plaza.tariffByAxleCategory;
+        expect(t, plaza.id).toBeDefined();
+        const { motorcycle, car, truck_6_axle: truck } = t ?? {};
+        // Tariffs are Partial now; the demo seed must publish all three used here.
+        if (motorcycle === undefined || car === undefined || truck === undefined) {
+          expect.fail(`${plaza.id} is missing motorcycle, car or truck_6_axle`);
+        }
+        expect(motorcycle).toBeLessThan(car);
+        expect(car).toBeLessThan(truck);
       }
     });
 
