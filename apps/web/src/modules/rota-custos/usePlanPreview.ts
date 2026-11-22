@@ -50,8 +50,71 @@ const IDLE: PlanPreviewState = { status: 'idle', summary: null };
 /** Resultados já obtidos, por chave: voltar à mesma consulta não refaz a chamada. */
 const resultCache = new Map<string, PreviewResult>();
 
+interface InFlightPreview {
+  readonly controller: AbortController;
+  readonly promise: Promise<readonly import('@/core/api/types').PlannedRoute[]>;
+  subscribers: number;
+  abortTimer: ReturnType<typeof setTimeout> | null;
+}
+
+/**
+ * Uma troca de shell A↔B pode desmontar e montar o mesmo preview na mesma
+ * atualização do React. Guardar a requisição fora do hook permite que o novo
+ * consumidor da mesma chave se inscreva nela em vez de abrir outra chamada.
+ */
+const inFlightPreviews = new Map<string, InFlightPreview>();
+
 export function clearPreviewCache(): void {
+  for (const preview of inFlightPreviews.values()) {
+    if (preview.abortTimer !== null) clearTimeout(preview.abortTimer);
+    preview.controller.abort();
+  }
+  inFlightPreviews.clear();
   resultCache.clear();
+}
+
+function subscribeToInFlight(key: string, request: PlanRouteRequest): InFlightPreview {
+  const existing = inFlightPreviews.get(key);
+  if (existing) {
+    existing.subscribers += 1;
+    if (existing.abortTimer !== null) {
+      clearTimeout(existing.abortTimer);
+      existing.abortTimer = null;
+    }
+    return existing;
+  }
+
+  const controller = new AbortController();
+  const preview: InFlightPreview = {
+    controller,
+    promise: planRoute(request, controller.signal),
+    subscribers: 1,
+    abortTimer: null,
+  };
+  inFlightPreviews.set(key, preview);
+  void preview.promise.then(
+    () => {
+      if (inFlightPreviews.get(key) === preview) inFlightPreviews.delete(key);
+    },
+    () => {
+      if (inFlightPreviews.get(key) === preview) inFlightPreviews.delete(key);
+    },
+  );
+  return preview;
+}
+
+function unsubscribeFromInFlight(key: string, preview: InFlightPreview): void {
+  preview.subscribers -= 1;
+  if (preview.subscribers > 0 || preview.abortTimer !== null) return;
+
+  // O próximo consumidor da mesma chave (como na troca A↔B) nasce antes do
+  // próximo tick. Se ele não vier, a chamada que ficou sem consumidor é abortada.
+  preview.abortTimer = setTimeout(() => {
+    preview.abortTimer = null;
+    if (preview.subscribers !== 0 || inFlightPreviews.get(key) !== preview) return;
+    preview.controller.abort();
+    inFlightPreviews.delete(key);
+  }, 0);
 }
 
 function isCoordinate(place: PlaceInput | null): place is { lng: number; lat: number } {
@@ -134,12 +197,14 @@ export function usePlanPreview(input: PlanPreviewInput): PlanPreviewState {
 
     setState(IDLE);
     setMapPreview(null);
-    const controller = new AbortController();
-    const timer = setTimeout(() => {
-      setState({ status: 'loading', summary: null });
-      planRoute(buildRequest(inputRef.current), controller.signal).then(
+    let active = true;
+    let inFlight: InFlightPreview | null = null;
+    let timer: ReturnType<typeof setTimeout> | null = null;
+    const observe = (preview: InFlightPreview) => {
+      inFlight = preview;
+      preview.promise.then(
         (routes) => {
-          if (controller.signal.aborted) return;
+          if (!active || inFlight?.controller.signal.aborted) return;
           const first = routes[0];
           if (!first || first.geometry.coordinates.length < 2) {
             setState({ status: 'error', summary: null });
@@ -154,16 +219,29 @@ export function usePlanPreview(input: PlanPreviewInput): PlanPreviewState {
         },
         () => {
           // 422, 429, rede, aborto: silencioso, sem retry automático.
-          if (controller.signal.aborted) return;
+          if (!active || inFlight?.controller.signal.aborted) return;
           setState({ status: 'error', summary: null });
           setMapPreview(null);
         },
       );
-    }, PREVIEW_DEBOUNCE_MS);
+    };
+
+    // Não aguarda outro debounce para voltar a uma promessa já iniciada: isso
+    // mantém a promessa de K viva no intervalo cleanup→effect da troca A↔B.
+    if (inFlightPreviews.has(key)) {
+      setState({ status: 'loading', summary: null });
+      observe(subscribeToInFlight(key, buildRequest(inputRef.current)));
+    } else {
+      timer = setTimeout(() => {
+        setState({ status: 'loading', summary: null });
+        observe(subscribeToInFlight(key, buildRequest(inputRef.current)));
+      }, PREVIEW_DEBOUNCE_MS);
+    }
 
     return () => {
-      clearTimeout(timer);
-      controller.abort();
+      active = false;
+      if (timer !== null) clearTimeout(timer);
+      if (inFlight) unsubscribeFromInFlight(key, inFlight);
       setMapPreview(null);
     };
   }, [key]);

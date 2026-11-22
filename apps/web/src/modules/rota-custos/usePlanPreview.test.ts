@@ -149,6 +149,7 @@ describe('usePlanPreview', () => {
     expect(calls).toHaveLength(1);
 
     rerender(input({ destination: BH }));
+    await tick(0);
     expect(calls[0]?.signal?.aborted).toBe(true);
     await tick(300);
     rerender(input({ destination: { lng: -49.2, lat: -25.4 } }));
@@ -175,12 +176,34 @@ describe('usePlanPreview', () => {
     const calls = pendingCalls();
     const first = setup(input());
     await tick(700);
+    // A troca A↔B desmonta/remonta o consumidor, mas a consulta continua sendo K.
+    // A promessa de K deve sobreviver à troca e publicar a resposta da chamada original.
     first.unmount();
-    // desmontar aborta; o novo hook refaz uma única chamada
-    expect(calls[0]?.signal?.aborted).toBe(true);
-    setup(input());
+    const second = setup(input());
+    expect(calls[0]?.signal?.aborted).toBe(false);
     await tick(700);
-    expect(calls).toHaveLength(2);
+    expect(calls).toHaveLength(1);
+
+    await act(async () => calls[0]?.resolve());
+    expect(second.result.current).toEqual({ status: 'ready', summary: { km: 412, minutes: 310 } });
+    expect(useMapStore.getState().preview?.coordinates).toHaveLength(2);
+  });
+
+  it('(e) voltar a K antes de resolver reaproveita a promessa em voo e não deixa resposta antiga sobrescrever', async () => {
+    const calls = pendingCalls();
+    const { result, rerender } = setup(input());
+    await tick(700);
+    expect(calls).toHaveLength(1);
+
+    rerender(input({ destination: BH }));
+    rerender(input());
+    expect(calls[0]?.signal?.aborted).toBe(false);
+    await tick(700);
+    expect(calls).toHaveLength(1);
+
+    await act(async () => calls[0]?.resolve([route(500, 400)]));
+    expect(result.current).toEqual({ status: 'ready', summary: { km: 500, minutes: 400 } });
+    expect(useMapStore.getState().preview?.coordinates).toHaveLength(2);
   });
 
   it('(g) apagar um ponto limpa a prévia e não chama', async () => {
@@ -227,6 +250,7 @@ describe('usePlanPreview', () => {
     const { unmount } = setup(input());
     await tick(700);
     unmount();
+    await tick(0);
     expect(calls[0]?.signal?.aborted).toBe(true);
     expect(useMapStore.getState().preview).toBeNull();
   });
