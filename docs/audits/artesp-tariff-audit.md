@@ -60,14 +60,28 @@ como tarifa divergente.
 fonte regulatória e 8 falsos pares Free Flow explicitamente não comparáveis;
 portanto não permanece nenhuma divergência tarifária acionável nesse conjunto.
 
-### Limitação conhecida — Free Flow sem tarifa roteável
+### Pórticos Free Flow roteáveis
 
-Os pórticos reais de Free Flow **Santo Antônio de Posse, Engº Coelho PaP,
-Paulínia Jd. Betel, Indaiatuba, Itu 1, Jundiaí 2 e Imigrantes 2 e 3** seguem
-sem tarifa aplicável nas rotas. Eles não recebem registros novos nesta mudança:
-o pareamento OSM existente é incompleto ou representa outra praça/sentido.
-O cadastro e a modelagem tarifária desses pórticos ficam explicitamente para
-uma tarefa posterior.
+Os oito pórticos recebem registros independentes `source: 'artesp'` no mesmo
+pós-processamento da ingestão OSM. A tabela oficial ARTESP fornece nome, km,
+tarifa e vigência de **01/07/2025**; ela não fornece coordenadas. As coordenadas
+foram posicionadas na geometria da via no km oficial usando OpenStreetMap
+(© contribuidores OSM, ODbL 1.0), exceto onde indicado abaixo; Santo Antônio
+de Posse também é conferido contra o exemplo público da Maplink. Imigrantes 2/3 preservam o ponto OSM
+co-localizado, mas a deduplicação de 100 m prefere a tarifa ARTESP e não soma
+os valores OSM divergentes R$ 6,00/R$ 9,60.
+
+Os upserts desses pórticos ocorrem antes do download do PDF; assim uma falha
+de rede/PDF não impede a escrita das constantes. Para reaplicar somente a
+reconciliação, execute `pnpm --filter @qualroteiro/data-ingest reconcile:artesp:once`.
+
+| Pórtico | Fonte da coordenada | Situação |
+|---|---|---|
+| SP-340 Santo Antônio de Posse | nó/via OSM no km 147,03; exemplo Maplink | conferida |
+| SP-332 Engº Coelho; Paulínia Jd. Betel | via OSM no km ARTESP | conferida por km |
+| SP-075 Indaiatuba; Itu 1 | via OSM no km ARTESP | conferida por km |
+| SP-360 Jundiaí (`-23.0386,-46.9997`) | via OSM usada no km 77,1 | **a verificar**: fontes públicas também descrevem o pórtico PaP no km 74, enquanto km 77,1 é a praça Jundiaí; não usar a coordenada como confirmação municipal até validação cartográfica/regulatória |
+| SP-021 Imigrantes 2; Imigrantes 3 | nós OSM co-localizados | conferida para deduplicação |
 
 ## Praças que divergem
 

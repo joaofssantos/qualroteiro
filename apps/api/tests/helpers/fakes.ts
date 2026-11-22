@@ -303,7 +303,7 @@ export function fakeTollPlazaStore(
       return records.filter((r) => r.active);
     },
     async status(): Promise<TollPlazaStatus> {
-      const bySource: Record<TollPlazaSource, number> = { antt: 0, osm: 0 };
+      const bySource: Record<TollPlazaSource, number> = { antt: 0, osm: 0, artesp: 0 };
       for (const r of records) bySource[r.source] += 1;
 
       if (records.length === 0) {

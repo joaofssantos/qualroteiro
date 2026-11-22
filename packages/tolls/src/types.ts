@@ -34,8 +34,18 @@ export const AXLE_CATEGORIES = [
   'truck_6_axle',
 ] as const satisfies readonly AxleCategory[];
 
-/** A tariff in BRL for each axle category. */
-export type TariffByAxleCategory = Readonly<Record<AxleCategory, number>>;
+/**
+ * Published tariffs in BRL by axle category.
+ *
+ * A source may omit a category it does not publish.  In particular, an
+ * omitted motorcycle tariff is different from a published R$ 0,00 tariff:
+ * the former is unknown while the latter is explicitly free.  Consumers must
+ * therefore treat a missing category as unavailable rather than as zero.
+ */
+export type TariffByAxleCategory = Readonly<Partial<Record<AxleCategory, number>>>;
+
+/** Origin of a real-world toll record when it is known to the matcher. */
+export type TollPlazaSource = 'antt' | 'osm' | 'artesp';
 
 /** A physical toll plaza. */
 export interface TollPlaza {
@@ -58,6 +68,8 @@ export interface TollPlaza {
   readonly km: number;
   readonly lat: number;
   readonly lng: number;
+  /** Source of a persisted plaza. Optional so the curated demo seed remains source-agnostic. */
+  readonly source?: TollPlazaSource;
   /**
    * The plaza's fare table, by {@link AxleCategory}.
    *
