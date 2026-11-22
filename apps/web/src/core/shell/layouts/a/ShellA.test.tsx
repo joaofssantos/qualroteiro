@@ -4,7 +4,7 @@ import { Map as MapIcon } from 'lucide-react';
 import { MemoryRouter } from 'react-router-dom';
 import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
-import { afterEach, beforeEach, describe, expect, it } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { useMapStore } from '@/core/map/mapStore';
 import { registerModule, resetRegistry } from '@/core/registry/registry';
@@ -124,5 +124,63 @@ describe('ShellA with the real app', () => {
       expect(screen.getAllByRole('link', { name })).toHaveLength(1);
     }
     resetApp();
+  });
+});
+
+function mockMobile() {
+  vi.stubGlobal(
+    'matchMedia',
+    (query: string) => ({
+      matches: query.includes('min-width') ? false : query.includes('max-width'),
+      media: query,
+      addEventListener: () => {},
+      removeEventListener: () => {},
+      addListener: () => {},
+      removeListener: () => {},
+      onchange: null,
+      dispatchEvent: () => false,
+    }),
+  );
+}
+
+describe('ShellA (mobile < 768 px)', () => {
+  beforeEach(mockMobile);
+  afterEach(() => vi.unstubAllGlobals());
+
+  it('swaps the rail for a tab bar and the panel for a bottom sheet', () => {
+    renderShell('/um');
+
+    const nav = screen.getByRole('navigation', { name: 'Módulos' });
+    expect(within(nav).getAllByRole('link')).toHaveLength(3);
+    expect(screen.getAllByRole('link', { name: 'Módulo Um' })).toHaveLength(1);
+    expect(screen.queryByTestId('floating-panel')).not.toBeInTheDocument();
+    expect(screen.getByRole('region', { name: /painel/i })).toHaveTextContent('filho');
+    expect(screen.getByTestId('app-map-container')).toBeInTheDocument();
+  });
+
+  it('keeps settings, theme and account reachable with unique names', () => {
+    renderShell('/um');
+
+    expect(screen.getAllByRole('button', { name: 'Ajustes' })).toHaveLength(1);
+    expect(screen.getAllByRole('button', { name: /login indisponível/i })).toHaveLength(1);
+  });
+
+  it('publishes the bottom padding (no left padding) and clears it on unmount', () => {
+    const { unmount } = renderShell('/um');
+    const { padding } = useMapStore.getState();
+
+    expect(padding.left).toBe(0);
+    expect(padding.bottom).toBeGreaterThan(0);
+    unmount();
+    expect(useMapStore.getState().padding.bottom).toBe(0);
+  });
+
+  it('renders a module without a map as a scrollable page above the tab bar, no sheet', () => {
+    renderShell('/sem');
+
+    expect(screen.queryByRole('region', { name: /painel/i })).not.toBeInTheDocument();
+    expect(screen.getByText('filho')).toBeInTheDocument();
+    expect(screen.getByRole('navigation', { name: 'Módulos' })).toBeInTheDocument();
+    expect(useMapStore.getState().padding.bottom).toBe(0);
   });
 });
