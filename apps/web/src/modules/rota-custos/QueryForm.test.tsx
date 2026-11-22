@@ -7,7 +7,10 @@ import { act, render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { RIO_DE_JANEIRO, SAO_PAULO } from '@/test/fixtures';
+import { DUTRA_ROUTE, RIO_DE_JANEIRO, SAO_PAULO } from '@/test/fixtures';
+import { useLayoutStore } from '@/core/layout/layoutStore';
+import { useMapStore } from '@/core/map/mapStore';
+import { clearPreviewCache } from './usePlanPreview';
 import { mockApi, resetApp } from '@/test/renderApp';
 import { useRouteStore } from '@/core/store/routeStore';
 
@@ -44,11 +47,13 @@ beforeEach(() => {
   vi.stubGlobal('jest', { advanceTimersByTime: vi.advanceTimersByTime });
   localStorage.clear();
   resetApp();
+  clearPreviewCache();
 });
 
 afterEach(() => {
   vi.useRealTimers();
   vi.unstubAllGlobals();
+  vi.unstubAllEnvs();
   resetApp();
 });
 
@@ -201,5 +206,74 @@ describe('QueryForm', () => {
     unmount();
     render(<QueryForm variant="panel" onSubmitted={() => undefined} />);
     expect(screen.getByTestId('query-form')).toHaveAttribute('data-variant', 'panel');
+  });
+});
+
+describe('QueryForm — prévia do traçado (F9)', () => {
+  const planCalls = (spy: ReturnType<typeof mockApi>) =>
+    spy.mock.calls.filter(([url]) => String(url).startsWith('/api/routes/plan'));
+
+  async function pickBoth(user: ReturnType<typeof userEvent.setup>) {
+    await pickPlace(user, 'Origem', 'São', /São Paulo/);
+    await pickPlace(user, 'Destino', 'Rio', /Rio de Janeiro/);
+  }
+
+  it('no layout B, origem e destino escolhidos desenham a prévia após 700 ms, sem tocar routeStore', async () => {
+    const spy = mockApi({ places: [SAO_PAULO, RIO_DE_JANEIRO], routes: [DUTRA_ROUTE] });
+    useLayoutStore.setState({ layout: 'b' });
+    const { user } = setup();
+    await pickBoth(user);
+
+    expect(planCalls(spy)).toHaveLength(0);
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(700);
+    });
+    expect(planCalls(spy)).toHaveLength(1);
+    expect(useMapStore.getState().preview).not.toBeNull();
+    expect(screen.getByText(/≈ .* km/)).toBeInTheDocument();
+    expect(useRouteStore.getState().routes).toEqual([]);
+    expect(useRouteStore.getState().status).toBe('idle');
+  });
+
+  it('no layout A não há prévia', async () => {
+    const spy = mockApi({ places: [SAO_PAULO, RIO_DE_JANEIRO], routes: [DUTRA_ROUTE] });
+    const { user } = setup();
+    await pickBoth(user);
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(2000);
+    });
+    expect(planCalls(spy)).toHaveLength(0);
+    expect(useMapStore.getState().preview).toBeNull();
+  });
+
+  it('VITE_LIVE_PREVIEW=false desliga a prévia mesmo no layout B', async () => {
+    vi.stubEnv('VITE_LIVE_PREVIEW', 'false');
+    const spy = mockApi({ places: [SAO_PAULO, RIO_DE_JANEIRO], routes: [DUTRA_ROUTE] });
+    useLayoutStore.setState({ layout: 'b' });
+    const { user } = setup();
+    await pickBoth(user);
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(2000);
+    });
+    expect(planCalls(spy)).toHaveLength(0);
+  });
+
+  it('429 na prévia some em silêncio: sem alerta, sem erro no formulário', async () => {
+    const spy = mockApi({
+      places: [SAO_PAULO, RIO_DE_JANEIRO],
+      planResponse: () => new Response('{}', { status: 429, headers: { 'retry-after': '30' } }),
+    });
+    useLayoutStore.setState({ layout: 'b' });
+    const { user } = setup();
+    await pickBoth(user);
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(700);
+    });
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(10_000);
+    });
+    expect(planCalls(spy)).toHaveLength(1);
+    expect(screen.queryByRole('alert')).toBeNull();
+    expect(useMapStore.getState().preview).toBeNull();
   });
 });
