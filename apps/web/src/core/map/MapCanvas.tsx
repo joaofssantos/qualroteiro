@@ -45,6 +45,8 @@ export interface MapCanvasProps {
   className?: string;
   /** Accessible name for the map region. */
   label?: string;
+  /** Muda quando o contêiner foi reposicionado: o mapa chama `resize()`. */
+  resizeKey?: number;
 }
 
 /** Build the DOM node MapLibre will position. A real button, so it is clickable. */
@@ -78,6 +80,7 @@ export function MapCanvas({
   onMarkerClick,
   className,
   label = 'Mapa da rota',
+  resizeKey,
 }: MapCanvasProps) {
   const containerRef = useRef<HTMLDivElement | null>(null);
   const mapRef = useRef<maplibregl.Map | null>(null);
@@ -120,6 +123,11 @@ export function MapCanvas({
       setReady(false);
     };
   }, []);
+
+  // O contêiner mudou de lugar/tamanho (troca de layout): reencaixa o canvas.
+  useEffect(() => {
+    mapRef.current?.resize();
+  }, [resizeKey]);
 
   // Draw (or redraw) the route trace.
   useEffect(() => {
