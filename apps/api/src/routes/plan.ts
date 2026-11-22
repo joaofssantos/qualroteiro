@@ -70,8 +70,10 @@ export interface PlanRouteDeps {
  * `record.tariff` is `unknown` at this boundary (see
  * `store/toll-plaza-store.ts`'s doc-comment) — a `Json` column proves nothing
  * about its own shape. This requires every {@link AXLE_CATEGORIES} key to be
- * present and a finite number before trusting it; anything else (`null`, a
- * missing key, a non-numeric value, a JSON array/primitive) returns
+ * present `car` fare and finite numbers for every published category before
+ * trusting it; a missing category remains `undefined` (rather than being
+ * mistaken for a free toll). Anything else (`null`, no car fare, a
+ * non-numeric value, a JSON array/primitive) returns
  * `undefined` rather than throwing. Same "skip, don't crash" philosophy
  * `@qualroteiro/tolls`'s `parseOsmCharge` uses for a `charge` tag it can't
  * parse: a plaza with no tariff is a normal, already-handled state
@@ -84,11 +86,13 @@ function toTariff(tariff: unknown): TariffByAxleCategory | undefined {
   }
 
   const raw = tariff as Record<string, unknown>;
-  const entries = AXLE_CATEGORIES.map((category) => [category, raw[category]] as const);
-
-  const allNumeric = entries.every(([, value]) => typeof value === 'number' && Number.isFinite(value));
-  if (!allNumeric) return undefined;
-
+  if (typeof raw.car !== 'number' || !Number.isFinite(raw.car)) return undefined;
+  const entries = AXLE_CATEGORIES
+    .map((category) => [category, raw[category]] as const)
+    .filter(([, value]) => value !== undefined);
+  if (!entries.every(([, value]) => typeof value === 'number' && Number.isFinite(value))) {
+    return undefined;
+  }
   return Object.fromEntries(entries) as TariffByAxleCategory;
 }
 
@@ -113,6 +117,7 @@ function toTollPlaza(record: TollPlazaRecord): TollPlaza {
     km: record.km,
     lat: record.lat,
     lng: record.lng,
+    source: record.source,
     tariffByAxleCategory: toTariff(record.tariff),
   };
 }

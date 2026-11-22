@@ -107,7 +107,9 @@ export function matchTolls(input: MatchTollsInput): MatchTollsResult {
   // route distance: ANTT records are commonly unpriced while a nearby OSM
   // record has the actual charge, so selecting the closer ANTT point would
   // silently turn a real toll into R$0. When two tariffed records disagree,
-  // the closer one wins; the id is the final deterministic tie-breaker.
+  // ARTESP wins over OSM and ANTT: its regulator-published value is more
+  // authoritative than community/transport-agency feeds. Distance comes only
+  // after that explicit source policy; id is the final deterministic tie-breaker.
   //
   // This deliberately is not transitive clustering. A-B-C chains can span
   // more than 100 m and can represent distinct Free Flow gantries; the
@@ -120,11 +122,20 @@ export function matchTolls(input: MatchTollsInput): MatchTollsResult {
   // the domain carries that identity as an explicit merge key.
   const hasTariffForRequestedCategory = (plaza: TollPlaza) =>
     plaza.tariffByAxleCategory?.[axleCategory] !== undefined;
+  const sourcePriority = (source: TollPlaza['source']): number => {
+    if (source === 'artesp') return 3;
+    if (source === 'osm') return 2;
+    if (source === 'antt') return 1;
+    return 0;
+  };
   matched.sort((a, b) => {
     const tariffPriority =
       Number(hasTariffForRequestedCategory(b.plaza)) -
       Number(hasTariffForRequestedCategory(a.plaza));
     if (tariffPriority !== 0) return tariffPriority;
+
+    const sourcePriorityDifference = sourcePriority(b.plaza.source) - sourcePriority(a.plaza.source);
+    if (sourcePriorityDifference !== 0) return sourcePriorityDifference;
 
     const distancePriority = a.distanceMeters - b.distanceMeters;
     if (distancePriority !== 0) return distancePriority;

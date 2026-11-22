@@ -17,7 +17,12 @@ export interface ArtespFreeFlowRecord {
 }
 
 function tariff(car: number, motorcycle?: number): TariffByAxleCategory {
-  return { motorcycle: motorcycle ?? 0, car, car_with_trailer: car, truck_2_axle: car * 2, truck_3_axle: car * 3, truck_4_axle: car * 4, truck_5_axle: car * 5, truck_6_axle: car * 6 };
+  const byAxles = (axles: number) => Math.round(car * axles * 100) / 100;
+  return {
+    ...(motorcycle === undefined ? {} : { motorcycle }),
+    car, car_with_trailer: car, truck_2_axle: byAxles(2), truck_3_axle: byAxles(3),
+    truck_4_axle: byAxles(4), truck_5_axle: byAxles(5), truck_6_axle: byAxles(6),
+  };
 }
 
 export const ARTESP_FREE_FLOW_RECORDS: readonly ArtespFreeFlowRecord[] = [

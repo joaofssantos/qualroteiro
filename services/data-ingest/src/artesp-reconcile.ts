@@ -109,8 +109,22 @@ export interface ArtespTariffReconcileSummary {
 function asTariff(raw: unknown): TariffByAxleCategory | null {
   if (raw === null || typeof raw !== 'object' || Array.isArray(raw)) return null;
   const value = raw as Record<string, unknown>;
-  if (!AXLE_CATEGORIES.every((key) => typeof value[key] === 'number' && Number.isFinite(value[key]))) return null;
+  if (typeof value.car !== 'number' || !Number.isFinite(value.car)) return null;
+  if (!AXLE_CATEGORIES.every((key) => value[key] === undefined || (typeof value[key] === 'number' && Number.isFinite(value[key])))) return null;
   return value as TariffByAxleCategory;
+}
+
+/** Writes the constant ARTESP Free Flow records before any PDF/network I/O.
+ * This is deliberately separate from tariff reconciliation: a transient PDF
+ * outage must not suppress these curated, versioned records. */
+async function upsertArtespFreeFlowRecords(
+  prisma: ArtespTariffReconcileClient,
+  now: Date,
+): Promise<void> {
+  for (const record of ARTESP_FREE_FLOW_RECORDS) {
+    const { id, ...data } = record;
+    await prisma.tollPlazaRecord.upsert({ where: { id }, create: { id, ...data, uf: 'SP', municipality: 'Não informado (ARTESP)', active: true, ingestedAt: now, source: 'artesp' }, update: { ...data, uf: 'SP', municipality: 'Não informado (ARTESP)', active: true, ingestedAt: now, source: 'artesp' } });
+  }
 }
 
 /** Downloads (or accepts) ARTESP's current table and persistently gives it
@@ -120,6 +134,8 @@ export async function reconcileArtespTariffs(
   prisma: ArtespTariffReconcileClient,
   options: ArtespTariffReconcileOptions = {},
 ): Promise<ArtespTariffReconcileSummary> {
+  const now = options.now ?? new Date();
+  await upsertArtespFreeFlowRecords(prisma, now);
   const parsed = options.artespParseResult ?? await downloadAndParseArtespTarifas(undefined, options.fetchImpl);
   const rows = await prisma.tollPlazaRecord.findMany({
     where: { source: 'osm' },
@@ -133,11 +149,6 @@ export async function reconcileArtespTariffs(
   let overridden = 0;
   let excludedFreeFlow = 0;
   let skippedMissingOsmTariff = 0;
-  const now = options.now ?? new Date();
-  for (const record of ARTESP_FREE_FLOW_RECORDS) {
-    const { id, ...data } = record;
-    await prisma.tollPlazaRecord.upsert({ where: { id }, create: { id, ...data, uf: 'SP', municipality: 'Não informado (ARTESP)', active: true, ingestedAt: now, source: 'artesp' }, update: { ...data, uf: 'SP', municipality: 'Não informado (ARTESP)', active: true, ingestedAt: now, source: 'artesp' } });
-  }
   for (const match of matches) {
     if (isNonComparableFreeFlow(match.artesp)) {
       excludedFreeFlow++;
