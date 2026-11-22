@@ -253,7 +253,6 @@ describe('usePlanPreview', () => {
     await act(async () => calls[1]?.resolve());
     await tick(5000);
     expect(calls.length).toBeLessThanOrEqual(2);
-    // eslint-disable-next-line no-console
     console.info(`[F9] contagem de chamadas no fluxo típico: ${calls.length}`);
   });
 
