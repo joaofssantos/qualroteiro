@@ -8,8 +8,6 @@ import { MapCanvas } from '../map/MapCanvas';
 import { useMapStore } from '../map/mapStore';
 import { listModules } from '../registry/registry';
 
-export { SIDEBAR_STORAGE_KEY } from './layouts/legacy/LegacyShell';
-
 /**
  * Seletor fino de layout. Renderiza o shell do layout ativo (lazy) e mantém o
  * **único** `MapCanvas` aqui, fora do componente que troca: o mapa vive num

@@ -29,6 +29,17 @@ import { SAO_PAULO } from '@/test/fixtures';
 
 import { useMapStore } from './mapStore';
 
+/**
+ * O módulo publica a camada num `useEffect` depois de montar, e o MapCanvas pode montar a
+ * região antes disso. O `findBy` padrão (1 s) estoura sob carga da suíte inteira, então a
+ * espera pela publicação ganha folga explícita; o teste continua falhando se o marcador
+ * nunca for publicado (só o limite de espera mudou, não a asserção). Ver
+ * docs/qa/2026-11-22-map-persistence-flake.md.
+ */
+const PUBLISH_TIMEOUT = 4_000;
+/** Maior que a espera acima, para o erro ser o do `findBy` e não o do timeout do teste. */
+const TEST_TIMEOUT = 10_000;
+
 /** A module a future developer might write: it just wants a map. */
 function FakeMapPanel() {
   const setMapLayers = useMapStore((s) => s.setMapLayers);
@@ -90,12 +101,12 @@ describe('mapa persistente — extensibilidade', () => {
       await screen.findByRole('heading', { name: 'Painel do módulo com mapa' }),
     ).toBeInTheDocument();
 
-    const region = await screen.findByRole('region', { name: /mapa da rota/i }, { timeout: 1_000 });
+    const region = await screen.findByRole('region', { name: /mapa da rota/i }, { timeout: PUBLISH_TIMEOUT });
     expect(region).toBeInTheDocument();
     expect(
-      await within(region).findByRole('button', { name: 'Marcador fake' }, { timeout: 1_000 }),
+      await within(region).findByRole('button', { name: 'Marcador fake' }, { timeout: PUBLISH_TIMEOUT }),
     ).toBeInTheDocument();
-  });
+  }, TEST_TIMEOUT);
 
   it('renders no map panel for a module without showMap, and leaves no marker behind after leaving a map module', async () => {
     const user = userEvent.setup();
@@ -108,7 +119,7 @@ describe('mapa persistente — extensibilidade', () => {
       </MemoryRouter>,
     );
 
-    expect(await screen.findByRole('button', { name: 'Marcador fake' })).toBeInTheDocument();
+    expect(await screen.findByRole('button', { name: 'Marcador fake' }, { timeout: PUBLISH_TIMEOUT })).toBeInTheDocument();
 
     await user.click(screen.getByRole('link', { name: 'Sem Mapa' }));
 
@@ -119,8 +130,8 @@ describe('mapa persistente — extensibilidade', () => {
 
     // And navigating back does not resurrect a stale marker from before.
     await user.click(screen.getByRole('link', { name: 'Mapa Fake' }));
-    expect(await screen.findByRole('button', { name: 'Marcador fake' })).toBeInTheDocument();
-  });
+    expect(await screen.findByRole('button', { name: 'Marcador fake' }, { timeout: PUBLISH_TIMEOUT })).toBeInTheDocument();
+  }, TEST_TIMEOUT);
 
   it('does not mix markers between two showMap:true modules navigated between (rota-custos + the fake module)', async () => {
     const user = userEvent.setup();
@@ -144,19 +155,19 @@ describe('mapa persistente — extensibilidade', () => {
       </MemoryRouter>,
     );
 
-    expect(await screen.findByRole('button', { name: /Origem: São Paulo/ })).toBeInTheDocument();
+    expect(await screen.findByRole('button', { name: /Origem: São Paulo/ }, { timeout: PUBLISH_TIMEOUT })).toBeInTheDocument();
     expect(screen.queryByRole('button', { name: 'Marcador fake' })).not.toBeInTheDocument();
 
     await user.click(screen.getByRole('link', { name: 'Mapa Fake' }));
 
-    expect(await screen.findByRole('button', { name: 'Marcador fake' })).toBeInTheDocument();
+    expect(await screen.findByRole('button', { name: 'Marcador fake' }, { timeout: PUBLISH_TIMEOUT })).toBeInTheDocument();
     expect(screen.queryByRole('button', { name: /Origem: São Paulo/ })).not.toBeInTheDocument();
 
     await user.click(screen.getByRole('link', { name: 'Rota & Custos' }));
 
-    expect(await screen.findByRole('button', { name: /Origem: São Paulo/ })).toBeInTheDocument();
+    expect(await screen.findByRole('button', { name: /Origem: São Paulo/ }, { timeout: PUBLISH_TIMEOUT })).toBeInTheDocument();
     expect(screen.queryByRole('button', { name: 'Marcador fake' })).not.toBeInTheDocument();
-  });
+  }, TEST_TIMEOUT);
 
   it('resets the store itself (asserted via useMapStore.getState(), not another module republishing over it) when a showMap:true module unmounts', async () => {
     // Regression coverage for the cleanup *contract* mapStore's module doc
@@ -187,7 +198,7 @@ describe('mapa persistente — extensibilidade', () => {
       </MemoryRouter>,
     );
 
-    expect(await screen.findByRole('button', { name: /Origem: São Paulo/ })).toBeInTheDocument();
+    expect(await screen.findByRole('button', { name: /Origem: São Paulo/ }, { timeout: PUBLISH_TIMEOUT })).toBeInTheDocument();
     expect(useMapStore.getState().layers.length).toBeGreaterThan(0);
 
     await user.click(screen.getByRole('link', { name: 'Sem Mapa' }));
@@ -198,5 +209,5 @@ describe('mapa persistente — extensibilidade', () => {
     expect(useMapStore.getState().layers).toEqual([]);
     expect(useMapStore.getState().trace).toBeNull();
     expect(useMapStore.getState().onMarkerClick).toBeUndefined();
-  });
+  }, TEST_TIMEOUT);
 });

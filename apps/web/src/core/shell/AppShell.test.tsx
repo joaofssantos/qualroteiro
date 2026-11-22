@@ -5,27 +5,12 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { useLayoutStore } from '@/core/layout/layoutStore';
 import { renderApp, resetApp } from '@/test/renderApp';
 
-import { SIDEBAR_STORAGE_KEY } from './AppShell';
 import { THEME_STORAGE_KEY } from './useTheme';
 
 let systemPrefersDark = false;
 
-// Após F6/F10 nenhum layout registrado usa o LegacyShell; estes testes continuam cobrindo o
-// markup dele montando-o no lugar dos dois shells (ShellA/ShellB têm testes próprios).
-vi.mock('@/core/layout/shellLoaders', async () => {
-  const legacy = await import('./layouts/legacy/LegacyShell');
-  const module = { default: legacy.LegacyShell };
-  const sync = () => ({
-    then(resolve: (value: typeof module) => void) {
-      resolve(module);
-    },
-  });
-  return { shellLoaders: { a: sync, b: sync } };
-});
-
 beforeEach(() => {
   window.localStorage.clear();
-  useLayoutStore.setState({ layout: 'b' });
   document.documentElement.classList.remove('dark');
   systemPrefersDark = false;
   vi.stubGlobal(
@@ -45,67 +30,59 @@ afterEach(() => {
   document.documentElement.classList.remove('dark');
 });
 
-describe('AppShell', () => {
-  it('starts from the system colour scheme and persists an explicit theme choice', async () => {
-    systemPrefersDark = true;
-    const user = userEvent.setup();
-    renderApp('/hospedagem');
+describe('AppShell (shells reais A e B)', () => {
+  it.each(['a', 'b'] as const)(
+    'layout %s: começa pelo esquema do sistema e persiste a escolha explícita de tema',
+    async (layout) => {
+      useLayoutStore.setState({ layout });
+      systemPrefersDark = true;
+      const user = userEvent.setup();
+      renderApp('/hospedagem');
 
-    expect(document.documentElement).toHaveClass('dark');
+      expect(document.documentElement).toHaveClass('dark');
 
-    await user.click(screen.getByRole('button', { name: 'Alternar para tema claro' }));
+      const toLight = (await screen.findAllByRole('button', { name: 'Alternar para tema claro' }))[0]!;
+      await user.click(toLight);
 
-    expect(document.documentElement).not.toHaveClass('dark');
-    expect(window.localStorage.getItem(THEME_STORAGE_KEY)).toBe('light');
-    expect(screen.getByRole('button', { name: 'Alternar para tema escuro' })).toBeInTheDocument();
-  });
+      expect(document.documentElement).not.toHaveClass('dark');
+      expect(window.localStorage.getItem(THEME_STORAGE_KEY)).toBe('light');
+      expect(
+        screen.getAllByRole('button', { name: 'Alternar para tema escuro' }).length,
+      ).toBeGreaterThan(0);
+    },
+  );
 
-  it('minimizes the desktop menu while keeping icon-only module links named', async () => {
-    const user = userEvent.setup();
-    renderApp('/hospedagem');
+  it.each(['a', 'b'] as const)(
+    'layout %s: mostra a navegação dos módulos registrados',
+    async (layout) => {
+      useLayoutStore.setState({ layout });
+      renderApp('/hospedagem');
 
-    await user.click(screen.getByRole('button', { name: 'Minimizar menu lateral' }));
-
-    expect(screen.getByRole('navigation', { name: 'Módulos' })).toHaveClass('md:w-16');
-    expect(screen.getByRole('navigation', { name: 'Módulos' })).toHaveClass('app-sidebar');
-    expect(screen.getByRole('button', { name: 'Expandir menu lateral' })).toBeInTheDocument();
-    expect(screen.getByRole('link', { name: 'Hospedagem' })).toHaveAttribute('title', 'Hospedagem');
-    expect(window.localStorage.getItem(SIDEBAR_STORAGE_KEY)).toBe('true');
-  });
+      const links = await screen.findAllByRole('link', { name: /Hospedagem/ });
+      expect(links.length).toBeGreaterThan(0);
+    },
+  );
 
   it.each([
-    ['Planejamento', 'text-module-planejamento'],
-    ['Hospedagem', 'text-module-hospedagem'],
-    ['Restaurantes', 'text-module-restaurantes'],
-    ['Atividades', 'text-module-atividades'],
-  ])('uses the module wayfinding colour for the inactive %s icon', async (label, colourClass) => {
-    renderApp('/rota-custos');
+    ['a', 'b'],
+    ['b', 'a'],
+  ] as const)(
+    'devolve o foco ao gatilho de Ajustes do novo shell ao trocar o layout %s→%s (não ao body)',
+    async (from, to) => {
+      useLayoutStore.setState({ layout: from });
+      const user = userEvent.setup();
+      renderApp('/rota-custos');
 
-    expect((await screen.findByRole('link', { name: label }, { timeout: 3000 })).querySelector('svg')).toHaveClass(colourClass);
+      const trigger = (await screen.findAllByRole('button', { name: 'Ajustes' }))[0]!;
+      await user.click(trigger);
+      const option = await screen.findByRole('radio', { name: to === 'b' ? /Custos primeiro/ : /Mapa primeiro/ });
+      await user.click(option);
 
-    cleanup();
-    resetApp();
-  });
-
-  it.each(['/rota-custos', '/hospedagem', '/restaurantes', '/atividades'])(
-    'uses the 80/20 map-and-content split for %s',
-    async (path) => {
-      const { container } = renderApp(path);
-      const map = await screen.findByTestId('app-map-container', undefined, { timeout: 3000 });
-      const main = container.querySelector('main');
-
-      expect(main).toHaveClass('flex-col', 'md:flex-row');
-      expect(map).toHaveClass('h-[30vh]', 'min-h-48', 'max-h-[22rem]', 'md:w-4/5');
-      expect(map.parentElement).toBe(main);
-      expect(map.nextElementSibling).toHaveClass(
-        'map-content-panel',
-        'overflow-x-hidden',
-        'overflow-y-auto',
-        'md:w-1/5',
-      );
-
-      cleanup();
-      resetApp();
+      expect(useLayoutStore.getState().layout).toBe(to);
+      await vi.waitFor(() => {
+        expect(document.activeElement).not.toBe(document.body);
+        expect(document.activeElement).toHaveAccessibleName('Ajustes');
+      });
     },
   );
 });
