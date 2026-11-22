@@ -81,8 +81,11 @@ export interface AppDeps {
   readonly placesMonthlyCap?: number;
   /** Limits anonymous `POST /routes/plan` traffic only. */
   readonly planRateLimit?: PlanRateLimitEnv;
-  /** Passed straight to Fastify — tests silence the logger with `{ logger: false }`. */
-  readonly fastifyOptions?: FastifyServerOptions;
+  /** Passed to Fastify — tests silence the logger with `{ logger: false }`. */
+  readonly fastifyOptions?: Omit<FastifyServerOptions, 'trustProxy'> & {
+    /** Also accepts a hop count, the documented TRUST_PROXY shorthand. */
+    readonly trustProxy?: FastifyServerOptions['trustProxy'] | number;
+  };
 }
 
 /**
@@ -115,7 +118,17 @@ export function buildApp(deps: AppDeps): FastifyInstance {
     );
   }
 
-  const app = Fastify(deps.fastifyOptions ?? { logger: false });
+  const fastifyOptions = deps.fastifyOptions ?? { logger: false };
+  // Fastify 5 deliberately fails a numeric `trustProxy` closed. At the
+  // composition boundary we turn the documented hop-count form into the
+  // equivalent predicate, which trusts only the closest N peers (never every
+  // X-Forwarded-For value). CIDR lists are passed through unchanged.
+  const { trustProxy, ...baseFastifyOptions } = fastifyOptions;
+  const app = Fastify(
+    typeof trustProxy === 'number'
+      ? { ...baseFastifyOptions, trustProxy: (_address: string, index: number) => index < trustProxy }
+      : { ...baseFastifyOptions, ...(trustProxy === undefined ? {} : { trustProxy }) },
+  );
 
   // The web app is cross-origin; F1 is anonymous, so no credentials are needed.
   // Retry-After must be visible to the live-preview client when it receives a 429.

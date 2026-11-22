@@ -70,3 +70,8 @@ IP (padrão: 120 requisições por 60 segundos); ajuste `RATE_LIMIT_PLAN_MAX` e
 `RATE_LIMIT_PLAN_WINDOW` (em milissegundos) em `apps/api/.env`. A resposta 429
 inclui `Retry-After`, exposto via CORS para o mapa vivo. Para testes isolados,
 `RATE_LIMIT_PLAN_ENABLED=false` desativa esse limite.
+O cabeçalho `X-Forwarded-For` só é usado se `TRUST_PROXY` for configurado: use
+um número de hops de proxy ou uma lista de CIDRs separados por vírgula. O padrão
+é desligado para que clientes não possam forjar o IP e trocar de balde. O
+limitador mantém os baldes em memória por processo; várias réplicas não
+compartilham a contagem.

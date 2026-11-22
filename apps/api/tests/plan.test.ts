@@ -92,6 +92,51 @@ describe('POST /routes/plan', () => {
     }
   });
 
+  it('ignores X-Forwarded-For when no proxy is trusted', async () => {
+    const app = appWithFakes({
+      planRateLimit: { enabled: true, max: 1, timeWindow: 60_000 },
+      fastifyOptions: { trustProxy: false },
+    });
+
+    const first = await app.inject({
+      method: 'POST',
+      url: '/routes/plan',
+      remoteAddress: '10.0.0.5',
+      headers: { 'x-forwarded-for': '198.51.100.23' },
+      payload: VALID_BODY,
+    });
+    const forged = await app.inject({
+      method: 'POST',
+      url: '/routes/plan',
+      remoteAddress: '10.0.0.5',
+      headers: { 'x-forwarded-for': '198.51.100.24' },
+      payload: VALID_BODY,
+    });
+
+    expect(first.statusCode).toBe(200);
+    expect(forged.statusCode).toBe(429);
+  });
+
+  it('uses one trusted proxy hop and ignores forged XFF values to its left', async () => {
+    const app = appWithFakes({
+      planRateLimit: { enabled: true, max: 1, timeWindow: 60_000 },
+      fastifyOptions: { trustProxy: 1 },
+    });
+    const request = (xff: string) =>
+      app.inject({
+        method: 'POST',
+        url: '/routes/plan',
+        remoteAddress: '10.0.0.5',
+        headers: { 'x-forwarded-for': xff },
+        payload: VALID_BODY,
+      });
+
+    // Render appends the peer it received from at the right of the header.
+    expect((await request('198.51.100.99, 198.51.100.23')).statusCode).toBe(200);
+    expect((await request('203.0.113.99, 198.51.100.23')).statusCode).toBe(429);
+    expect((await request('198.51.100.99, 198.51.100.24')).statusCode).toBe(200);
+  });
+
   it('plans SP→RJ with real store-sourced tolls (no tariff yet) and fuel costs', async () => {
     const app = appWithFakes();
     const res = await app.inject({ method: 'POST', url: '/routes/plan', payload: VALID_BODY });
