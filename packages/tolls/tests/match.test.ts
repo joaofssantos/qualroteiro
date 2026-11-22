@@ -28,6 +28,31 @@ const emptyOcean: LineString = {
 };
 
 describe('matchTolls — SP–RJ (Presidente Dutra) corridor', () => {
+  it('counts one physical plaza when the source contains many co-located toll points', () => {
+    // Regression fixture from the live SP→RJ response: the ANTT feed exposed
+    // several Free Flow lane/sensor records for each physical charge point.
+    // Before de-duplication this shape made the 405 km route return dozens of
+    // "plazas" despite there being only six physical points in this fixture.
+    const physicalPoints = dutra.plazas.slice(0, 6);
+    const duplicatedSourceRows = physicalPoints.flatMap((plaza, pointIndex) =>
+      Array.from({ length: pointIndex === 0 ? 20 : 10 }, (_, duplicateIndex) => ({
+        ...plaza,
+        id: `live-sp-rj-${pointIndex}-${duplicateIndex}`,
+        name: `${plaza.name} lane ${duplicateIndex + 1}`,
+      })),
+    );
+
+    expect(duplicatedSourceRows).toHaveLength(70);
+
+    const { plazas } = matchTolls({
+      routeGeometry: dutraPolyline,
+      axleCategory: 'car',
+      plazas: duplicatedSourceRows,
+    });
+
+    expect(plazas).toHaveLength(6);
+  });
+
   it('returns exactly the Dutra plazas for the Dutra reference polyline', () => {
     const { plazas } = matchTolls({
       routeGeometry: dutraPolyline,
@@ -214,7 +239,7 @@ describe('matchTolls — plaza with no tariffByAxleCategory', () => {
     expect(total).toBe(0);
   });
 
-  it('does not affect the total contributed by tariffed plazas matched alongside it', () => {
+  it('keeps the tariffed record when a tariff-less source mirrors the same physical plaza', () => {
     const untariffed: TollPlaza = {
       id: 'untariffed-test-plaza-2',
       name: 'Praça Sem Tarifa (teste 2)',
@@ -236,8 +261,8 @@ describe('matchTolls — plaza with no tariffByAxleCategory', () => {
       plazas: dutra.plazas,
     });
 
-    expect(withUntariffed.plazas).toHaveLength(tariffedOnly.plazas.length + 1);
-    expect(withUntariffed.plazas.some((p) => p.id === untariffed.id)).toBe(true);
+    expect(withUntariffed.plazas).toHaveLength(tariffedOnly.plazas.length);
+    expect(withUntariffed.plazas.some((p) => p.id === untariffed.id)).toBe(false);
     expect(withUntariffed.total).toBe(tariffedOnly.total);
   });
 });

@@ -9,7 +9,7 @@
  */
 
 import type { LineString } from '@qualroteiro/geo';
-import { nearestPointOnLine } from '@qualroteiro/geo';
+import { haversineMeters, nearestPointOnLine } from '@qualroteiro/geo';
 
 import type { AxleCategory, Corridor, CorridorId, FuelStationSeed, TollPlaza } from './types.js';
 import { getCorridor, listCorridors } from './seed/index.js';
@@ -24,6 +24,14 @@ import { getCorridor, listCorridors } from './seed/index.js';
  * claim a plaza. Overridable per call via {@link MatchTollsInput.bufferMeters}.
  */
 export const TOLL_MATCH_BUFFER_METERS = 500;
+
+/**
+ * Maximum separation between records that represent the same physical toll
+ * point.  ANTT may publish one row per lane/sensor and OSM may publish a
+ * separate point for the same plaza, so route matching must not expose every
+ * source row as a charge point.
+ */
+export const TOLL_PLAZA_DEDUPLICATION_METERS = 100;
 
 /** Input to {@link matchTolls}. */
 export interface MatchTollsInput {
@@ -80,25 +88,73 @@ export function matchTolls(input: MatchTollsInput): MatchTollsResult {
     );
   }
 
-  const matched: { plaza: TollPlaza; fractionAlong: number }[] = [];
+  const matched: { plaza: TollPlaza; fractionAlong: number; distanceMeters: number }[] = [];
 
   for (const plaza of plazas) {
     const nearest = nearestPointOnLine({ lng: plaza.lng, lat: plaza.lat }, routeGeometry);
     if (nearest.distanceMeters <= bufferMeters) {
-      matched.push({ plaza, fractionAlong: nearest.fractionAlong });
+      matched.push({
+        plaza,
+        fractionAlong: nearest.fractionAlong,
+        distanceMeters: nearest.distanceMeters,
+      });
     }
   }
 
-  matched.sort((a, b) => a.fractionAlong - b.fractionAlong);
+  // A toll plaza is a physical place, whereas data providers commonly emit
+  // one record for every lane/reader.  Co-located records are folded before
+  // sorting or charging.  The closest record wins; when positions are tied,
+  // prefer the one with a usable tariff (typically the OSM source) and then
+  // the stable lexical id.  This makes the output deterministic regardless
+  // of store query order while retaining the richest available record.
+  const representatives: number[] = [];
+  for (let candidateIndex = 0; candidateIndex < matched.length; candidateIndex++) {
+    const candidate = matched[candidateIndex]!;
+    let matchingRepresentative = -1;
 
-  const totalCentavos = matched.reduce(
+    for (const representativeIndex of representatives) {
+      const representative = matched[representativeIndex]!;
+      const separation = haversineMeters(
+        { lng: candidate.plaza.lng, lat: candidate.plaza.lat },
+        { lng: representative.plaza.lng, lat: representative.plaza.lat },
+      );
+      if (separation <= TOLL_PLAZA_DEDUPLICATION_METERS) {
+        matchingRepresentative = representativeIndex;
+        break;
+      }
+    }
+
+    if (matchingRepresentative === -1) {
+      representatives.push(candidateIndex);
+      continue;
+    }
+
+    const current = matched[matchingRepresentative]!;
+    const candidateHasTariff = candidate.plaza.tariffByAxleCategory !== undefined;
+    const currentHasTariff = current.plaza.tariffByAxleCategory !== undefined;
+    const candidateWins =
+      candidate.distanceMeters < current.distanceMeters ||
+      (candidate.distanceMeters === current.distanceMeters && candidateHasTariff && !currentHasTariff) ||
+      (candidate.distanceMeters === current.distanceMeters &&
+        candidateHasTariff === currentHasTariff &&
+        candidate.plaza.id.localeCompare(current.plaza.id) < 0);
+
+    if (candidateWins) {
+      representatives[representatives.indexOf(matchingRepresentative)] = candidateIndex;
+    }
+  }
+
+  const deduplicated = representatives.map((index) => matched[index]!);
+  deduplicated.sort((a, b) => a.fractionAlong - b.fractionAlong);
+
+  const totalCentavos = deduplicated.reduce(
     (sum, { plaza }) =>
       sum + Math.round((plaza.tariffByAxleCategory?.[axleCategory] ?? 0) * 100),
     0,
   );
 
   return {
-    plazas: matched.map(({ plaza }) => plaza),
+    plazas: deduplicated.map(({ plaza }) => plaza),
     total: totalCentavos / 100,
   };
 }
