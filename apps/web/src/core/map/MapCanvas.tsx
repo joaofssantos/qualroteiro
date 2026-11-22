@@ -181,12 +181,11 @@ export function MapCanvas({
     };
   }, []);
 
-<<<<<<< HEAD
   // O contêiner mudou de lugar/tamanho (troca de layout): reencaixa o canvas.
   useEffect(() => {
     mapRef.current?.resize();
   }, [resizeKey]);
-=======
+
   // Follow the light/dark switch on <html>.
   useEffect(() => watchTheme(() => setThemeTick((n) => n + 1)), []);
 
@@ -214,7 +213,6 @@ export function MapCanvas({
     paint(ROUTE_LINE_LAYER, theme.route);
     paint(PREVIEW_LAYER, theme.routeAlt);
   }, [themeTick, ready]);
->>>>>>> origin/feat/layout-f3-mapa
 
   // Draw (or redraw) the route trace.
   useEffect(() => {

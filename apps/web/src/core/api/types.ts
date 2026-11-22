@@ -46,7 +46,13 @@ export interface PlanRouteRequest {
 
 export interface TollsBreakdown {
   readonly plazas: readonly TollPlaza[];
+  /** Sum of the known fares; plazas listed in `unavailablePlazaIds` are not in it. */
   readonly total: number;
+  /**
+   * Plazas matched on the route with no published fare for the requested axle
+   * category ("Valor não disponível"). Optional: older API builds omit it.
+   */
+  readonly unavailablePlazaIds?: readonly string[];
 }
 
 export interface FuelBreakdown {
