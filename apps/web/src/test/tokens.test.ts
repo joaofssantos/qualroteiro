@@ -14,18 +14,11 @@ function walk(dir: string): string[] {
 const rel = (f: string) => relative(SRC, f);
 const isTest = (f: string) => /\.test\.tsx?$/.test(f);
 
-/**
- * Pontos do mapa ainda com cor literal por limitação do MapLibre (paint não lê
- * `var()`): resolvidos pela F3 via `core/map/theme.ts`. Remover daqui na F3.
- */
-const MAP_DEBT = new Set(['core/map/MapCanvas.tsx']);
-
 describe('tokens semânticos', () => {
   it('sem cor literal no mapa', () => {
     const re = /#[0-9a-fA-F]{3,8}\b|hsl\((?!var\()|rgba?\(/;
     const hits = walk(join(SRC, 'core/map'))
       .filter((f) => /\.tsx?$/.test(f) && !isTest(f) && !f.endsWith('theme.ts'))
-      .filter((f) => !MAP_DEBT.has(rel(f)))
       .filter((f) => re.test(readFileSync(f, 'utf8')))
       .map(rel);
     expect(hits).toEqual([]);

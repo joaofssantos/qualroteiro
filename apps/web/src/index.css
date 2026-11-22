@@ -80,7 +80,9 @@
     --map-land: 40 25% 94%;
     --map-park: 110 30% 85%;
     --map-road: 0 0% 100%;
+    --map-road-casing: 40 12% 80%;
     --map-road-major: 38 80% 82%;
+    --map-road-major-casing: 38 45% 62%;
     --map-label: 209 25% 30%;
     --map-label-halo: 40 25% 96%;
     --route: 38 92% 50%;
@@ -155,8 +157,10 @@
     --map-land: 212 16% 18%;
     --map-park: 150 18% 20%;
     --map-road: 212 12% 27%;
+    --map-road-casing: 208 18% 11%;
     --map-road-major: 212 14% 34%;
-    --map-label: 210 16% 72%;
+    --map-road-major-casing: 210 17% 9%;
+    --map-label: 210 16% 82%;
     --map-label-halo: 212 20% 12%;
     --route: 38 95% 58%;
     --route-casing: 212 40% 6%;
@@ -198,10 +202,6 @@
 
   .maplibregl-ctrl-group {
     @apply !rounded-lg !border !border-border !shadow-sm;
-  }
-
-  .dark .maplibregl-canvas {
-    filter: brightness(0.78) saturate(0.85);
   }
 
   @media (min-width: 768px) {
