@@ -10,7 +10,19 @@ import { THEME_STORAGE_KEY } from './useTheme';
 
 let systemPrefersDark = false;
 
-// F6: o layout A tem shell próprio (ShellA.test.tsx); estes testes cobrem o LegacyShell, que o layout B ainda usa.
+// Após F6/F10 nenhum layout registrado usa o LegacyShell; estes testes continuam cobrindo o
+// markup dele montando-o no lugar dos dois shells (ShellA/ShellB têm testes próprios).
+vi.mock('@/core/layout/shellLoaders', async () => {
+  const legacy = await import('./layouts/legacy/LegacyShell');
+  const module = { default: legacy.LegacyShell };
+  const sync = () => ({
+    then(resolve: (value: typeof module) => void) {
+      resolve(module);
+    },
+  });
+  return { shellLoaders: { a: sync, b: sync } };
+});
+
 beforeEach(() => {
   window.localStorage.clear();
   useLayoutStore.setState({ layout: 'b' });
@@ -66,10 +78,10 @@ describe('AppShell', () => {
     ['Hospedagem', 'text-module-hospedagem'],
     ['Restaurantes', 'text-module-restaurantes'],
     ['Atividades', 'text-module-atividades'],
-  ])('uses the module wayfinding colour for the inactive %s icon', (label, colourClass) => {
+  ])('uses the module wayfinding colour for the inactive %s icon', async (label, colourClass) => {
     renderApp('/rota-custos');
 
-    expect(screen.getByRole('link', { name: label }).querySelector('svg')).toHaveClass(colourClass);
+    expect((await screen.findByRole('link', { name: label }, { timeout: 3000 })).querySelector('svg')).toHaveClass(colourClass);
 
     cleanup();
     resetApp();
@@ -77,10 +89,10 @@ describe('AppShell', () => {
 
   it.each(['/rota-custos', '/hospedagem', '/restaurantes', '/atividades'])(
     'uses the 80/20 map-and-content split for %s',
-    (path) => {
+    async (path) => {
       const { container } = renderApp(path);
+      const map = await screen.findByTestId('app-map-container', undefined, { timeout: 3000 });
       const main = container.querySelector('main');
-      const map = screen.getByTestId('app-map-container');
 
       expect(main).toHaveClass('flex-col', 'md:flex-row');
       expect(map).toHaveClass('h-[30vh]', 'min-h-48', 'max-h-[22rem]', 'md:w-4/5');

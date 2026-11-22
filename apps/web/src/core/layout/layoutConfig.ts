@@ -35,3 +35,13 @@ export function readStoredLayout(storage?: Storage): LayoutId | null {
     return null;
   }
 }
+
+/** Ids registrados, na ordem de `LAYOUT_META` (a fonte única do registro). */
+export function registeredLayoutIds(): LayoutId[] {
+  return Object.keys(LAYOUT_META) as LayoutId[];
+}
+
+/** Escolha que aponta para um layout removido cai no primeiro registrado. */
+export function resolveLayoutId(id: string, ids: readonly LayoutId[] = registeredLayoutIds()): LayoutId {
+  return ids.find((candidate) => candidate === id) ?? ids[0] ?? 'a';
+}

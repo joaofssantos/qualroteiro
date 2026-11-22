@@ -12,10 +12,10 @@ import {
 } from '@/components/ui/dialog';
 import { Segmented } from '@/components/ui/segmented';
 
-import { LAYOUT_META, type LayoutId, isLayoutId } from './layoutConfig';
+import { LAYOUT_META, type LayoutId, isLayoutId, registeredLayoutIds, resolveLayoutId } from './layoutConfig';
 import { useLayoutStore } from './layoutStore';
 
-const OPTIONS = (Object.keys(LAYOUT_META) as LayoutId[]).map((id) => ({
+const OPTIONS = registeredLayoutIds().map((id) => ({
   value: id,
   label: LAYOUT_META[id].label,
 }));
@@ -45,15 +45,21 @@ export function SettingsDialog({ triggerClassName }: { triggerClassName?: string
           <DialogTitle>Ajustes</DialogTitle>
           <DialogDescription>Escolha como o app organiza o mapa e os custos.</DialogDescription>
         </DialogHeader>
-        <Segmented
-          aria-label="Layout"
-          value={layout}
-          onValueChange={(value) => {
-            if (isLayoutId(value)) setLayout(value satisfies LayoutId);
-          }}
-          options={OPTIONS}
-        />
-        <p className="mt-3 text-sm text-muted-foreground">{LAYOUT_META[layout].description}</p>
+        {OPTIONS.length > 1 && (
+          <>
+            <Segmented
+              aria-label="Layout"
+              value={resolveLayoutId(layout)}
+              onValueChange={(value) => {
+                if (isLayoutId(value)) setLayout(value satisfies LayoutId);
+              }}
+              options={OPTIONS}
+            />
+            <p className="mt-3 text-sm text-muted-foreground">
+              {LAYOUT_META[resolveLayoutId(layout)].description}
+            </p>
+          </>
+        )}
       </DialogContent>
     </Dialog>
   );
