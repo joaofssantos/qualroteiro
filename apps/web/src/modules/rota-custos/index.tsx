@@ -1,13 +1,15 @@
 import { Route as RouteIcon } from 'lucide-react';
 import { useEffect } from 'react';
-import { Route, Routes } from 'react-router-dom';
+import { Route, Routes, useOutletContext } from 'react-router-dom';
+
+import { useLayoutComposition } from '@/core/layout/composition';
 
 import type { ModuleDefinition } from '@/core/registry/types';
 import { useRouteStore } from '@/core/store/routeStore';
 
 import { NewQueryScreen } from './NewQueryScreen';
 import { ResultScreen } from './ResultScreen';
-import { RotaCustosLayout } from './RotaCustosLayout';
+import { type RotaCustosOutletContext, RotaCustosLayout } from './RotaCustosLayout';
 import { MODULE_PATH, ROTA_CUSTOS_LAYERS } from './module';
 
 /**
@@ -18,6 +20,18 @@ import { MODULE_PATH, ROTA_CUSTOS_LAYERS } from './module';
  * declares the map layers it contributes, and registers them with the core's
  * layer manager on mount.
  */
+/** Tela de consulta do layout ativo (a padrão, se o shell não oferece outra). */
+function ConsultaRoute() {
+  const { Consulta } = useLayoutComposition();
+  return Consulta ? <Consulta /> : <NewQueryScreen />;
+}
+
+function ResultadoRoute() {
+  const { Resultado } = useLayoutComposition();
+  const { onSelectPlaza } = useOutletContext<RotaCustosOutletContext>();
+  return Resultado ? <Resultado onSelectPlaza={onSelectPlaza} /> : <ResultScreen />;
+}
+
 function RotaCustosPanel() {
   const registerLayer = useRouteStore((s) => s.registerLayer);
 
@@ -30,8 +44,8 @@ function RotaCustosPanel() {
   return (
     <Routes>
       <Route element={<RotaCustosLayout />}>
-        <Route index element={<NewQueryScreen />} />
-        <Route path="resultado" element={<ResultScreen />} />
+        <Route index element={<ConsultaRoute />} />
+        <Route path="resultado" element={<ResultadoRoute />} />
       </Route>
     </Routes>
   );

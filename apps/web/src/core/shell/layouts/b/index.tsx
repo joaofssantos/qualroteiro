@@ -1,2 +1,2 @@
-// F2: ambos os layouts usam, por ora, o shell atual. F6 (A) e F10 (B) substituem.
-export { LegacyShell as default } from '../legacy/LegacyShell';
+// F10: Shell B (custos primeiro + mapa vivo).
+export { ShellB as default } from './ShellB';
