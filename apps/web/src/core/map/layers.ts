@@ -20,7 +20,11 @@ export interface MapMarkerSpec {
   /** The marker's accessible name — what a screen reader and a test both read. */
   readonly label: string;
   readonly kind?: MarkerKind;
-  /** 0-based position within an ordered list (e.g. the plaza number is `index + 1`). */
+  /**
+   * Draws the pin as a numbered badge showing this number as-is (callers pass the
+   * 1-based number users see, e.g. the plaza's position along the route). Circle
+   * for plazas/stops, square for the destination. The accessible name stays `label`.
+   */
   readonly index?: number;
 }
 
