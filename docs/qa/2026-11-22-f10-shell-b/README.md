@@ -27,7 +27,7 @@ Veredito: **PRONTO PARA QA** (autor: Claude Sonnet 5.5; QA deve ser outro modelo
 
 (Medições na mesma máquina, em sequência; a base não apresentou assinatura de
 timeout, logo não há assinatura nova a comparar. Uma execução extra do commit
-final: 54 / 308 verdes, 17 s.) Não rodei E2E (é a F11).
+final: 54 / 308 verdes, 17 s.) Num subconjunto (`src/core src/modules/rota-custos`) houve **1 falha em ~12 execuções** logo após o commit final, não reproduzida em 7 reruns (nome do teste não capturado; hipótese não verificada: flakiness conhecida da suíte). Não rodei E2E (é a F11).
 
 ## Capturas (Chrome descartável, `--use-mock-keychain`, `agentop run --rm`, modo demo)
 
