@@ -11,7 +11,14 @@ import { PrismaClient } from '@prisma/client';
 
 import { buildApp } from './app.js';
 import { createClerkAuthVerifier } from './auth/clerk.js';
-import { loadDotEnvInto, readClerkEnv, readGooglePlacesEnv, readOrsEnv } from './env.js';
+import {
+  loadDotEnvInto,
+  readClerkEnv,
+  readGooglePlacesEnv,
+  readOrsEnv,
+  readPlanRateLimitEnv,
+  readTrustProxyEnv,
+} from './env.js';
 import { createGooglePlacesProvider } from './providers/google-places.js';
 import { createOrsGeocodeProvider } from './providers/ors-geocode.js';
 import { createOrsRoutingProvider } from './providers/ors-routing.js';
@@ -27,6 +34,8 @@ loadDotEnvInto(process.env);
 const ors = readOrsEnv();
 const clerk = readClerkEnv();
 const googlePlaces = readGooglePlacesEnv();
+const planRateLimit = readPlanRateLimitEnv();
+const trustProxy = readTrustProxyEnv();
 
 // Reads DATABASE_URL from the environment itself.
 const prisma = new PrismaClient();
@@ -40,7 +49,8 @@ const app = buildApp({
   googlePlaces: createGooglePlacesProvider({ apiKey: googlePlaces.apiKey }),
   apiUsage: createPrismaApiUsageStore(prisma),
   placesMonthlyCap: googlePlaces.searchMonthlyCap,
-  fastifyOptions: { logger: true },
+  planRateLimit,
+  fastifyOptions: { logger: true, trustProxy: trustProxy.value },
 });
 
 // Close the pool on the way out so a restarting container does not leave

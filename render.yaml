@@ -1,0 +1,28 @@
+services:
+  - type: web
+    name: qualroteiro-api
+    runtime: node
+    region: oregon
+    plan: free
+    buildCommand: corepack enable && pnpm install --frozen-lockfile && pnpm turbo run build --filter=@qualroteiro/api && pnpm --filter @qualroteiro/api prisma:migrate:deploy
+    startCommand: pnpm --filter @qualroteiro/api start
+    healthCheckPath: /health
+    envVars:
+      - key: NODE_VERSION
+        value: 20.19.0
+      - key: DATABASE_URL
+        sync: false
+      - key: DIRECT_DATABASE_URL
+        sync: false
+      - key: ORS_API_KEY
+        sync: false
+      - key: CLERK_SECRET_KEY
+        sync: false
+      - key: GOOGLE_PLACES_API_KEY
+        sync: false
+      - key: CORS_ORIGIN
+        sync: false
+      # Render is the one trusted reverse-proxy hop. This makes request.ip use
+      # the real client IP for POST /routes/plan's rate-limit bucket.
+      - key: TRUST_PROXY
+        value: 1
