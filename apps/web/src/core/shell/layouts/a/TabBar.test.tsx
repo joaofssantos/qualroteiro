@@ -27,4 +27,13 @@ describe('TabBar', () => {
     for (const link of links) expect(link.className).toMatch(/min-h-14/);
     expect(within(nav).getByRole('link', { name: 'Planejamento' })).toHaveAttribute('aria-current', 'page');
   });
+
+  it('usa a cor de sidebar (app-sidebar), não o primário claro do tema escuro', () => {
+    render(
+      <MemoryRouter initialEntries={['/m1']}>
+        <TabBar items={items} />
+      </MemoryRouter>,
+    );
+    expect(screen.getByRole('navigation', { name: 'Módulos' })).toHaveClass('app-sidebar');
+  });
 });

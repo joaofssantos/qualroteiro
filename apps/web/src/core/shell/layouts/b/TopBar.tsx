@@ -15,7 +15,7 @@ const ghostOnPrimary =
 /** Barra superior do layout B: marca, módulos (desktop) ou "Menu" (mobile), Ajustes e tema. */
 export function TopBar({ items, mobile }: { items: readonly ModuleNavItem[]; mobile: boolean }) {
   return (
-    <header className="sticky top-0 z-20 flex h-14 shrink-0 items-center gap-3 border-b border-border bg-primary px-3 md:px-5">
+    <header className="app-sidebar sticky top-0 z-20 flex h-14 shrink-0 items-center gap-3 border-b border-border bg-primary px-3 md:px-5">
       <span className="text-base font-bold leading-none tracking-tight text-primary-foreground md:text-lg">
         qual<span className="text-accent">roteiro</span>
       </span>

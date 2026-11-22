@@ -11,7 +11,7 @@ export function TabBar({ items }: { items: readonly ModuleNavItem[] }) {
   return (
     <nav
       aria-label="Módulos"
-      className="fixed inset-x-0 bottom-0 z-30 flex border-t border-border bg-primary pb-[env(safe-area-inset-bottom)]"
+      className="app-sidebar fixed inset-x-0 bottom-0 z-30 flex border-t border-border bg-primary pb-[env(safe-area-inset-bottom)]"
     >
       {items.map(({ id, label, path, Icon }) => (
         <NavLink
