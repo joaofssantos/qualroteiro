@@ -6,13 +6,11 @@ import { Button } from '@/components/ui/button';
 import { ApiError, planRoute, userMessage } from '@/core/api/client';
 import type { PlaceInput, PlanRouteRequest } from '@/core/api/types';
 import { PlaceSearch, type PlaceFieldValue } from '@/core/components/PlaceSearch';
-import {
-  VehicleProfileForm,
-  type VehicleProfileValue,
-} from '@/core/components/VehicleProfileForm';
+import { VehicleProfileForm } from '@/core/components/VehicleProfileForm';
 import { type EndpointMarker, useRouteStore } from '@/core/store/routeStore';
 
 import { MODULE_PATH } from './module';
+import { EMPTY_FIELD, useRouteDraftStore } from './routeDraftStore';
 
 /**
  * Tela 1 — nova consulta.
@@ -20,16 +18,6 @@ import { MODULE_PATH } from './module';
  * Owns the form state locally and only writes to the store once a plan has been
  * requested, so an abandoned half-typed form leaves nothing behind.
  */
-
-const EMPTY_FIELD: PlaceFieldValue = { text: '', place: null };
-
-/** Sensible starting point: a car doing 10 km/l with fuel at R$ 6,00. */
-const DEFAULT_VEHICLE: VehicleProfileValue = {
-  type: 'car',
-  axleCategory: 'car',
-  consumptionKmPerL: 10,
-  fuelPricePerL: 6,
-};
 
 /**
  * Coordinates when the user picked a hit, the raw string otherwise.
@@ -83,10 +71,16 @@ export function NewQueryScreen() {
   const planFailed = useRouteStore((s) => s.planFailed);
   const setEndpointMarkers = useRouteStore((s) => s.setEndpointMarkers);
 
-  const [origin, setOrigin] = useState<PlaceFieldValue>(EMPTY_FIELD);
-  const [destination, setDestination] = useState<PlaceFieldValue>(EMPTY_FIELD);
-  const [stops, setStops] = useState<readonly PlaceFieldValue[]>([]);
-  const [vehicle, setVehicle] = useState<VehicleProfileValue>(DEFAULT_VEHICLE);
+  // O rascunho vive acima dos shells (trocar de layout desmonta este formulário).
+  const origin = useRouteDraftStore((s) => s.origin);
+  const destination = useRouteDraftStore((s) => s.destination);
+  const stops = useRouteDraftStore((s) => s.stops);
+  const vehicle = useRouteDraftStore((s) => s.vehicle);
+  const setOrigin = useRouteDraftStore((s) => s.setOrigin);
+  const setDestination = useRouteDraftStore((s) => s.setDestination);
+  const setStops = useRouteDraftStore((s) => s.setStops);
+  const setVehicle = useRouteDraftStore((s) => s.setVehicle);
+  const resetDraft = useRouteDraftStore((s) => s.reset);
 
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
   const [formError, setFormError] = useState<string | null>(null);
@@ -161,6 +155,7 @@ export function NewQueryScreen() {
         setFormError('Nenhuma rota encontrada para esse trajeto. Revise os endereços.');
         return;
       }
+      resetDraft();
       navigate(`${MODULE_PATH}/resultado`);
     } catch (cause) {
       const error =
