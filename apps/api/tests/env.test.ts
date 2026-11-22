@@ -22,7 +22,35 @@ import {
 describe('readCorsOrigins', () => {
   it('leaves CORS unrestricted when no production origin is configured', () => {
     expect(readCorsOrigins({})).toBeUndefined();
-    expect(readCorsOrigins({ CORS_ORIGIN: '   ' })).toBeUndefined();
+  });
+
+  it.each(['', '   ', ' , ', ',,'])(
+    'throws at boot when CORS_ORIGIN is set but empty after trimming (%j)',
+    (value) => {
+      expect(() => readCorsOrigins({ CORS_ORIGIN: value })).toThrow(/CORS_ORIGIN/);
+    },
+  );
+
+  it.each([
+    'https://*.vercel.app',
+    'https://*.',
+    'https://*',
+    'https://*-app.vercel.app',
+    'https://*.example.com',
+  ])('rejects wildcard patterns without a literal prefix (%s)', (pattern) => {
+    expect(() => readCorsOrigins({ CORS_ORIGIN: pattern })).toThrow(/CORS_ORIGIN/);
+  });
+
+  it('normalizes trailing slashes and lowercases scheme and host', () => {
+    expect(
+      readCorsOrigins({ CORS_ORIGIN: 'HTTPS://Qualroteiro.Vercel.App/, http://localhost:3000/' }),
+    ).toEqual(['https://qualroteiro.vercel.app', 'http://localhost:3000']);
+  });
+
+  it('normalizes a wildcard pattern with uppercase and trailing slash', () => {
+    const [origin] = readCorsOrigins({ CORS_ORIGIN: 'HTTPS://Qualroteiro-*.Vercel.App/' })!;
+    expect((origin as RegExp).test('https://qualroteiro-git-x.vercel.app')).toBe(true);
+    expect((origin as RegExp).test('https://other-git-x.vercel.app')).toBe(false);
   });
 
   it('parses and trims a comma-separated allow-list', () => {

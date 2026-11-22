@@ -42,8 +42,13 @@ O onboarding é conduzido abrindo uma sessão do harness nesta pasta.
 
 ```sh
 pnpm install
+cp apps/api/.env.example apps/api/.env   # preencha as chaves (ORS, Clerk, Google Places...)
 docker compose -f infra/docker-compose.yml up -d
 pnpm dev
 ```
+
+> `DIRECT_DATABASE_URL` (conexão direta, sem pooler) é **exigida pelos comandos
+> `prisma` de migração** (`migrate dev` / `migrate deploy`); `DATABASE_URL` é usada
+> só pela aplicação em runtime.
 
 Requer Node 20+ e pnpm 9+.

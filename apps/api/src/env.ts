@@ -24,6 +24,17 @@ export const DEFAULT_ORS_BASE_URL = 'https://api.openrouteservice.org';
  */
 export type CorsOrigin = string | RegExp;
 
+/**
+ * Canonical form of an origin entry: no trailing slash, lowercase scheme and
+ * host (both case-insensitive per RFC 3986), so a CORS_ORIGIN written with a
+ * trailing slash or capitals still matches the browser's real `Origin`.
+ */
+function normalizeOrigin(entry: string): string {
+  const trimmed = entry.replace(/\/+$/, '');
+  const match = /^([^:/]+:\/\/[^/?#]*)(.*)$/.exec(trimmed);
+  return match ? `${match[1]!.toLowerCase()}${match[2]!}` : trimmed;
+}
+
 function previewPattern(origin: string): RegExp {
   const wildcardCount = [...origin].filter((character) => character === '*').length;
   let url: URL;
@@ -34,18 +45,21 @@ function previewPattern(origin: string): RegExp {
   }
 
   const labels = url.hostname.split('.');
-  const wildcardLabel = labels.findIndex((label) => label.includes('*'));
+  // The '*' must live in the first host label and follow a non-empty literal
+  // prefix (e.g. `qualroteiro-*`), so `https://*.vercel.app` can never open
+  // the API to every project on the shared domain.
+  const wildcardAt = labels[0]?.indexOf('*') ?? -1;
   if (
     wildcardCount !== 1 ||
     url.protocol !== 'https:' ||
     url.pathname !== '/' ||
     url.search ||
     url.hash ||
-    wildcardLabel < 0 ||
-    wildcardLabel >= labels.length - 2
+    wildcardAt < 1 ||
+    labels.length < 3
   ) {
     throw new Error(
-      `CORS_ORIGIN preview patterns must contain one '*' in a subdomain segment: ${origin}`,
+      `CORS_ORIGIN preview patterns must have a literal prefix before a single '*' in the first host label (e.g. https://qualroteiro-*.vercel.app): ${origin}`,
     );
   }
 
@@ -56,15 +70,20 @@ function previewPattern(origin: string): RegExp {
 }
 
 export function readCorsOrigins(env: NodeJS.ProcessEnv = process.env): readonly CorsOrigin[] | undefined {
-  const raw = env['CORS_ORIGIN']?.trim();
-  if (!raw) return undefined;
+  const rawValue = env['CORS_ORIGIN'];
+  if (rawValue === undefined) return undefined;
 
-  const origins = raw
+  const origins = rawValue
     .split(',')
     .map((origin) => origin.trim())
-    .filter((origin) => origin.length > 0);
+    .filter((origin) => origin.length > 0)
+    .map(normalizeOrigin);
 
-  if (origins.length === 0) return undefined;
+  if (origins.length === 0) {
+    throw new Error(
+      'CORS_ORIGIN is set but contains no origins. Unset it for permissive local development or list at least one origin.',
+    );
+  }
   return origins.map((origin) => (origin.includes('*') ? previewPattern(origin) : origin));
 }
 
