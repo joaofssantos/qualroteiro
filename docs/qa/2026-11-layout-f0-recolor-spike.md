@@ -5,6 +5,8 @@
 
 ## Veredito: **PASSA**
 
+Veredito: PASSA
+
 Recolorir o `liberty` por regra de papel (type / `source-layer` / prefixo do id) produz um mapa escuro coerente em SP, centro do Rio e rodovia, sem tom claro vazando e com rótulos legíveis. F3 pode seguir com `recolorStyle` e remover o filtro CSS `.dark .maplibregl-canvas` (com as ressalvas abaixo).
 
 ## Critérios objetivos
