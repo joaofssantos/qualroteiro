@@ -269,6 +269,49 @@ describe('matchTolls — plaza with no tariffByAxleCategory', () => {
     expect(withUntariffed.plazas.some((p) => p.id === untariffed.id)).toBe(false);
     expect(withUntariffed.total).toBe(tariffedOnly.total);
   });
+
+  it('prefers a tariffed co-located record even when the tariff-less record is closer to the route', () => {
+    const route: LineString = {
+      type: 'LineString',
+      coordinates: [
+        [-46, -23],
+        [-45.99, -23],
+      ],
+    };
+    const base: Omit<TollPlaza, 'id' | 'lat' | 'tariffByAxleCategory'> = {
+      name: 'Praça co-localizada',
+      concessionaire: 'Concessionária Teste',
+      highway: 'BR-000',
+      km: 10,
+      lng: -45.995,
+    };
+    const noTariff: TollPlaza = { ...base, id: 'antt-no-tariff', lat: -23 };
+    // About 33 m from the route, but only 33 m from the ANTT point.
+    const tariffed: TollPlaza = {
+      ...base,
+      id: 'osm-car-10',
+      lat: -23.0003,
+      tariffByAxleCategory: {
+        motorcycle: 5,
+        car: 10,
+        car_with_trailer: 15,
+        truck_2_axle: 20,
+        truck_3_axle: 25,
+        truck_4_axle: 30,
+        truck_5_axle: 35,
+        truck_6_axle: 40,
+      },
+    };
+
+    const result = matchTolls({
+      routeGeometry: route,
+      axleCategory: 'car',
+      plazas: [noTariff, tariffed],
+    });
+
+    expect(result.plazas.map((plaza) => plaza.id)).toEqual(['osm-car-10']);
+    expect(result.total).toBe(10);
+  });
 });
 
 describe('matchTolls — degenerate input', () => {
