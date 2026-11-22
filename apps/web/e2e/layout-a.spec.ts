@@ -18,7 +18,15 @@ for (const viewport of Object.keys(VIEWPORTS) as ViewportName[]) {
     const mapNode = await page.locator('.maplibregl-map').elementHandle();
     expect(loads()).toBe(1);
 
-    await switchLayoutInSettings(page, /Custos primeiro/);
+    // The dialog belongs to the outgoing shell.  Do not use the helper here:
+    // it used to press Escape itself and therefore hid the orphaned dialog
+    // produced when the layout changed before the dialog was closed.
+    await page.getByRole('button', { name: 'Ajustes' }).click();
+    await page.getByRole('radio', { name: /Custos primeiro/ }).click();
+    const dialog = page.getByRole('dialog');
+    await expect(dialog).toHaveCount(0);
+    await page.keyboard.press('Escape');
+    await expect(dialog).toHaveCount(0);
     await expect(page.getByRole('heading', { name: 'Resultado da rota' })).toBeVisible();
     await expect(page.locator('.maplibregl-map')).toHaveCount(1);
     expect(await page.evaluate(() => localStorage.getItem('qualroteiro:layout'))).toBe('b');

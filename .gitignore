@@ -25,3 +25,6 @@ coverage/
 # local repo materialization (nested clones) — never committed
 /repos/
 /.aipe/runtime/
+
+# Playwright output is regenerated on every E2E run.
+apps/web/test-results/
