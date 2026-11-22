@@ -31,15 +31,15 @@ function setup() {
   const onSelectPlaza = vi.fn();
   render(
     <AuthContext.Provider value={{ ...missingAuth, isSignedIn: true }}>
-    <MemoryRouter initialEntries={['/rota-custos/resultado']}>
-      <Routes>
-        <Route path="/rota-custos" element={<p>consulta</p>} />
-        <Route
-          path="/rota-custos/resultado"
-          element={<ResultadoPage onSelectPlaza={onSelectPlaza} />}
-        />
-      </Routes>
-    </MemoryRouter>
+      <MemoryRouter initialEntries={['/rota-custos/resultado']}>
+        <Routes>
+          <Route path="/rota-custos" element={<p>consulta</p>} />
+          <Route
+            path="/rota-custos/resultado"
+            element={<ResultadoPage onSelectPlaza={onSelectPlaza} />}
+          />
+        </Routes>
+      </MemoryRouter>
     </AuthContext.Provider>,
   );
   return { onSelectPlaza };

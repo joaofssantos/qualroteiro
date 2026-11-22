@@ -4,8 +4,8 @@ import { useLocation } from 'react-router-dom';
 import { listModules } from '@/core/registry/registry';
 
 import { moduleNavItems } from '../../shared/moduleNav';
-import { TopBar } from './TopBar';
 import { useIsMobile } from '../../shared/useIsMobile';
+import { TopBar } from './TopBar';
 
 /**
  * Layout B — custos primeiro, com mapa vivo. Barra superior + conteúdo em
@@ -18,11 +18,11 @@ export function ShellB({ children }: { children: ReactNode }) {
   const items = moduleNavItems(listModules(), location.pathname);
 
   return (
-      <div data-testid="shell-b" className="flex min-h-screen flex-col bg-background">
-        <TopBar items={items} mobile={mobile} />
-        <main className="min-w-0 flex-1">
-          <Suspense fallback={<div aria-busy="true" className="min-h-[60vh]" />}>{children}</Suspense>
-        </main>
-      </div>
+    <div data-testid="shell-b" className="flex min-h-screen flex-col bg-background">
+      <TopBar items={items} mobile={mobile} />
+      <main className="min-w-0 flex-1">
+        <Suspense fallback={<div aria-busy="true" className="min-h-[60vh]" />}>{children}</Suspense>
+      </main>
+    </div>
   );
 }
