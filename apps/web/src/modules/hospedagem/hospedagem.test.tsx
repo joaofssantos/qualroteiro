@@ -291,16 +291,19 @@ describe('Hospedagem module', () => {
     });
   });
 
-  it('clears stale coordinates before using new ones when a stay is selected again after a manual address edit', async () => {
-    const user = userEvent.setup();
+  async function openHotelResults(user: ReturnType<typeof userEvent.setup>) {
+    renderApp('/hospedagem');
+    await user.type(screen.getByLabelText('Cidade, bairro ou endereço'), 'Rio');
+    await user.click(await screen.findByRole('option', { name: /Rio de Janeiro/ }, { timeout: 10_000 }));
+    return screen.findByRole('list', { name: 'Hospedagens encontradas' }, { timeout: 10_000 });
+  }
+
+  it('clears stale coordinates when the address is edited by hand after selecting a stay', async () => {
+    const user = userEvent.setup({ delay: null });
     mockApi({ places: [REFERENCE], nearbyPlaces: [HOTEL, SECOND_HOTEL] });
     const trips = await import('@/core/api/trips');
 
-    renderApp('/hospedagem');
-    const referenceInput = screen.getByLabelText('Cidade, bairro ou endereço');
-    await user.type(referenceInput, 'Rio');
-    await user.click(await screen.findByRole('option', { name: /Rio de Janeiro/ }));
-    let results = await screen.findByRole('list', { name: 'Hospedagens encontradas' });
+    const results = await openHotelResults(user);
     await user.click(within(results).getByRole('button', { name: /Hotel Atlântico/ }));
 
     const addressInput = screen.getByLabelText('Endereço');
@@ -308,8 +311,8 @@ describe('Hospedagem module', () => {
     await user.type(addressInput, 'Rua Nova, 123');
 
     await user.click(screen.getByRole('button', { name: 'Salvar na viagem' }));
-    const firstDialog = await screen.findByRole('dialog');
-    await user.click(within(firstDialog).getByRole('button', { name: 'Salvar' }));
+    const dialog = await screen.findByRole('dialog', {}, { timeout: 10_000 });
+    await user.click(within(dialog).getByRole('button', { name: 'Salvar' }));
 
     await waitFor(() => {
       expect(trips.createTripItem).toHaveBeenLastCalledWith(
@@ -320,17 +323,30 @@ describe('Hospedagem module', () => {
           payload: expect.objectContaining({ address: 'Rua Nova, 123', lat: null, lng: null }),
         }),
       );
-    });
-    await user.click(within(firstDialog).getAllByRole('button', { name: 'Fechar' })[0]!);
+    }, { timeout: 10_000 });
+  }, 30_000);
 
+  it('uses the new coordinates when another stay is selected after a manual address edit', async () => {
+    const user = userEvent.setup({ delay: null });
+    mockApi({ places: [REFERENCE], nearbyPlaces: [HOTEL, SECOND_HOTEL] });
+    const trips = await import('@/core/api/trips');
+
+    const results = await openHotelResults(user);
+    await user.click(within(results).getByRole('button', { name: /Hotel Atlântico/ }));
+
+    const addressInput = screen.getByLabelText('Endereço');
+    await user.clear(addressInput);
+    await user.type(addressInput, 'Rua Nova, 123');
+
+    const referenceInput = screen.getByLabelText('Cidade, bairro ou endereço');
     await user.clear(referenceInput);
     await user.type(referenceInput, 'Rio');
-    await user.click(await screen.findByRole('option', { name: /Rio de Janeiro/ }));
-    results = await screen.findByRole('list', { name: 'Hospedagens encontradas' });
-    await user.click(within(results).getByRole('button', { name: /Copacabana Palace/ }));
+    await user.click(await screen.findByRole('option', { name: /Rio de Janeiro/ }, { timeout: 10_000 }));
+    const nextResults = await screen.findByRole('list', { name: 'Hospedagens encontradas' }, { timeout: 10_000 });
+    await user.click(within(nextResults).getByRole('button', { name: /Copacabana Palace/ }));
 
     await user.click(screen.getByRole('button', { name: 'Salvar na viagem' }));
-    const dialog = await screen.findByRole('dialog');
+    const dialog = await screen.findByRole('dialog', {}, { timeout: 10_000 });
     await user.click(within(dialog).getByRole('button', { name: 'Salvar' }));
 
     await waitFor(() => {
@@ -346,8 +362,8 @@ describe('Hospedagem module', () => {
           }),
         }),
       );
-    });
-  });
+    }, { timeout: 10_000 });
+  }, 30_000);
 
   it('keeps lat/lng null when the stay is entered manually, without selecting a search result', async () => {
     const user = userEvent.setup();

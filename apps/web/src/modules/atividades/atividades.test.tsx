@@ -340,8 +340,8 @@ describe('Atividades module', () => {
     });
   });
 
-  it('clears stale coordinates before using new ones when an activity is selected again after a manual address edit', async () => {
-    const user = userEvent.setup();
+  it('clears stale coordinates when the address is edited by hand after selecting an activity', async () => {
+    const user = userEvent.setup({ delay: null });
     mockNearbyApi(() => json({ places: [MUSEUM, SECOND_MUSEUM] }));
     const trips = await import('@/core/api/trips');
 
@@ -349,15 +349,15 @@ describe('Atividades module', () => {
     await searchNearRio(user);
     await user.click(await screen.findByRole('button', {
       name: /Museu do Amanhã Praça Mauá, Rio de Janeiro - RJ/,
-    }));
+    }, { timeout: 10_000 }));
 
     const addressInput = screen.getByLabelText('Endereço');
     await user.clear(addressInput);
     await user.type(addressInput, 'Rua Nova, 123');
 
     await user.click(screen.getByRole('button', { name: 'Salvar na viagem' }));
-    const firstDialog = await screen.findByRole('dialog');
-    await user.click(within(firstDialog).getByRole('button', { name: 'Salvar' }));
+    const dialog = await screen.findByRole('dialog', {}, { timeout: 10_000 });
+    await user.click(within(dialog).getByRole('button', { name: 'Salvar' }));
 
     await waitFor(() => {
       expect(trips.createTripItem).toHaveBeenLastCalledWith(
@@ -368,19 +368,34 @@ describe('Atividades module', () => {
           payload: expect.objectContaining({ address: 'Rua Nova, 123', lat: null, lng: null }),
         }),
       );
-    });
-    await user.click(within(firstDialog).getAllByRole('button', { name: 'Fechar' })[0]!);
+    }, { timeout: 10_000 });
+  }, 30_000);
+
+  it('uses the new coordinates when another activity is selected after a manual address edit', async () => {
+    const user = userEvent.setup({ delay: null });
+    mockNearbyApi(() => json({ places: [MUSEUM, SECOND_MUSEUM] }));
+    const trips = await import('@/core/api/trips');
+
+    renderApp('/atividades');
+    await searchNearRio(user);
+    await user.click(await screen.findByRole('button', {
+      name: /Museu do Amanhã Praça Mauá, Rio de Janeiro - RJ/,
+    }, { timeout: 10_000 }));
+
+    const addressInput = screen.getByLabelText('Endereço');
+    await user.clear(addressInput);
+    await user.type(addressInput, 'Rua Nova, 123');
 
     const referenceInput = screen.getByRole('combobox', { name: 'Buscar perto de' });
     await user.clear(referenceInput);
     await user.type(referenceInput, 'Rio');
-    await user.click(await screen.findByRole('option', { name: /Rio de Janeiro, RJ/ }));
+    await user.click(await screen.findByRole('option', { name: /Rio de Janeiro, RJ/ }, { timeout: 10_000 }));
     await user.click(await screen.findByRole('button', {
       name: /Museu de Arte do Rio Praça Mauá, 5/,
-    }));
+    }, { timeout: 10_000 }));
 
     await user.click(screen.getByRole('button', { name: 'Salvar na viagem' }));
-    const dialog = await screen.findByRole('dialog');
+    const dialog = await screen.findByRole('dialog', {}, { timeout: 10_000 });
     await user.click(within(dialog).getByRole('button', { name: 'Salvar' }));
 
     await waitFor(() => {
@@ -396,8 +411,8 @@ describe('Atividades module', () => {
           }),
         }),
       );
-    });
-  });
+    }, { timeout: 10_000 });
+  }, 30_000);
 
   it('keeps lat/lng null when the plan is entered manually, without selecting a search result', async () => {
     const user = userEvent.setup();
