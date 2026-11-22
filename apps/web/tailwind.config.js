@@ -28,6 +28,26 @@ export default {
         accent: {
           DEFAULT: 'hsl(var(--accent))',
           foreground: 'hsl(var(--accent-foreground))',
+          soft: 'hsl(var(--accent-soft))',
+        },
+        surface: {
+          DEFAULT: 'hsl(var(--surface))',
+          2: 'hsl(var(--surface-2))',
+          3: 'hsl(var(--surface-3))',
+        },
+        brand: {
+          DEFAULT: 'hsl(var(--brand))',
+          foreground: 'hsl(var(--brand-foreground))',
+          soft: 'hsl(var(--brand-soft))',
+        },
+        success: { DEFAULT: 'hsl(var(--success))', soft: 'hsl(var(--success-soft))' },
+        warning: { DEFAULT: 'hsl(var(--warning))', soft: 'hsl(var(--warning-soft))' },
+        danger: { DEFAULT: 'hsl(var(--danger))', soft: 'hsl(var(--danger-soft))' },
+        cost: { fuel: 'hsl(var(--cost-fuel))', toll: 'hsl(var(--cost-toll))' },
+        route: {
+          DEFAULT: 'hsl(var(--route))',
+          casing: 'hsl(var(--route-casing))',
+          alt: 'hsl(var(--route-alt))',
         },
         module: {
           planejamento: 'hsl(var(--module-planejamento))',
