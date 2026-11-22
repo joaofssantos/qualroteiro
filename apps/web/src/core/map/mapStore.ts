@@ -34,16 +34,32 @@ import type { MapLayerData, RouteTrace } from './layers';
 
 export type MapMarkerClickHandler = (layerId: string, markerId: string) => void;
 
+export interface MapPadding {
+  readonly top: number;
+  readonly right: number;
+  readonly bottom: number;
+  readonly left: number;
+}
+
 interface MapStore {
   /** Marker layers the active module wants drawn. Empty when nothing has published. */
   layers: readonly (MapLayerData & { visible: boolean })[];
   /** The route line to draw, or `null` for nothing. */
   trace: RouteTrace | null;
+  /** The live-preview route (F9), drawn dashed while there is no planned `trace`. */
+  preview: RouteTrace | null;
+  /** Extra room, in px, the map keeps free on each side when fitting (a floating panel, say). */
+  padding: MapPadding;
+  /** Bumped by `requestFit`; `MapCanvas` re-fits whenever it changes. */
+  fitRequest: number;
   /** Called with the layer id and marker id of whatever the user clicked, if anyone is listening. */
   onMarkerClick: MapMarkerClickHandler | undefined;
 
   setMapLayers(layers: readonly (MapLayerData & { visible: boolean })[]): void;
   setMapTrace(trace: RouteTrace | null): void;
+  setMapPreview(preview: RouteTrace | null): void;
+  setMapPadding(padding: MapPadding): void;
+  requestFit(): void;
   setOnMarkerClick(handler: MapMarkerClickHandler | undefined): void;
   /** Reset every field to its empty default. Call this on unmount — see the module doc above. */
   clearMap(): void;
@@ -53,13 +69,21 @@ const EMPTY_STATE = {
   layers: [] as readonly (MapLayerData & { visible: boolean })[],
   trace: null as RouteTrace | null,
   onMarkerClick: undefined as MapMarkerClickHandler | undefined,
+  preview: null as RouteTrace | null,
+  padding: { top: 0, right: 0, bottom: 0, left: 0 } as MapPadding,
 };
 
 export const useMapStore = create<MapStore>((set) => ({
   ...EMPTY_STATE,
+  // Deliberately outside EMPTY_STATE: a monotonic counter, so `clearMap` can never
+  // make a later `requestFit` look like "no change".
+  fitRequest: 0,
 
   setMapLayers: (layers) => set({ layers }),
   setMapTrace: (trace) => set({ trace }),
+  setMapPreview: (preview) => set({ preview }),
+  setMapPadding: (padding) => set({ padding }),
+  requestFit: () => set((s) => ({ fitRequest: s.fitRequest + 1 })),
   setOnMarkerClick: (onMarkerClick) => set({ onMarkerClick }),
   clearMap: () => set({ ...EMPTY_STATE }),
 }));
