@@ -54,6 +54,46 @@
     --ring: 202 80% 30%;
 
     --radius: 0.625rem;
+
+    /* ---- Tokens semânticos (F1). Aliases shadcn acima são mantidos (D2). ---- */
+    --surface: 0 0% 100%;
+    --surface-2: 210 22% 95%;
+    --surface-3: 210 20% 91%;
+    --text: 209 41% 14%;
+    --text-muted: 209 14% 38%;
+    --brand: 202 80% 22%;
+    --brand-foreground: 210 40% 98%;
+    --brand-soft: 202 60% 94%;
+    --accent-soft: 38 100% 94%;
+
+    --success: 158 64% 26%;
+    --success-soft: 158 50% 93%;
+    --warning: 30 90% 34%;
+    --warning-soft: 38 100% 92%;
+    --danger: 0 72% 42%;
+    --danger-soft: 0 80% 95%;
+
+    --cost-fuel: 158 64% 30%;
+    --cost-toll: 350 66% 44%;
+
+    --map-water: 205 55% 84%;
+    --map-land: 40 25% 94%;
+    --map-park: 110 30% 85%;
+    --map-road: 0 0% 100%;
+    --map-road-casing: 40 12% 80%;
+    --map-road-major: 38 80% 82%;
+    --map-road-major-casing: 38 45% 62%;
+    --map-label: 209 25% 30%;
+    --map-label-halo: 40 25% 96%;
+    --route: 38 92% 50%;
+    --route-casing: 209 60% 16%;
+    --route-alt: 209 18% 55%;
+    --pin-origin: 202 80% 22%;
+    --pin-dest: 209 45% 12%;
+    --pin-toll: 350 66% 44%;
+    --pin-fuel: 158 64% 30%;
+    --pin-stop: 209 14% 45%;
+    --pin-ring: 0 0% 100%;
   }
 
   .dark {
@@ -91,6 +131,46 @@
     --border: 210 16% 27%;
     --input: 210 16% 29%;
     --ring: 198 70% 60%;
+
+    /* ---- Tokens semânticos (F1) ---- */
+    --surface: 212 22% 12%;
+    --surface-2: 212 18% 16%;
+    --surface-3: 212 16% 21%;
+    --text: 210 24% 95%;
+    --text-muted: 210 14% 70%;
+    --brand: 198 72% 62%;
+    --brand-foreground: 212 30% 9%;
+    --brand-soft: 200 40% 18%;
+    --accent-soft: 38 50% 18%;
+
+    --success: 158 52% 56%;
+    --success-soft: 158 35% 16%;
+    --warning: 38 92% 62%;
+    --warning-soft: 36 45% 17%;
+    --danger: 0 84% 68%;
+    --danger-soft: 0 40% 18%;
+
+    --cost-fuel: 158 52% 56%;
+    --cost-toll: 350 82% 70%;
+
+    --map-water: 212 38% 14%;
+    --map-land: 212 16% 18%;
+    --map-park: 150 18% 20%;
+    --map-road: 212 12% 27%;
+    --map-road-casing: 208 18% 11%;
+    --map-road-major: 212 14% 34%;
+    --map-road-major-casing: 210 17% 9%;
+    --map-label: 210 16% 82%;
+    --map-label-halo: 212 20% 12%;
+    --route: 38 95% 58%;
+    --route-casing: 212 40% 6%;
+    --route-alt: 210 14% 52%;
+    --pin-origin: 198 72% 62%;
+    --pin-dest: 210 24% 95%;
+    --pin-toll: 350 82% 66%;
+    --pin-fuel: 158 52% 54%;
+    --pin-stop: 210 12% 62%;
+    --pin-ring: 212 30% 8%;
   }
 }
 
@@ -124,10 +204,6 @@
     @apply !rounded-lg !border !border-border !shadow-sm;
   }
 
-  .dark .maplibregl-canvas {
-    filter: brightness(0.78) saturate(0.85);
-  }
-
   @media (min-width: 768px) {
     .map-content-panel {
       container-type: inline-size;
@@ -153,5 +229,37 @@
     .map-content-panel .activity-search-card {
       grid-column: span 1 / span 1 !important;
     }
+  }
+}
+
+/**
+ * Painel flutuante da Direção A. Mesmas compactações do `.map-content-panel`
+ * legado, mas sem `!important`: o seletor de 2 classes já vence as utilidades
+ * (`lg:grid-cols-*`, `px-*`) por especificidade.
+ */
+@layer components {
+  .floating-panel {
+    container-type: inline-size;
+  }
+
+  .floating-panel > * {
+    min-width: 0;
+  }
+
+  .floating-panel .map-panel-content,
+  .floating-panel .route-query-panel {
+    padding: 1rem;
+  }
+
+  .floating-panel .calculator-main-grid,
+  .floating-panel .calculator-form-grid,
+  .floating-panel .calculator-nearby-grid,
+  .floating-panel fieldset,
+  .floating-panel .grid-cols-2 {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .floating-panel .activity-search-card {
+    grid-column: span 1 / span 1;
   }
 }

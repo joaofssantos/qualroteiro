@@ -56,6 +56,15 @@ interface ImportMetaEnv {
    */
   readonly VITE_CLERK_PUBLISHABLE_KEY?: string;
 
+  /**
+   * Layout inicial: `"a"` (mapa primeiro) ou `"b"` (custos primeiro). Qualquer
+   * outro valor, ou ausência, cai em `"a"`. A escolha do usuário em Ajustes
+   * (`localStorage` `qualroteiro:layout`) tem prioridade sobre este padrão.
+   */
+  readonly VITE_LAYOUT?: string;
+  /** `"false"` desliga a prévia do traçado (F9) mesmo no layout que a tem. */
+  readonly VITE_LIVE_PREVIEW?: string;
+
   /** Vite built-ins. */
   readonly MODE: string;
   readonly BASE_URL: string;

@@ -17,6 +17,72 @@ Limiar de divergência: > R$ 1.00 OU > 10% (o que for mais sensível no valor em
 - ARTESP sem match OSM: 26
 - OSM (dentro da bbox de SP) sem match ARTESP: 152
 
+## Resolução das 20 divergências (2026-11-22)
+
+### Fonte e vigência do reajuste
+
+- PDF usado: [ARTESP — Pedágios concedidos com tarifa quilométrica no Estado de São Paulo — 2025](https://www.artesp.sp.gov.br/dx/api/dam/v1/collections/aa4b6398-685b-4dba-8fab-8dc3a0fe9c27/items/0a8ff7b8-005b-4a04-a152-c69236f1f15d/renditions/53b3922a-a33b-40f6-9e4c-46a6771e681d?binary=true).
+- Vigência do reajuste refletido neste PDF: 1º de julho de 2025. É um
+  snapshot regulatório de 2025, usado para explicar e reproduzir este audit;
+  não deve ser interpretado como a tarifa vigente em uma consulta posterior.
+
+O comparativo acima é o retrato bruto de 2026-09-17. A reconciliação
+`reconcileArtespTariffs` usa o PDF da ARTESP como fonte tarifária para as
+praças estaduais convencionais; OSM continua sendo a fonte de geometria e
+identidade. Em pórticos Free Flow, o pareamento anterior era somente por nome
+e apontava para outra praça física; esses pares não são gravados nem tratados
+como tarifa divergente.
+
+| Praça ARTESP | Antes (OSM) | Causa classificada | Fonte após | Resultado |
+|---|---:|---|---|---|
+| SP-191 / RIO CLARO | R$ 11,60 | tarifa OSM desatualizada | ARTESP | R$ 5,00 ✅ |
+| SP-340 / JAGUARIÚNA | R$ 8,80 | tarifa OSM desatualizada | ARTESP | R$ 17,60 ✅ |
+| SP-340 / ESTIVA GERBI | R$ 7,80 | tarifa OSM desatualizada | ARTESP | R$ 10,50 ✅ |
+| SP-340 / CASA BRANCA | R$ 8,15 | tarifa OSM desatualizada | ARTESP | R$ 9,40 ✅ |
+| SP-350 / ITOBI | R$ 10,75 | tarifa OSM desatualizada | ARTESP | R$ 13,40 ✅ |
+| SP-127 / RIO CLARO | R$ 5,30 | tarifa OSM desatualizada | ARTESP | R$ 8,80 ✅ |
+| SP-127 / RIO DAS PEDRAS | R$ 11,50 | tarifa OSM desatualizada | ARTESP | R$ 14,20 ✅ |
+| SP-150 / RIACHO GRANDE | R$ 40,60 | tarifa OSM desatualizada | ARTESP | R$ 38,70 ✅ |
+| SP-160 / PIRATININGA | R$ 40,60 | tarifa OSM desatualizada | ARTESP | R$ 38,70 ✅ |
+| SP-332 / ENGENHEIRO COELHO | moto R$ 4,00 | categoria moto OSM defasada | ARTESP | moto R$ 4,60 ✅ |
+| SP-308 / RIO DAS PEDRAS | R$ 14,90 / moto R$ 0,00 | tarifa/categoria OSM desatualizada | ARTESP | R$ 11,00 / moto R$ 5,50 ✅ |
+| SP-342 / ESP. SANTO DO PINHAL | R$ 10,45 | tarifa OSM desatualizada | ARTESP | R$ 13,10 ✅ |
+| SP-340 / Pórtico Santo Antônio de Posse | R$ 3,70 | praça OSM casada errada (Santo Antônio do Amparo) | não comparável | excluída, sem escrita ✅ |
+| SP-332 / Pórtico Engº Coelho | R$ 13,30 | Free Flow, praça OSM casada errada | não comparável | excluída, sem escrita ✅ |
+| SP-332 / Paulínia Jd. Betel | R$ 17,50 | Free Flow/sentido diferente | não comparável | excluída, sem escrita ✅ |
+| SP-075 / Pórtico Bloqueio Indaiatuba | R$ 7,20 | Free Flow, praça OSM casada errada (Indiana) | não comparável | excluída, sem escrita ✅ |
+| SP-075 / Pórtico Itu 1 | R$ 13,20 | Free Flow, tarifa/sentido não equivalentes | não comparável | excluída, sem escrita ✅ |
+| SP-021 / Praça 2 Imigrantes externa | R$ 6,00 | Free Flow/pista externa; moto ausente no OSM | não comparável | excluída, sem escrita ✅ |
+| SP-021 / Praça 3 Imigrantes externa | R$ 9,60 | Free Flow/pista externa; moto ausente no OSM | não comparável | excluída, sem escrita ✅ |
+| SP-360 / Pórtico Jundiaí | R$ 4,30 | Free Flow, praça OSM casada errada (Juquiá) | não comparável | excluída, sem escrita ✅ |
+
+**Antes/depois:** 20 divergências brutas → 12 tarifas reconciliadas pela
+fonte regulatória e 8 falsos pares Free Flow explicitamente não comparáveis;
+portanto não permanece nenhuma divergência tarifária acionável nesse conjunto.
+
+### Pórticos Free Flow roteáveis
+
+Os oito pórticos recebem registros independentes `source: 'artesp'` no mesmo
+pós-processamento da ingestão OSM. A tabela oficial ARTESP fornece nome, km,
+tarifa e vigência de **01/07/2025**; ela não fornece coordenadas. As coordenadas
+foram posicionadas na geometria da via no km oficial usando OpenStreetMap
+(© contribuidores OSM, ODbL 1.0), exceto onde indicado abaixo; Santo Antônio
+de Posse também é conferido contra o exemplo público da Maplink. Imigrantes 2/3 preservam o ponto OSM
+co-localizado, mas a deduplicação de 100 m prefere a tarifa ARTESP e não soma
+os valores OSM divergentes R$ 6,00/R$ 9,60.
+
+Os upserts desses pórticos ocorrem antes do download do PDF; assim uma falha
+de rede/PDF não impede a escrita das constantes. Para reaplicar somente a
+reconciliação, execute `pnpm --filter @qualroteiro/data-ingest reconcile:artesp:once`.
+
+| Pórtico | Fonte da coordenada | Situação |
+|---|---|---|
+| SP-340 Santo Antônio de Posse | nó/via OSM no km 147,03; exemplo Maplink | conferida |
+| SP-332 Engº Coelho; Paulínia Jd. Betel | via OSM no km ARTESP | conferida por km |
+| SP-075 Indaiatuba; Itu 1 | via OSM no km ARTESP | conferida por km |
+| SP-360 Jundiaí (`-23.0386,-46.9997`) | via OSM usada no km 77,1 | **a verificar**: fontes públicas também descrevem o pórtico PaP no km 74, enquanto km 77,1 é a praça Jundiaí; não usar a coordenada como confirmação municipal até validação cartográfica/regulatória |
+| SP-021 Imigrantes 2; Imigrantes 3 | nós OSM co-localizados | conferida para deduplicação |
+
 ## Praças que divergem
 
 | Praça ARTESP | Categoria | ARTESP | OSM | Diferença | % | Status |

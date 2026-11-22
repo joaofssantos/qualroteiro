@@ -24,6 +24,7 @@
     "ingest:once": "tsx src/cli.ts",
     "ingest:osm:once": "tsx src/cli-osm.ts",
     "audit:artesp:once": "tsx src/cli-artesp-audit.ts",
+    "reconcile:artesp:once": "tsx src/cli-artesp-reconcile.ts",
     "worker": "tsx src/worker.ts"
   },
   "dependencies": {

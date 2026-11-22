@@ -17,6 +17,7 @@
   "dependencies": {
     "@clerk/backend": "^3.18.1",
     "@fastify/cors": "^10.0.1",
+    "@fastify/rate-limit": "^11.3.0",
     "@prisma/client": "^5.20.0",
     "@qualroteiro/fuel": "workspace:*",
     "@qualroteiro/geo": "workspace:*",

@@ -14,6 +14,7 @@ export type {
   OsmTollBooth,
   TariffByAxleCategory,
   TollPlaza,
+  TollPlazaSource,
   TollPlazaCluster,
 } from './types.js';
 export { AXLE_CATEGORIES } from './types.js';
@@ -30,7 +31,12 @@ export type {
   MatchTollsInput,
   MatchTollsResult,
 } from './match.js';
-export { TOLL_MATCH_BUFFER_METERS, matchFuelStations, matchTolls } from './match.js';
+export {
+  TOLL_MATCH_BUFFER_METERS,
+  TOLL_PLAZA_DEDUPLICATION_METERS,
+  matchFuelStations,
+  matchTolls,
+} from './match.js';
 
 export {
   SEED_VERSION,

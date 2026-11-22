@@ -25,7 +25,8 @@ import IORedis from 'ioredis';
 
 import { getPrismaClient } from './prisma-client.js';
 import { ingestTollPlazas, type IngestSummary } from './ingest.js';
-import { ingestOsmTollPlazas, type OsmIngestSummary } from './osm-toll-plazas.js';
+import { type OsmIngestSummary } from './osm-toll-plazas.js';
+import { ingestOsmAndReconcileArtesp, type OsmArtespReconcileSummary } from './osm-artesp-reconcile.js';
 import { log } from './logger.js';
 
 export const QUEUE_NAME = 'ingest-toll-plazas';
@@ -94,17 +95,17 @@ export async function scheduleMonthlyOsmIngest(queue: Queue): Promise<void> {
 }
 
 /**
- * Creates the worker that runs `ingestTollPlazas` (ANTT) or
- * `ingestOsmTollPlazas` (OSM) depending on which job fired — dispatched by
- * `Job.name`, the two job names registered above within the one shared
- * `QUEUE_NAME` queue (see this module's doc-comment for why one queue).
+ * Creates the worker that runs `ingestTollPlazas` (ANTT) or OSM ingestion followed by ARTESP tariff
+ * reconciliation depending on which job fired — dispatched by `Job.name`,
+ * the two job names registered above within the one shared `QUEUE_NAME` queue
+ * (see this module's doc-comment for why one queue).
  */
 export function createIngestWorker(connection: IORedis): Worker {
   return new Worker(
     QUEUE_NAME,
-    async (job: Job): Promise<IngestSummary | OsmIngestSummary> => {
+    async (job: Job): Promise<IngestSummary | OsmIngestSummary | OsmArtespReconcileSummary> => {
       if (job.name === OSM_JOB_NAME) {
-        return ingestOsmTollPlazas(getPrismaClient());
+        return ingestOsmAndReconcileArtesp(getPrismaClient());
       }
       return ingestTollPlazas(getPrismaClient());
     },

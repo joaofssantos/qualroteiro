@@ -9,7 +9,7 @@
  */
 
 import type { LineString } from '@qualroteiro/geo';
-import { nearestPointOnLine } from '@qualroteiro/geo';
+import { haversineMeters, nearestPointOnLine } from '@qualroteiro/geo';
 
 import type { AxleCategory, Corridor, CorridorId, FuelStationSeed, TollPlaza } from './types.js';
 import { getCorridor, listCorridors } from './seed/index.js';
@@ -24,6 +24,14 @@ import { getCorridor, listCorridors } from './seed/index.js';
  * claim a plaza. Overridable per call via {@link MatchTollsInput.bufferMeters}.
  */
 export const TOLL_MATCH_BUFFER_METERS = 500;
+
+/**
+ * Maximum separation between records that represent the same physical toll
+ * point.  ANTT may publish one row per lane/sensor and OSM may publish a
+ * separate point for the same plaza, so route matching must not expose every
+ * source row as a charge point.
+ */
+export const TOLL_PLAZA_DEDUPLICATION_METERS = 100;
 
 /** Input to {@link matchTolls}. */
 export interface MatchTollsInput {
@@ -50,6 +58,14 @@ export interface MatchTollsResult {
   readonly plazas: readonly TollPlaza[];
   /** Sum of the matched plazas' tariffs for the requested axle category, in BRL. */
   readonly total: number;
+  /**
+   * Ids of matched plazas that publish no tariff for the requested category
+   * (including plazas with no tariff at all). They contribute R$ 0 to
+   * {@link total} only because the fare is unknown, not because it is free, so
+   * the total is a lower bound whenever this list is non-empty. A published
+   * R$ 0,00 is not listed here.
+   */
+  readonly unavailablePlazaIds: readonly string[];
 }
 
 /**
@@ -80,26 +96,107 @@ export function matchTolls(input: MatchTollsInput): MatchTollsResult {
     );
   }
 
-  const matched: { plaza: TollPlaza; fractionAlong: number }[] = [];
+  const matched: { plaza: TollPlaza; fractionAlong: number; distanceMeters: number }[] = [];
 
   for (const plaza of plazas) {
     const nearest = nearestPointOnLine({ lng: plaza.lng, lat: plaza.lat }, routeGeometry);
     if (nearest.distanceMeters <= bufferMeters) {
-      matched.push({ plaza, fractionAlong: nearest.fractionAlong });
+      matched.push({
+        plaza,
+        fractionAlong: nearest.fractionAlong,
+        distanceMeters: nearest.distanceMeters,
+      });
     }
   }
 
-  matched.sort((a, b) => a.fractionAlong - b.fractionAlong);
+  // A toll plaza is a physical place, whereas data providers commonly emit
+  // one record for every lane/reader. Co-located records are folded before
+  // sorting or charging. A tariff for the requested vehicle class wins before
+  // route distance: ANTT records are commonly unpriced while a nearby OSM
+  // record has the actual charge, so selecting the closer ANTT point would
+  // silently turn a real toll into R$0. When two tariffed records disagree,
+  // ARTESP wins over OSM and ANTT: its regulator-published value is more
+  // authoritative than community/transport-agency feeds. Distance comes only
+  // after that explicit source policy; id is the final deterministic tie-breaker.
+  //
+  // This deliberately is not transitive clustering. A-B-C chains can span
+  // more than 100 m and can represent distinct Free Flow gantries; the
+  // persisted match input has no gantry identity to safely prove otherwise.
+  // Each candidate must therefore be within the radius of the representative
+  // itself. Sorting by the selection priority before grouping fixes that
+  // representative for the lifetime of a cluster, making the result
+  // independent of the caller/database input order and preserving this
+  // distance invariant. Keep separately identified gantries distinct until
+  // the domain carries that identity as an explicit merge key.
+  const hasTariffForRequestedCategory = (plaza: TollPlaza) =>
+    plaza.tariffByAxleCategory?.[axleCategory] !== undefined;
+  const sourcePriority = (source: TollPlaza['source']): number => {
+    if (source === 'artesp') return 3;
+    if (source === 'osm') return 2;
+    if (source === 'antt') return 1;
+    return 0;
+  };
+  matched.sort((a, b) => {
+    const tariffPriority =
+      Number(hasTariffForRequestedCategory(b.plaza)) -
+      Number(hasTariffForRequestedCategory(a.plaza));
+    if (tariffPriority !== 0) return tariffPriority;
 
-  const totalCentavos = matched.reduce(
+    const sourcePriorityDifference = sourcePriority(b.plaza.source) - sourcePriority(a.plaza.source);
+    if (sourcePriorityDifference !== 0) return sourcePriorityDifference;
+
+    const distancePriority = a.distanceMeters - b.distanceMeters;
+    if (distancePriority !== 0) return distancePriority;
+
+    return a.plaza.id < b.plaza.id ? -1 : a.plaza.id > b.plaza.id ? 1 : 0;
+  });
+
+  const representatives: number[] = [];
+  for (let candidateIndex = 0; candidateIndex < matched.length; candidateIndex++) {
+    const candidate = matched[candidateIndex]!;
+    let matchingRepresentative = -1;
+
+    for (const representativeIndex of representatives) {
+      const representative = matched[representativeIndex]!;
+      const separation = haversineMeters(
+        { lng: candidate.plaza.lng, lat: candidate.plaza.lat },
+        { lng: representative.plaza.lng, lat: representative.plaza.lat },
+      );
+      if (separation <= TOLL_PLAZA_DEDUPLICATION_METERS) {
+        matchingRepresentative = representativeIndex;
+        break;
+      }
+    }
+
+    if (matchingRepresentative === -1) {
+      representatives.push(candidateIndex);
+      continue;
+    }
+
+    // The representative is deliberately never replaced: candidates are
+    // processed in representative priority order, and replacing it could make
+    // an earlier member farther than the allowed radius from the new point.
+  }
+
+  const deduplicated = representatives.map((index) => matched[index]!);
+  deduplicated.sort(
+    (a, b) =>
+      a.fractionAlong - b.fractionAlong ||
+      (a.plaza.id < b.plaza.id ? -1 : a.plaza.id > b.plaza.id ? 1 : 0),
+  );
+
+  const totalCentavos = deduplicated.reduce(
     (sum, { plaza }) =>
       sum + Math.round((plaza.tariffByAxleCategory?.[axleCategory] ?? 0) * 100),
     0,
   );
 
   return {
-    plazas: matched.map(({ plaza }) => plaza),
+    plazas: deduplicated.map(({ plaza }) => plaza),
     total: totalCentavos / 100,
+    unavailablePlazaIds: deduplicated
+      .filter(({ plaza }) => !hasTariffForRequestedCategory(plaza))
+      .map(({ plaza }) => plaza.id),
   };
 }
 

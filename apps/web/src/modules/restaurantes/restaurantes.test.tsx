@@ -15,6 +15,14 @@ const RESTAURANT = {
   lng: -46.64,
   category: 'restaurantes' as const,
 };
+const SECOND_RESTAURANT = {
+  id: 'fame-osteria',
+  name: 'Fame Osteria',
+  address: 'Rua Oscar Freire, 1000 - Jardins, São Paulo - SP',
+  lat: -23.562,
+  lng: -46.669,
+  category: 'restaurantes' as const,
+};
 
 const getToken = vi.fn(async () => 'session-token');
 
@@ -297,6 +305,76 @@ describe('restaurantes module', () => {
       );
     });
   });
+
+  it('clears stale coordinates when the address is edited by hand after selecting a place', async () => {
+    mockPlaceRequests(() => json({ places: [RESTAURANT, SECOND_RESTAURANT] }));
+    const user = userEvent.setup({ delay: null });
+    const trips = await import('@/core/api/trips');
+    const Panel = restaurantesModule.Panel;
+
+    render(<MemoryRouter><Panel /></MemoryRouter>);
+    await chooseReference(user);
+    await user.click(await screen.findByRole('button', { name: /Casa do Porco/ }, { timeout: 10_000 }));
+
+    const addressInput = screen.getByLabelText('Endereço');
+    await user.clear(addressInput);
+    await user.type(addressInput, 'Rua Nova, 123');
+
+    await user.click(screen.getByRole('button', { name: 'Salvar na viagem' }));
+    const dialog = await screen.findByRole('dialog', {}, { timeout: 10_000 });
+    await user.click(within(dialog).getByRole('button', { name: 'Salvar' }));
+
+    await waitFor(() => {
+      expect(trips.createTripItem).toHaveBeenLastCalledWith(
+        getToken,
+        'trip-1',
+        'day-1',
+        expect.objectContaining({
+          payload: expect.objectContaining({ address: 'Rua Nova, 123', lat: null, lng: null }),
+        }),
+      );
+    }, { timeout: 10_000 });
+  }, 30_000);
+
+  it('uses the new coordinates when another place is selected after a manual address edit', async () => {
+    mockPlaceRequests(() => json({ places: [RESTAURANT, SECOND_RESTAURANT] }));
+    const user = userEvent.setup({ delay: null });
+    const trips = await import('@/core/api/trips');
+    const Panel = restaurantesModule.Panel;
+
+    render(<MemoryRouter><Panel /></MemoryRouter>);
+    await chooseReference(user);
+    await user.click(await screen.findByRole('button', { name: /Casa do Porco/ }, { timeout: 10_000 }));
+
+    const addressInput = screen.getByLabelText('Endereço');
+    await user.clear(addressInput);
+    await user.type(addressInput, 'Rua Nova, 123');
+
+    const referenceInput = screen.getByLabelText('Ponto de referência');
+    await user.clear(referenceInput);
+    await user.type(referenceInput, 'São Paulo');
+    await user.click(await screen.findByRole('option', { name: SAO_PAULO.label }, { timeout: 10_000 }));
+    await user.click(await screen.findByRole('button', { name: /Fame Osteria/ }, { timeout: 10_000 }));
+
+    await user.click(screen.getByRole('button', { name: 'Salvar na viagem' }));
+    const dialog = await screen.findByRole('dialog', {}, { timeout: 10_000 });
+    await user.click(within(dialog).getByRole('button', { name: 'Salvar' }));
+
+    await waitFor(() => {
+      expect(trips.createTripItem).toHaveBeenLastCalledWith(
+        getToken,
+        'trip-1',
+        'day-1',
+        expect.objectContaining({
+          payload: expect.objectContaining({
+            address: SECOND_RESTAURANT.address,
+            lat: SECOND_RESTAURANT.lat,
+            lng: SECOND_RESTAURANT.lng,
+          }),
+        }),
+      );
+    }, { timeout: 10_000 });
+  }, 30_000);
 
   it('keeps lat/lng null when the visit is entered manually, without selecting a search result', async () => {
     const user = userEvent.setup();

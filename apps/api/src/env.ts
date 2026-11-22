@@ -7,6 +7,8 @@
  */
 
 import { readFileSync } from 'node:fs';
+import { isIP } from 'node:net';
+import type { FastifyServerOptions } from 'fastify';
 
 export interface OrsEnv {
   readonly apiKey: string;
@@ -14,6 +16,93 @@ export interface OrsEnv {
 }
 
 export const DEFAULT_ORS_BASE_URL = 'https://api.openrouteservice.org';
+
+/** Default protection for the anonymous live route preview (120 requests/minute/IP). */
+export const DEFAULT_RATE_LIMIT_PLAN_MAX = 120;
+export const DEFAULT_RATE_LIMIT_PLAN_WINDOW_MS = 60_000;
+
+export interface PlanRateLimitEnv {
+  readonly enabled: boolean;
+  readonly max: number;
+  readonly timeWindow: number;
+}
+
+/** Thrown at boot when TRUST_PROXY cannot be safely passed to Fastify. */
+export class InvalidTrustProxyError extends Error {
+  override name = 'InvalidTrustProxyError';
+}
+
+export interface TrustProxyEnv {
+  readonly enabled: boolean;
+  readonly value: FastifyServerOptions['trustProxy'] | number;
+}
+
+function isValidCidr(value: string): boolean {
+  const [address, prefix, ...extra] = value.split('/');
+  if (extra.length > 0 || address === undefined || prefix === undefined) return false;
+  const family = isIP(address);
+  if (family === 0 || !/^\d+$/.test(prefix)) return false;
+  const limit = family === 4 ? 32 : 128;
+  const parsedPrefix = Number(prefix);
+  return Number.isSafeInteger(parsedPrefix) && parsedPrefix >= 0 && parsedPrefix <= limit;
+}
+
+/**
+ * Read which immediate peers Fastify may trust when resolving `request.ip`.
+ *
+ * Disabled by default: accepting X-Forwarded-For without a known reverse
+ * proxy lets a caller choose another client's rate-limit bucket. Deployments
+ * may set a positive hop count (Render uses `1`) or a comma-separated CIDR
+ * allow-list, both accepted by Fastify's `trustProxy` option.
+ */
+export function readTrustProxyEnv(env: NodeJS.ProcessEnv = process.env): TrustProxyEnv {
+  const raw = env['TRUST_PROXY']?.trim();
+  if (raw === undefined || raw === '') return { enabled: false, value: false };
+
+  if (/^\d+$/.test(raw)) {
+    const hops = Number(raw);
+    if (Number.isSafeInteger(hops) && hops > 0) return { enabled: true, value: hops };
+  }
+
+  const cidrs = raw.split(',').map((value) => value.trim());
+  if (cidrs.length > 0 && cidrs.every(isValidCidr)) return { enabled: true, value: cidrs };
+
+  throw new InvalidTrustProxyError(
+    'TRUST_PROXY must be a positive hop count or a comma-separated list of valid CIDRs.',
+  );
+}
+
+/**
+ * Read the rate limiter configuration for `POST /routes/plan`.
+ *
+ * The values stay at the composition root so tests can inject a small limit
+ * without mutating process-wide environment state. `RATE_LIMIT_PLAN_ENABLED=false`
+ * is intentionally useful for focused integration tests only; production is
+ * protected by default.
+ */
+export function readPlanRateLimitEnv(env: NodeJS.ProcessEnv = process.env): PlanRateLimitEnv {
+  const enabledValue = env['RATE_LIMIT_PLAN_ENABLED']?.trim().toLowerCase();
+  if (enabledValue !== undefined && enabledValue !== '' && enabledValue !== 'true' && enabledValue !== 'false') {
+    throw new Error('RATE_LIMIT_PLAN_ENABLED must be true or false.');
+  }
+
+  const readPositiveInteger = (name: string, defaultValue: number): number => {
+    const raw = env[name]?.trim();
+    if (raw === undefined || raw === '') return defaultValue;
+
+    const value = Number(raw);
+    if (!Number.isSafeInteger(value) || value <= 0) {
+      throw new Error(`${name} must be a positive integer, got '${raw}'.`);
+    }
+    return value;
+  };
+
+  return {
+    enabled: enabledValue !== 'false',
+    max: readPositiveInteger('RATE_LIMIT_PLAN_MAX', DEFAULT_RATE_LIMIT_PLAN_MAX),
+    timeWindow: readPositiveInteger('RATE_LIMIT_PLAN_WINDOW', DEFAULT_RATE_LIMIT_PLAN_WINDOW_MS),
+  };
+}
 
 /**
  * Read the browser origins allowed to call the API.

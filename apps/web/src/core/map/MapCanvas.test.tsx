@@ -1,8 +1,10 @@
-import { render, screen, waitFor } from '@testing-library/react';
+import { act, render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { describe, expect, it, vi } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { lastMap } from '@/test/maplibre-stub';
+import { constructedMaps, lastMap, setStubBasemap } from '@/test/maplibre-stub';
+
+import { useMapStore } from './mapStore';
 
 import { MapCanvas } from './MapCanvas';
 import type { MapLayerData } from './layers';
@@ -111,5 +113,94 @@ describe('MapCanvas', () => {
     unmount();
 
     expect(map.removed).toBe(true);
+  });
+
+  describe('tema, prévia e padding (F3)', () => {
+    const setRoute = (route: string) =>
+      document.documentElement.style.setProperty('--route', route);
+
+    beforeEach(() => {
+      document.documentElement.className = '';
+      document.documentElement.removeAttribute('style');
+      useMapStore.getState().clearMap();
+      setRoute('38 92% 50%');
+      document.documentElement.style.setProperty('--route-casing', '209 60% 16%');
+      document.documentElement.style.setProperty('--map-water', '212 38% 14%');
+    });
+
+    it('troca de tema repinta rota e mapa base sem recriar o Map', async () => {
+      setStubBasemap([
+        { id: 'water', type: 'fill', source: 's', 'source-layer': 'water', paint: { 'fill-color': '#0af' } },
+      ]);
+      render(<MapCanvas trace={TRACE} layers={[]} />);
+      await waitFor(() => expect(lastMap().getSource('route')).toBeDefined(), { timeout: 3000 });
+      const map = lastMap();
+      const calls = map.paintCalls.length;
+
+      act(() => {
+        setRoute('38 95% 58%');
+        document.documentElement.classList.add('dark');
+      });
+
+      await waitFor(
+        () => {
+          const painted = map.paintCalls.slice(calls);
+          expect(painted).toContainEqual({ id: 'route-line', prop: 'line-color', value: 'hsl(38, 95%, 58%)' });
+          expect(painted.some((c) => c.id === 'route-casing' && c.prop === 'line-color')).toBe(true);
+          expect(painted.some((c) => c.id === 'water' && c.prop === 'fill-color')).toBe(true);
+        },
+        { timeout: 3000 },
+      );
+      expect(constructedMaps).toHaveLength(1);
+    });
+
+    it('sem rota, a prévia do store é desenhada como camada tracejada', async () => {
+      act(() => useMapStore.getState().setMapPreview({ coordinates: TRACE }));
+      render(<MapCanvas trace={null} layers={[]} />);
+
+      await waitFor(() => expect(lastMap().getLayer('route-preview')).toBeDefined(), { timeout: 3000 });
+      const layer = lastMap().layers.find((l) => l.id === 'route-preview')!;
+      expect((layer.spec['paint'] as Record<string, unknown>)['line-dasharray']).toBeTruthy();
+      expect((lastMap().getSource('route-preview')?.data as { geometry: { coordinates: unknown } }).geometry.coordinates).toEqual(TRACE);
+    });
+
+    it('o padding do store entra no fitBounds', async () => {
+      act(() => useMapStore.getState().setMapPadding({ top: 10, right: 20, bottom: 30, left: 416 }));
+      render(<MapCanvas trace={TRACE} layers={[]} />);
+
+      await waitFor(() => expect(lastMap().fitBoundsCalls.length).toBeGreaterThan(0), { timeout: 3000 });
+      const last = lastMap().fitBoundsCalls.at(-1) as { options: { padding: unknown } };
+      expect(last.options.padding).toEqual({ top: 74, right: 84, bottom: 94, left: 480 });
+    });
+
+    it('requestFit reenquadra a rota', async () => {
+      render(<MapCanvas trace={TRACE} layers={[]} />);
+      await waitFor(() => expect(lastMap().fitBoundsCalls.length).toBeGreaterThan(0), { timeout: 3000 });
+      const before = lastMap().fitBoundsCalls.length;
+
+      act(() => useMapStore.getState().requestFit());
+
+      await waitFor(() => expect(lastMap().fitBoundsCalls.length).toBeGreaterThan(before), { timeout: 3000 });
+    });
+
+    it('pino com index mostra o número e mantém o aria-label; destino é quadrado', async () => {
+      const layer: MapLayerData & { visible: boolean } = {
+        id: 'tolls',
+        label: 'Pedágios',
+        visible: true,
+        markers: [
+          { id: 'p1', lng: -46, lat: -23.4, label: 'Pedágio Guararema', kind: 'toll', index: 2 },
+          { id: 'd', lng: -43, lat: -22.9, label: 'Destino Rio', kind: 'destination', index: 3 },
+        ],
+      };
+      render(<MapCanvas trace={TRACE} layers={[layer]} />);
+
+      const toll = await screen.findByRole('button', { name: 'Pedágio Guararema' }, { timeout: 3000 });
+      const dest = await screen.findByRole('button', { name: 'Destino Rio' }, { timeout: 3000 });
+      expect(toll).toHaveTextContent('2');
+      expect(toll.style.borderRadius).toBe('9999px');
+      expect(dest).toHaveTextContent('3');
+      expect(dest.style.borderRadius).not.toBe('9999px');
+    });
   });
 });

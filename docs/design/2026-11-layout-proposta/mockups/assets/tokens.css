@@ -1,0 +1,113 @@
+/* Qual roteiro — proposed design tokens (2026-11). HSL channels, shadcn-compatible.
+   Every colour used by the UI *and* by the map (markers, route trace, basemap overrides)
+   comes from here, so light/dark is one switch: <html data-theme="dark"> (app: .dark). */
+:root, [data-theme="light"] {
+  color-scheme: light;
+  /* surfaces */
+  --bg: 210 20% 97%;
+  --surface: 0 0% 100%;
+  --surface-2: 210 22% 95%;      /* sunken / secondary */
+  --surface-3: 210 20% 91%;
+  --border: 212 18% 86%;
+  --border-strong: 212 16% 72%;
+  /* text */
+  --text: 209 41% 14%;
+  --text-muted: 209 14% 38%;     /* 6.6:1 on --surface */
+  --text-faint: 209 10% 52%;     /* decorative / placeholders only */
+  /* brand + action */
+  --brand: 202 80% 22%;
+  --brand-fg: 210 40% 98%;
+  --brand-soft: 202 60% 94%;
+  --accent: 38 92% 50%;          /* the ONE primary action + selected route */
+  --accent-fg: 209 45% 12%;
+  --accent-soft: 38 100% 94%;
+  --focus: 202 80% 36%;
+  /* status */
+  --success: 158 64% 26%;  --success-soft: 158 50% 93%;
+  --warning: 30 90% 34%;   --warning-soft: 38 100% 92%;
+  --danger: 0 72% 42%;     --danger-soft: 0 80% 95%;
+  /* domain: costs */
+  --cost-fuel: 158 64% 30%;
+  --cost-toll: 350 66% 44%;
+  --cost-total: var(--brand);
+  /* module wayfinding (nav only, never CTAs) */
+  --mod-route: 202 80% 28%;
+  --mod-plan: 255 45% 46%;
+  --mod-stay: 185 55% 30%;
+  --mod-act: 150 40% 29%;
+  --mod-food: 14 65% 42%;
+  /* map (read by MapLibre via getComputedStyle; see README §6) */
+  --map-water: 205 55% 84%;
+  --map-land: 40 25% 94%;
+  --map-park: 110 30% 85%;
+  --map-road: 0 0% 100%;
+  --map-road-major: 38 80% 82%;
+  --map-label: 209 25% 30%;
+  --map-label-halo: 40 25% 96%;
+  --route: 38 92% 50%;
+  --route-casing: 209 60% 16%;
+  --route-alt: 209 18% 55%;
+  --pin-origin: 202 80% 22%;
+  --pin-dest: 209 45% 12%;
+  --pin-toll: 350 66% 44%;
+  --pin-fuel: 158 64% 30%;
+  --pin-stop: 209 14% 45%;
+  --pin-ring: 0 0% 100%;
+  /* shape + elevation + space (4-pt scale) */
+  --r-sm: 8px; --r-md: 12px; --r-lg: 16px; --r-pill: 999px;
+  --shadow-1: 0 1px 2px hsl(209 40% 14% / .08);
+  --shadow-2: 0 4px 16px hsl(209 40% 14% / .12);
+  --shadow-3: 0 12px 40px hsl(209 40% 14% / .20);
+  --s-1: 4px; --s-2: 8px; --s-3: 12px; --s-4: 16px; --s-5: 20px; --s-6: 24px; --s-8: 32px; --s-10: 40px;
+  /* type */
+  --font: Inter, ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+}
+[data-theme="dark"] {
+  color-scheme: dark;
+  --bg: 212 26% 8%;
+  --surface: 212 22% 12%;
+  --surface-2: 212 18% 16%;
+  --surface-3: 212 16% 21%;
+  --border: 212 16% 24%;
+  --border-strong: 212 14% 36%;
+  --text: 210 24% 95%;
+  --text-muted: 210 14% 70%;     /* 7.4:1 on --surface */
+  --text-faint: 210 10% 52%;
+  --brand: 198 72% 62%;          /* brand flips to a light petrol in dark */
+  --brand-fg: 212 30% 9%;
+  --brand-soft: 200 40% 18%;
+  --accent: 38 95% 56%;
+  --accent-fg: 209 45% 10%;
+  --accent-soft: 38 50% 18%;
+  --focus: 198 80% 66%;
+  --success: 158 52% 56%;  --success-soft: 158 35% 16%;
+  --warning: 38 92% 62%;   --warning-soft: 36 45% 17%;
+  --danger: 0 84% 68%;     --danger-soft: 0 40% 18%;
+  --cost-fuel: 158 52% 56%;
+  --cost-toll: 350 82% 70%;
+  --cost-total: var(--brand);
+  --mod-route: 198 72% 62%;
+  --mod-plan: 255 65% 74%;
+  --mod-stay: 185 55% 60%;
+  --mod-act: 150 45% 62%;
+  --mod-food: 14 75% 68%;
+  --map-water: 212 38% 14%;
+  --map-land: 212 16% 18%;
+  --map-park: 150 18% 20%;
+  --map-road: 212 12% 27%;
+  --map-road-major: 212 14% 34%;
+  --map-label: 210 16% 72%;
+  --map-label-halo: 212 20% 12%;
+  --route: 38 95% 58%;
+  --route-casing: 212 40% 6%;
+  --route-alt: 210 14% 52%;
+  --pin-origin: 198 72% 62%;
+  --pin-dest: 210 24% 95%;
+  --pin-toll: 350 82% 66%;
+  --pin-fuel: 158 52% 54%;
+  --pin-stop: 210 12% 62%;
+  --pin-ring: 212 30% 8%;
+  --shadow-1: 0 1px 2px hsl(0 0% 0% / .4);
+  --shadow-2: 0 4px 16px hsl(0 0% 0% / .45);
+  --shadow-3: 0 12px 40px hsl(0 0% 0% / .55);
+}

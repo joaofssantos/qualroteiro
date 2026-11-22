@@ -1,10 +1,13 @@
-import maplibregl from 'maplibre-gl';
+import maplibregl, { type StyleSpecification } from 'maplibre-gl';
 import 'maplibre-gl/dist/maplibre-gl.css';
 import { useEffect, useRef, useState } from 'react';
 
 import { cn } from '@/lib/utils';
 
 import { DEFAULT_MARKER_STYLE, MARKER_STYLES, type MapLayerData, boundsOf } from './layers';
+import { useMapStore } from './mapStore';
+import { applyStyleDiff, recolorStyle } from './mapStyle';
+import { isDarkMode, readMapTheme, toMapLibreColor, watchTheme } from './theme';
 
 /**
  * The map, wrapped.
@@ -34,6 +37,11 @@ const INITIAL_ZOOM = 3.4;
 const ROUTE_SOURCE = 'route';
 const ROUTE_LINE_LAYER = 'route-line';
 const ROUTE_CASING_LAYER = 'route-casing';
+const PREVIEW_SOURCE = 'route-preview';
+const PREVIEW_LAYER = 'route-preview';
+
+/** Breathing room around a fitted route; the store's padding is added on top. */
+const FIT_MARGIN = 64;
 
 export interface MapCanvasProps {
   /** The active route's positions, or `null` when there is nothing to draw. */
@@ -45,28 +53,44 @@ export interface MapCanvasProps {
   className?: string;
   /** Accessible name for the map region. */
   label?: string;
+  /** Muda quando o contêiner foi reposicionado: o mapa chama `resize()`. */
+  resizeKey?: number;
 }
 
-/** Build the DOM node MapLibre will position. A real button, so it is clickable. */
+/**
+ * Build the DOM node MapLibre will position. A real button, so it is clickable.
+ * With an `index` it becomes a numbered badge (square for the destination, circle
+ * otherwise); colours are CSS vars, so a theme switch repaints it with no rebuild.
+ */
 function markerElement(
   label: string,
   kind: string | undefined,
+  index: number | undefined,
   onClick: (() => void) | undefined,
 ): HTMLButtonElement {
   const style = (kind ? MARKER_STYLES[kind] : undefined) ?? DEFAULT_MARKER_STYLE;
+  const numbered = index !== undefined;
+  const size = numbered ? 24 : 16;
   const button = document.createElement('button');
   button.type = 'button';
   button.setAttribute('aria-label', label);
   button.title = label;
+  if (numbered) button.textContent = String(index);
   button.style.cssText = [
-    'width:16px',
-    'height:16px',
-    'border-radius:9999px',
+    `width:${size}px`,
+    `height:${size}px`,
+    `border-radius:${kind === 'destination' ? '4px' : '9999px'}`,
     'cursor:pointer',
     'padding:0',
+    'display:flex',
+    'align-items:center',
+    'justify-content:center',
+    'font:700 11px/1 system-ui,sans-serif',
+    'font-variant-numeric:tabular-nums',
+    'color:hsl(var(--pin-ring))',
     `background:${style.bg}`,
     `border:2px solid ${style.ring}`,
-    'box-shadow:0 1px 3px rgba(0,0,0,.35)',
+    'box-shadow:0 1px 3px hsl(var(--route-casing) / .5)',
   ].join(';');
   if (onClick) button.addEventListener('click', onClick);
   return button;
@@ -78,11 +102,36 @@ export function MapCanvas({
   onMarkerClick,
   className,
   label = 'Mapa da rota',
+  resizeKey,
 }: MapCanvasProps) {
   const containerRef = useRef<HTMLDivElement | null>(null);
   const mapRef = useRef<maplibregl.Map | null>(null);
   const markersRef = useRef(new Map<string, maplibregl.Marker>());
   const [ready, setReady] = useState(false);
+  const [themeTick, setThemeTick] = useState(0);
+  const preview = useMapStore((st) => st.preview);
+  const fitRequest = useMapStore((st) => st.fitRequest);
+  /** Read at fit time, never a dependency: moving a panel must not re-fit by itself. */
+  const paddingRef = useRef(useMapStore.getState().padding);
+  paddingRef.current = useMapStore((st) => st.padding);
+  /** The basemap style as shipped, and what is currently painted on the map. */
+  const originalStyleRef = useRef<StyleSpecification | null>(null);
+  const appliedStyleRef = useRef<StyleSpecification | null>(null);
+  const lastFitRequestRef = useRef(fitRequest);
+
+  const fit = (map: maplibregl.Map, bounds: [[number, number], [number, number]]) => {
+    const extra = paddingRef.current;
+    map.fitBounds(bounds, {
+      padding: {
+        top: FIT_MARGIN + extra.top,
+        right: FIT_MARGIN + extra.right,
+        bottom: FIT_MARGIN + extra.bottom,
+        left: FIT_MARGIN + extra.left,
+      },
+      duration: 400,
+      maxZoom: 13,
+    });
+  };
 
   /**
    * Held in a ref so that changing the click handler does not force every marker
@@ -105,7 +154,16 @@ export function MapCanvas({
     });
     mapRef.current = map;
     map.addControl(new maplibregl.NavigationControl({ showCompass: false }), 'top-right');
-    map.on('load', () => setReady(true));
+    map.on('load', () => {
+      try {
+        const shipped = structuredClone(map.getStyle());
+        originalStyleRef.current = shipped;
+        appliedStyleRef.current = shipped;
+      } catch {
+        originalStyleRef.current = null;
+      }
+      setReady(true);
+    });
 
     // Captured here rather than read from the ref in the cleanup: the ref's
     // current value could in principle have been swapped by the time teardown
@@ -117,9 +175,72 @@ export function MapCanvas({
       markers.clear();
       map.remove();
       mapRef.current = null;
+      originalStyleRef.current = null;
+      appliedStyleRef.current = null;
       setReady(false);
     };
   }, []);
+
+  // Follow the light/dark switch on <html>.
+  useEffect(() => watchTheme(() => setThemeTick((n) => n + 1)), []);
+
+  // Repaint basemap and route for the current theme — in place, never a new Map.
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map || !ready) return;
+
+    const theme = readMapTheme();
+    const original = originalStyleRef.current;
+    const applied = appliedStyleRef.current;
+    if (original && applied) {
+      try {
+        const next = recolorStyle(original, theme, isDarkMode() ? 'dark' : 'light');
+        applyStyleDiff(map, applied, next);
+        appliedStyleRef.current = next;
+      } catch {
+        // A style we cannot recolour keeps whatever it already shows.
+      }
+    }
+    const paint = (id: string, color: string) => {
+      if (map.getLayer(id)) map.setPaintProperty(id, 'line-color', toMapLibreColor(color));
+    };
+    paint(ROUTE_CASING_LAYER, theme.casing);
+    paint(ROUTE_LINE_LAYER, theme.route);
+    paint(PREVIEW_LAYER, theme.routeAlt);
+  }, [themeTick, ready]);
+
+  // O contêiner mudou de lugar/tamanho (troca de layout): reencaixa o canvas.
+  useEffect(() => {
+    mapRef.current?.resize();
+  }, [resizeKey]);
+
+  // Follow the light/dark switch on <html>.
+  useEffect(() => watchTheme(() => setThemeTick((n) => n + 1)), []);
+
+  // Repaint basemap and route for the current theme — in place, never a new Map.
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map || !ready) return;
+
+    const theme = readMapTheme();
+    const original = originalStyleRef.current;
+    const applied = appliedStyleRef.current;
+    if (original && applied) {
+      try {
+        const next = recolorStyle(original, theme, isDarkMode() ? 'dark' : 'light');
+        applyStyleDiff(map, applied, next);
+        appliedStyleRef.current = next;
+      } catch {
+        // A style we cannot recolour keeps whatever it already shows.
+      }
+    }
+    const paint = (id: string, color: string) => {
+      if (map.getLayer(id)) map.setPaintProperty(id, 'line-color', toMapLibreColor(color));
+    };
+    paint(ROUTE_CASING_LAYER, theme.casing);
+    paint(ROUTE_LINE_LAYER, theme.route);
+    paint(PREVIEW_LAYER, theme.routeAlt);
+  }, [themeTick, ready]);
 
   // Draw (or redraw) the route trace.
   useEffect(() => {
@@ -151,37 +272,95 @@ export function MapCanvas({
         type: 'line',
         source: ROUTE_SOURCE,
         layout: { 'line-cap': 'round', 'line-join': 'round' },
-        paint: { 'line-color': '#0b3a52', 'line-width': 8, 'line-opacity': 0.9 },
+        paint: { 'line-color': toMapLibreColor(readMapTheme().casing), 'line-width': 8, 'line-opacity': 0.9 },
       });
       map.addLayer({
         id: ROUTE_LINE_LAYER,
         type: 'line',
         source: ROUTE_SOURCE,
         layout: { 'line-cap': 'round', 'line-join': 'round' },
-        paint: { 'line-color': '#f6a723', 'line-width': 4 },
+        paint: { 'line-color': toMapLibreColor(readMapTheme().route), 'line-width': 4 },
       });
     }
 
     const bounds = trace ? boundsOf(trace) : null;
-    if (bounds) {
-      map.fitBounds(bounds, { padding: 64, duration: 400, maxZoom: 13 });
-    }
+    if (bounds) fit(map, bounds);
   }, [trace, ready]);
+
+  // The live preview (F9): a dashed line, shown only while there is no planned route.
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map || !ready) return;
+    const coordinates = !trace && preview ? preview.coordinates.map(([lng, lat]) => [lng, lat]) : [];
+    const feature: GeoJSON.Feature<GeoJSON.LineString> = {
+      type: 'Feature',
+      properties: {},
+      geometry: { type: 'LineString', coordinates },
+    };
+    const source = map.getSource(PREVIEW_SOURCE) as maplibregl.GeoJSONSource | undefined;
+    if (source) {
+      source.setData(feature);
+    } else if (coordinates.length > 0) {
+      map.addSource(PREVIEW_SOURCE, { type: 'geojson', data: feature });
+      map.addLayer({
+        id: PREVIEW_LAYER,
+        type: 'line',
+        source: PREVIEW_SOURCE,
+        layout: { 'line-cap': 'round', 'line-join': 'round' },
+        paint: {
+          'line-color': toMapLibreColor(readMapTheme().routeAlt),
+          'line-width': 4,
+          'line-dasharray': [2, 2],
+        },
+      });
+    }
+  }, [trace, preview, ready]);
+
+  // `requestFit`: re-frame the route, the preview or the visible pins on demand.
+  useEffect(() => {
+    if (lastFitRequestRef.current === fitRequest) return;
+    lastFitRequestRef.current = fitRequest;
+    const map = mapRef.current;
+    if (!map || !ready) return;
+    const positions: readonly (readonly [number, number])[] =
+      trace ??
+      preview?.coordinates ??
+      layers.flatMap((layer) =>
+        layer.visible ? layer.markers.map((m) => [m.lng, m.lat] as const) : [],
+      );
+    const bounds = boundsOf(positions);
+    if (bounds) fit(map, bounds);
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- only a new request re-fits
+  }, [fitRequest]);
+
 
   // Reconcile markers against the visible layers.
   useEffect(() => {
     const map = mapRef.current;
     if (!map || !ready) return;
 
-    const wanted = new Map<string, { lng: number; lat: number; label: string; kind?: string; layerId: string; markerId: string }>();
+    const wanted = new Map<
+      string,
+      {
+        lng: number;
+        lat: number;
+        label: string;
+        kind?: string;
+        index?: number;
+        layerId: string;
+        markerId: string;
+      }
+    >();
     for (const layer of layers) {
       if (!layer.visible) continue;
       for (const marker of layer.markers) {
-        wanted.set(`${layer.id}:${marker.id}`, {
+        // The number is part of the key so a renumbered pin is rebuilt, not left stale.
+        wanted.set(`${layer.id}:${marker.id}:${marker.index ?? ''}`, {
           lng: marker.lng,
           lat: marker.lat,
           label: marker.label,
           ...(marker.kind !== undefined ? { kind: marker.kind } : {}),
+          ...(marker.index !== undefined ? { index: marker.index } : {}),
           layerId: layer.id,
           markerId: marker.id,
         });
@@ -200,7 +379,7 @@ export function MapCanvas({
     // an unrelated layer does not make every other marker flicker.
     for (const [key, spec] of wanted) {
       if (markersRef.current.has(key)) continue;
-      const element = markerElement(spec.label, spec.kind, () =>
+      const element = markerElement(spec.label, spec.kind, spec.index, () =>
         onMarkerClickRef.current?.(spec.layerId, spec.markerId),
       );
       const marker = new maplibregl.Marker({ element })
@@ -226,9 +405,7 @@ export function MapCanvas({
       layer.visible ? layer.markers.map((marker) => [marker.lng, marker.lat] as const) : [],
     );
     const bounds = boundsOf(positions);
-    if (bounds) {
-      map.fitBounds(bounds, { padding: 64, duration: 400, maxZoom: 13 });
-    }
+    if (bounds) fit(map, bounds);
   }, [layers, ready, trace]);
 
   return (
