@@ -135,7 +135,11 @@ export class StubMap {
     return { version: 8, sources: {}, layers: this.styleLayers };
   }
   addControl(): void {}
-  resize(): void {}
+  resizeCalls = 0;
+
+  resize(): void {
+    this.resizeCalls += 1;
+  }
 
   fitBounds(bounds: unknown, options?: unknown): void {
     this.fitBoundsCalls.push({ bounds, options });

@@ -53,6 +53,8 @@ export interface MapCanvasProps {
   className?: string;
   /** Accessible name for the map region. */
   label?: string;
+  /** Muda quando o contêiner foi reposicionado: o mapa chama `resize()`. */
+  resizeKey?: number;
 }
 
 /**
@@ -100,6 +102,7 @@ export function MapCanvas({
   onMarkerClick,
   className,
   label = 'Mapa da rota',
+  resizeKey,
 }: MapCanvasProps) {
   const containerRef = useRef<HTMLDivElement | null>(null);
   const mapRef = useRef<maplibregl.Map | null>(null);
@@ -205,6 +208,11 @@ export function MapCanvas({
     paint(ROUTE_LINE_LAYER, theme.route);
     paint(PREVIEW_LAYER, theme.routeAlt);
   }, [themeTick, ready]);
+
+  // O contêiner mudou de lugar/tamanho (troca de layout): reencaixa o canvas.
+  useEffect(() => {
+    mapRef.current?.resize();
+  }, [resizeKey]);
 
   // Draw (or redraw) the route trace.
   useEffect(() => {
