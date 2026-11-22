@@ -28,6 +28,35 @@ const emptyOcean: LineString = {
 };
 
 describe('matchTolls — SP–RJ (Presidente Dutra) corridor', () => {
+  it('counts one physical plaza when the source contains many co-located toll points', () => {
+    // Regression fixture from the live SP→RJ response: the ANTT feed exposed
+    // several Free Flow lane/sensor records for each physical charge point.
+    // Before de-duplication this shape made the 405 km route return dozens of
+    // "plazas" despite there being only six physical points in this fixture.
+    const physicalPoints = dutra.plazas.slice(0, 6);
+    const duplicatedSourceRows = physicalPoints.flatMap((plaza, pointIndex) =>
+      Array.from({ length: pointIndex === 0 ? 20 : 10 }, (_, duplicateIndex) => ({
+        ...plaza,
+        id: `live-sp-rj-${pointIndex}-${duplicateIndex}`,
+        name: `${plaza.name} lane ${duplicateIndex + 1}`,
+      })),
+    );
+
+    expect(duplicatedSourceRows).toHaveLength(70);
+
+    const { plazas, total } = matchTolls({
+      routeGeometry: dutraPolyline,
+      axleCategory: 'car',
+      plazas: duplicatedSourceRows,
+    });
+
+    expect(plazas).toHaveLength(6);
+    expect(total).toBeCloseTo(
+      physicalPoints.reduce((sum, plaza) => sum + (plaza.tariffByAxleCategory?.car ?? 0), 0),
+      2,
+    );
+  });
+
   it('returns exactly the Dutra plazas for the Dutra reference polyline', () => {
     const { plazas } = matchTolls({
       routeGeometry: dutraPolyline,
@@ -214,7 +243,7 @@ describe('matchTolls — plaza with no tariffByAxleCategory', () => {
     expect(total).toBe(0);
   });
 
-  it('does not affect the total contributed by tariffed plazas matched alongside it', () => {
+  it('keeps the tariffed record when a tariff-less source mirrors the same physical plaza', () => {
     const untariffed: TollPlaza = {
       id: 'untariffed-test-plaza-2',
       name: 'Praça Sem Tarifa (teste 2)',
@@ -236,9 +265,138 @@ describe('matchTolls — plaza with no tariffByAxleCategory', () => {
       plazas: dutra.plazas,
     });
 
-    expect(withUntariffed.plazas).toHaveLength(tariffedOnly.plazas.length + 1);
-    expect(withUntariffed.plazas.some((p) => p.id === untariffed.id)).toBe(true);
+    expect(withUntariffed.plazas).toHaveLength(tariffedOnly.plazas.length);
+    expect(withUntariffed.plazas.some((p) => p.id === untariffed.id)).toBe(false);
     expect(withUntariffed.total).toBe(tariffedOnly.total);
+  });
+
+  it('prefers a tariffed co-located record even when the tariff-less record is closer to the route', () => {
+    const route: LineString = {
+      type: 'LineString',
+      coordinates: [
+        [-46, -23],
+        [-45.99, -23],
+      ],
+    };
+    const base: Omit<TollPlaza, 'id' | 'lat' | 'tariffByAxleCategory'> = {
+      name: 'Praça co-localizada',
+      concessionaire: 'Concessionária Teste',
+      highway: 'BR-000',
+      km: 10,
+      lng: -45.995,
+    };
+    const noTariff: TollPlaza = { ...base, id: 'antt-no-tariff', lat: -23 };
+    // About 33 m from the route, but only 33 m from the ANTT point.
+    const tariffed: TollPlaza = {
+      ...base,
+      id: 'osm-car-10',
+      lat: -23.0003,
+      tariffByAxleCategory: {
+        motorcycle: 5,
+        car: 10,
+        car_with_trailer: 15,
+        truck_2_axle: 20,
+        truck_3_axle: 25,
+        truck_4_axle: 30,
+        truck_5_axle: 35,
+        truck_6_axle: 40,
+      },
+    };
+
+    const result = matchTolls({
+      routeGeometry: route,
+      axleCategory: 'car',
+      plazas: [noTariff, tariffed],
+    });
+
+    expect(result.plazas.map((plaza) => plaza.id)).toEqual(['osm-car-10']);
+    expect(result.total).toBe(10);
+  });
+});
+
+describe('matchTolls — co-located plaza tie-breaking', () => {
+  const route: LineString = {
+    type: 'LineString',
+    coordinates: [
+      [-46, -23],
+      [-45.99, -23],
+    ],
+  };
+  const tariff = (car: number) => ({
+    motorcycle: car / 2,
+    car,
+    car_with_trailer: car * 1.5,
+    truck_2_axle: car * 2,
+    truck_3_axle: car * 2.5,
+    truck_4_axle: car * 3,
+    truck_5_axle: car * 3.5,
+    truck_6_axle: car * 4,
+  });
+  const plaza = (id: string, lng: number, lat: number, car = 10): TollPlaza => ({
+    id,
+    name: `Praça ${id}`,
+    concessionaire: 'Concessionária Teste',
+    highway: 'BR-000',
+    km: 10,
+    lng,
+    lat,
+    tariffByAxleCategory: tariff(car),
+  });
+
+  it('gives the same result for every order of a three-gantry chain', () => {
+    // Each adjacent pair is about 80 m apart. A and C are farther than the
+    // 100 m de-duplication radius, so this must remain two charge points.
+    const chain = [
+      plaza('p0', -45.998, -23),
+      plaza('p1', -45.99722, -23),
+      plaza('p2', -45.99644, -23),
+    ];
+    const permutations = [
+      [chain[0]!, chain[1]!, chain[2]!],
+      [chain[0]!, chain[2]!, chain[1]!],
+      [chain[1]!, chain[0]!, chain[2]!],
+      [chain[1]!, chain[2]!, chain[0]!],
+      [chain[2]!, chain[0]!, chain[1]!],
+      [chain[2]!, chain[1]!, chain[0]!],
+    ];
+
+    for (const plazas of permutations) {
+      expect(matchTolls({ routeGeometry: route, axleCategory: 'car', plazas })).toMatchObject({
+        plazas: [{ id: 'p0' }, { id: 'p2' }],
+        total: 20,
+      });
+    }
+  });
+
+  it('keeps the closer tariffed record when tariffed records disagree', () => {
+    const farther = plaza('farther', -45.995, -23.0004, 20);
+    const closer = plaza('closer', -45.995, -23.0001, 10);
+
+    expect(
+      matchTolls({ routeGeometry: route, axleCategory: 'car', plazas: [farther, closer] }),
+    ).toMatchObject({ plazas: [{ id: 'closer' }], total: 10 });
+  });
+
+  it('uses the id to break an exact distance tie between tariffed records', () => {
+    const laterId = plaza('z-record', -45.995, -23.0002, 20);
+    const earlierId = plaza('a-record', -45.995, -23.0002, 10);
+
+    expect(
+      matchTolls({ routeGeometry: route, axleCategory: 'car', plazas: [laterId, earlierId] }),
+    ).toMatchObject({ plazas: [{ id: 'a-record' }], total: 10 });
+  });
+
+  it('treats a tariff table missing the requested category as unpriced', () => {
+    const { car: _car, ...withoutCar } = tariff(10);
+    const noCarTariff: TollPlaza = {
+      ...plaza('no-car-tariff', -45.995, -23, 10),
+      tariffByAxleCategory: withoutCar as TollPlaza['tariffByAxleCategory'],
+    };
+    const carTariff = plaza('has-car-tariff', -45.995, -23.0003, 10);
+
+    expect(
+      matchTolls({ routeGeometry: route, axleCategory: 'car', plazas: [noCarTariff, carTariff] }),
+    ).toMatchObject({ plazas: [{ id: 'has-car-tariff' }], total: 10 });
   });
 });
 
