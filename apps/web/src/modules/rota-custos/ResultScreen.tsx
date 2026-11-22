@@ -2,7 +2,12 @@ import { ArrowLeft } from 'lucide-react';
 import { Link, Navigate, useOutletContext } from 'react-router-dom';
 
 import { Button } from '@/components/ui/button';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import {
+  Accordion,
+  AccordionContent,
+  AccordionItem,
+  AccordionTrigger,
+} from '@/components/ui/accordion';
 import { selectActiveRoute, useRouteStore } from '@/core/store/routeStore';
 
 import type { RotaCustosOutletContext } from './RotaCustosLayout';
@@ -62,54 +67,56 @@ export function ResultScreen() {
         </div>
       </div>
 
-      <SummaryRow route={route} />
+      <SummaryRow route={route} axleCategory={query.vehicle.axleCategory} />
 
-      <Tabs defaultValue="pedagios" className="flex flex-none flex-col">
-        <TabsList className="min-h-10 shrink-0 flex-wrap gap-0.5 overflow-visible">
-          <TabsTrigger value="pedagios" className="min-w-0 flex-1 basis-[45%] px-2 text-xs">
-            Pedágios
-          </TabsTrigger>
-          <TabsTrigger value="combustivel" className="min-w-0 flex-1 basis-[45%] px-2 text-xs">
-            Combustível
-          </TabsTrigger>
-          <TabsTrigger value="pontos" className="min-w-0 flex-1 basis-[45%] px-2 text-xs">
-            Pontos na rota
-          </TabsTrigger>
-          <TabsTrigger value="alternativas" className="min-w-0 flex-1 basis-[45%] px-2 text-xs">
-            Alternativas
-          </TabsTrigger>
-        </TabsList>
+      <Accordion type="multiple" defaultValue={['pedagios']} className="flex flex-none flex-col">
+        <AccordionItem value="pedagios">
+          <AccordionTrigger>Pedágios</AccordionTrigger>
+          <AccordionContent>
+            <TollsPanel
+              route={route}
+              axleCategory={query.vehicle.axleCategory}
+              onSelectPlaza={onSelectPlaza}
+            />
+          </AccordionContent>
+        </AccordionItem>
 
-        <TabsContent value="pedagios">
-          <TollsPanel
-            route={route}
-            axleCategory={query.vehicle.axleCategory}
-            onSelectPlaza={onSelectPlaza}
-          />
-        </TabsContent>
+        <AccordionItem value="combustivel">
+          <AccordionTrigger>Combustível</AccordionTrigger>
+          <AccordionContent>
+            <FuelPanel
+              route={route}
+              pricePerL={query.fuelPricePerL}
+              consumptionKmPerL={query.vehicle.consumptionKmPerL}
+            />
+          </AccordionContent>
+        </AccordionItem>
 
-        <TabsContent value="combustivel">
-          <FuelPanel
-            route={route}
-            pricePerL={query.fuelPricePerL}
-            consumptionKmPerL={query.vehicle.consumptionKmPerL}
-          />
-        </TabsContent>
+        <AccordionItem value="pontos">
+          <AccordionTrigger>Pontos na rota</AccordionTrigger>
+          <AccordionContent>
+            <PointsPanel
+              route={route}
+              layers={layers}
+              onToggleLayer={toggleLayer}
+              tollLayerId={TOLL_LAYER_ID}
+              fuelStationLayerId={FUEL_STATION_LAYER_ID}
+            />
+          </AccordionContent>
+        </AccordionItem>
 
-        <TabsContent value="pontos">
-          <PointsPanel
-            route={route}
-            layers={layers}
-            onToggleLayer={toggleLayer}
-            tollLayerId={TOLL_LAYER_ID}
-            fuelStationLayerId={FUEL_STATION_LAYER_ID}
-          />
-        </TabsContent>
-
-        <TabsContent value="alternativas">
-          <AlternativesPanel routes={routes} activeIndex={activeIndex} onSelect={setActiveIndex} />
-        </TabsContent>
-      </Tabs>
+        <AccordionItem value="alternativas">
+          <AccordionTrigger>Alternativas</AccordionTrigger>
+          <AccordionContent>
+            <AlternativesPanel
+              routes={routes}
+              activeIndex={activeIndex}
+              axleCategory={query.vehicle.axleCategory}
+              onSelect={setActiveIndex}
+            />
+          </AccordionContent>
+        </AccordionItem>
+      </Accordion>
     </aside>
   );
 }
