@@ -42,6 +42,13 @@ describe('readCorsOrigins', () => {
     expect(() => readCorsOrigins({ CORS_ORIGIN: pattern })).toThrow(/CORS_ORIGIN/);
   });
 
+  it('enforces the eight-character literal prefix boundary for Vercel preview wildcards', () => {
+    expect(() => readCorsOrigins({ CORS_ORIGIN: 'https://sevenxx*.vercel.app' })).toThrow(
+      /CORS_ORIGIN/,
+    );
+    expect(readCorsOrigins({ CORS_ORIGIN: 'https://eightxxx*.vercel.app' })).toHaveLength(1);
+  });
+
   it.each([
     'https://qualroteiro-*.vercel.app.evil.com',
     'https://qualroteiro-*.evil.com',
