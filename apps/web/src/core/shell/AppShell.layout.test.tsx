@@ -27,6 +27,12 @@ vi.mock('./layouts/b', () => ({
   ),
 }));
 
+// O shell B de mentira já posiciona o mapa; a consulta real do B tem o próprio MapSlot,
+// e só um slot pode ficar ativo por vez. Aqui a consulta do B vira um stub.
+vi.mock('@/modules/rota-custos/layoutB/ConsultaHero', () => ({
+  ConsultaHero: () => <div data-testid="hero-stub" />,
+}));
+
 beforeEach(() => {
   window.localStorage.clear();
   resetApp();
