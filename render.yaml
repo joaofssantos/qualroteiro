@@ -30,3 +30,10 @@ services:
       # the real client IP for POST /routes/plan's rate-limit bucket.
       - key: TRUST_PROXY
         value: 1
+      # Limite de POST /routes/plan por IP (valores padrão do código; ajuste aqui).
+      - key: RATE_LIMIT_PLAN_ENABLED
+        value: "true"
+      - key: RATE_LIMIT_PLAN_MAX
+        value: "120"
+      - key: RATE_LIMIT_PLAN_WINDOW
+        value: "60000"
