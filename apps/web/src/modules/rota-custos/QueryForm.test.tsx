@@ -141,6 +141,34 @@ describe('QueryForm', () => {
     expect(useRouteDraftStore.getState().origin.text).toBe('');
   });
 
+  it.each([
+    ['Carro', { type: 'car', axleCategory: 'car' }],
+    ['Caminhão', { type: 'truck', axleCategory: 'truck_2_axle' }],
+    ['Moto', { type: 'motorcycle', axleCategory: 'motorcycle' }],
+    ['Reboque', { type: 'car', axleCategory: 'car_with_trailer' }],
+  ] as const)('envia o perfil de %s sem alterar o payload do contrato', async (vehicleName, vehicle) => {
+    const fetchSpy = mockApi();
+    const { user } = setup();
+
+    await user.type(screen.getByLabelText('Origem'), 'São Paulo, SP');
+    await user.type(screen.getByLabelText('Destino'), 'Rio de Janeiro, RJ');
+    await user.click(screen.getByRole('radio', { name: vehicleName }));
+    await user.click(screen.getByRole('button', { name: /calcular rota/i }));
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(400);
+    });
+
+    const planCall = fetchSpy.mock.calls.find(([url]) => String(url).startsWith('/api/routes/plan'));
+    expect(planCall).toBeDefined();
+    expect(JSON.parse(String(planCall![1]?.body))).toEqual({
+      origin: 'São Paulo, SP',
+      destination: 'Rio de Janeiro, RJ',
+      waypoints: [],
+      vehicle: { ...vehicle, consumptionKmPerL: 10 },
+      fuelPricePerL: 6,
+    });
+  });
+
   it('onEndpointsChange recebe o lugar escolhido (com coordenadas)', async () => {
     mockApi({ places: [SAO_PAULO] });
     const { user, onEndpointsChange } = setup();
