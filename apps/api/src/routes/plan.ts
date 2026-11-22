@@ -20,6 +20,7 @@ import {
 import { estimateFuel } from '@qualroteiro/fuel';
 
 import { ProviderError, UnresolvedPlaceError } from '../errors.js';
+import type { PlanRateLimitEnv } from '../env.js';
 import { type PlaceInput, type PlanRequestInput, parsePlanRequest } from '../http/validate.js';
 import type { TollPlazaRecord, TollPlazaStore } from '../store/toll-plaza-store.js';
 
@@ -184,8 +185,14 @@ function planOne(
   };
 }
 
-export function registerPlanRoute(app: FastifyInstance, deps: PlanRouteDeps): void {
-  app.post('/routes/plan', async (request) => {
+export function registerPlanRoute(
+  app: FastifyInstance,
+  deps: PlanRouteDeps,
+  rateLimit?: Pick<PlanRateLimitEnv, 'max' | 'timeWindow'>,
+): void {
+  app.post('/routes/plan', {
+    ...(rateLimit === undefined ? {} : { config: { rateLimit } }),
+  }, async (request) => {
     // Throws ValidationError (→400); the app-level error handler maps it.
     const planRequest = parsePlanRequest(request.body);
 

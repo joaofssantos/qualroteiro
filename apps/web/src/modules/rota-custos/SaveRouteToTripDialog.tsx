@@ -227,7 +227,7 @@ export function SaveRouteToTripDialog({ route, title }: SaveRouteToTripDialogPro
           ) : null}
 
           {status === 'saved' && savedTripId ? (
-            <p className="rounded-md border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm text-emerald-800">
+            <p className="rounded-md border border-success/30 bg-success-soft px-3 py-2 text-sm text-success">
               Rota salva. <Link className="font-semibold underline" to={`${TRIPS_PATH}/${savedTripId}`}>Abrir viagem</Link>
             </p>
           ) : null}

@@ -6,6 +6,7 @@ import {
   useAuth,
   useUser,
 } from '@clerk/clerk-react';
+import { LogIn, Loader2 } from 'lucide-react';
 import { type ReactNode, useMemo } from 'react';
 
 import { Button } from '@/components/ui/button';
@@ -44,23 +45,43 @@ function ClerkAuthBridge({ children }: { children: ReactNode }) {
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }
 
-export function AuthActions() {
-  const auth = useQualAuth();
-
-  if (!auth.isConfigured) {
+/**
+ * `compact` serve a áreas estreitas (rodapé do trilho de 76 px): o estado vira um
+ * ícone ≥ 44 px, mantendo o nome acessível e um tooltip (`title`) com o texto.
+ */
+function StatusButton({ label, compact, icon: Icon }: { label: string; compact: boolean; icon: typeof LogIn }) {
+  if (!compact) {
     return (
       <Button variant="outline" size="sm" disabled>
-        Login indisponível
+        {label}
       </Button>
     );
   }
+  // Botão desabilitado não dispara tooltip nativo: o `title` fica no invólucro.
+  return (
+    <span title={label} className="inline-flex">
+      <Button
+        variant="ghost"
+        size="icon"
+        disabled
+        aria-label={label}
+        className="min-h-11 min-w-11 text-primary-foreground"
+      >
+        <Icon aria-hidden />
+      </Button>
+    </span>
+  );
+}
+
+export function AuthActions({ compact = false }: { compact?: boolean } = {}) {
+  const auth = useQualAuth();
+
+  if (!auth.isConfigured) {
+    return <StatusButton label="Login indisponível" compact={compact} icon={LogIn} />;
+  }
 
   if (!auth.isLoaded) {
-    return (
-      <Button variant="outline" size="sm" disabled>
-        Carregando
-      </Button>
-    );
+    return <StatusButton label="Carregando" compact={compact} icon={Loader2} />;
   }
 
   if (auth.isSignedIn) {
@@ -73,7 +94,7 @@ export function AuthActions() {
   }
 
   return (
-    <div className="flex items-center gap-2">
+    <div className={compact ? 'flex flex-col items-stretch gap-1' : 'flex items-center gap-2'}>
       <SignInButton mode="modal">
         <Button variant="outline" size="sm" className="border-primary-foreground/30 bg-transparent text-primary-foreground hover:bg-primary-foreground/10 hover:text-primary-foreground">
           Entrar

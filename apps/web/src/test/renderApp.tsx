@@ -15,7 +15,9 @@ import { vi } from 'vitest';
 import { AppRouter } from '@/core/shell/AppRouter';
 import { useMapStore } from '@/core/map/mapStore';
 import { resetRegistry } from '@/core/registry/registry';
+import { useLayoutStore } from '@/core/layout/layoutStore';
 import { useRouteStore } from '@/core/store/routeStore';
+import { useRouteDraftStore } from '@/modules/rota-custos/routeDraftStore';
 import type { Place, PlaceResult, PlannedRoute } from '@/core/api/types';
 import { registerAppModules } from '@/modules';
 
@@ -75,6 +77,8 @@ export function resetApp(): void {
     endpointMarkers: [],
   });
   useMapStore.getState().clearMap();
+  useRouteDraftStore.getState().reset();
+  useLayoutStore.setState({ layout: 'a' });
 }
 
 // The return type is annotated rather than inferred: the inferred type reaches

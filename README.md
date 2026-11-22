@@ -12,11 +12,15 @@ estrada (pedágio, combustível, frete ANTT) com o planejamento completo da viag
 apps/
   web/        React + Vite + TS + Tailwind + shadcn/ui + MapLibre GL
   api/        Fastify + Prisma + PostgreSQL/PostGIS
-packages/     módulos de domínio (routing, tolls, fuel, freight, itinerary,
-              places, activities, budget, converters, geo, pois, trips, ...)
+packages/
+  fuel/       cálculo de combustível
+  geo/        tipos e utilitários geográficos
+  routing/    contratos de roteamento
+  tolls/      cálculo de pedágios
+  trips/      planejamento de viagens
 services/
   data-ingest/  workers BullMQ (ANTT, ANP, DNIT, concessionárias, catálogo)
-infra/        docker-compose (postgres+postgis, redis, valhalla, photon)
+infra/        Docker Compose (postgres, redis; valhalla e photon existem no compose, mas não são usados em runtime)
 ```
 
 ## Liberação faseada
@@ -30,8 +34,8 @@ infra/        docker-compose (postgres+postgis, redis, valhalla, photon)
 Decisões técnicas em [`docs/decisions/0001-stack.md`](docs/decisions/0001-stack.md).
 
 - Monorepo: pnpm workspaces + Turborepo
-- Motor de rota: Valhalla self-hosted sobre extract OSM do Brasil
-- Geocoding: Photon (OSM)
+- Roteamento: OpenRouteService, acessado pela API
+- Geocoding: OpenRouteService (Pelias), via `/places/search` da API; Google Places só para `/places/nearby` na API
 
 ## AIPe
 
@@ -42,8 +46,32 @@ O onboarding é conduzido abrindo uma sessão do harness nesta pasta.
 
 ```sh
 pnpm install
-docker compose -f infra/docker-compose.yml up -d
-pnpm dev
+cp apps/api/.env.example apps/api/.env   # preencha ORS_API_KEY, CLERK_SECRET_KEY, GOOGLE_PLACES_API_KEY
+docker compose -f infra/docker-compose.yml up -d postgres
+pnpm --filter @qualroteiro/api prisma:migrate
 ```
 
-Requer Node 20+ e pnpm 9+.
+Em dois terminais, inicie API e web:
+
+```sh
+pnpm --filter @qualroteiro/api dev
+pnpm --filter @qualroteiro/web dev
+```
+
+O `DATABASE_URL` do `.env.example` já aponta para `postgresql://qualroteiro:qualroteiro@localhost:5432/qualroteiro`. O Redis é usado só pelo worker do `data-ingest`; Valhalla e Photon não entram no runtime atual.
+Para o worker contínuo de ingestão, suba também o Redis e execute
+`pnpm --filter @qualroteiro/data-ingest worker`. As importações avulsas não
+precisam do Redis.
+
+Requer Node 20+ e pnpm 9+. Configure as chaves de OpenRouteService, Clerk e
+Google Places conforme os arquivos `.env.example` de cada app antes de usar os
+recursos correspondentes. A API também limita somente `POST /routes/plan` por
+IP (padrão: 120 requisições por 60 segundos); ajuste `RATE_LIMIT_PLAN_MAX` e
+`RATE_LIMIT_PLAN_WINDOW` (em milissegundos) em `apps/api/.env`. A resposta 429
+inclui `Retry-After`, exposto via CORS para o mapa vivo. Para testes isolados,
+`RATE_LIMIT_PLAN_ENABLED=false` desativa esse limite.
+O cabeçalho `X-Forwarded-For` só é usado se `TRUST_PROXY` for configurado: use
+um número de hops de proxy ou uma lista de CIDRs separados por vírgula. O padrão
+é desligado para que clientes não possam forjar o IP e trocar de balde. O
+limitador mantém os baldes em memória por processo; várias réplicas não
+compartilham a contagem.

@@ -49,7 +49,7 @@ function LayerSwitch({
         <span
           aria-hidden
           className={cn(
-            'absolute top-0.5 size-4 rounded-full bg-white shadow transition-transform',
+            'absolute top-0.5 size-4 rounded-full bg-card shadow transition-transform',
             layer.visible ? 'translate-x-[1.125rem]' : 'translate-x-0.5',
           )}
         />

@@ -89,7 +89,7 @@ describe('demo mode — Tela 1 -> Tela 2, no network', () => {
     expect(summary().getByText('5 h 43 min')).toBeInTheDocument();
 
     // Pedágios tab: at least one Dutra plaza with a tariff.
-    await user.click(panel().getByRole('tab', { name: /pedágios/i }));
+    // Pedágios é a seção aberta por padrão no acordeão (D5).
     const list = within(await screen.findByRole('list', { name: /praças de pedágio/i }));
     const items = list.getAllByRole('listitem');
     expect(items.length).toBeGreaterThan(0);
@@ -105,7 +105,7 @@ describe('demo mode — Tela 1 -> Tela 2, no network', () => {
     ).toBeInTheDocument();
 
     // Combustível tab: cost = liters × price = 429.7 / 10 * 6.
-    await user.click(panel().getByRole('tab', { name: /combustível/i }));
+    await user.click(panel().getByRole('button', { name: /^combustível$/i }));
     const fuel = within(await screen.findByTestId('fuel-panel'));
     expect(fuel.getByText('42,97 L')).toBeInTheDocument();
     expect(fuel.getByTestId('fuel-cost')).toHaveTextContent('257,82');
@@ -126,13 +126,13 @@ describe('demo mode — Tela 1 -> Tela 2, no network', () => {
     });
     expect(summary().getByText('408,0 km')).toBeInTheDocument();
 
-    await user.click(panel().getByRole('tab', { name: /pedágios/i }));
+    // Pedágios é a seção aberta por padrão no acordeão (D5).
     const list = within(await screen.findByRole('list', { name: /praças de pedágio/i }));
     expect(list.getAllByRole('listitem').length).toBe(
       getCorridor('sp-curitiba-regis-bittencourt').plazas.length,
     );
 
-    await user.click(panel().getByRole('tab', { name: /combustível/i }));
+    await user.click(panel().getByRole('button', { name: /^combustível$/i }));
     // 408 / 10 * 6 = 244.80
     expect(within(screen.getByTestId('fuel-panel')).getByTestId('fuel-cost')).toHaveTextContent(
       '244,80',
@@ -153,13 +153,13 @@ describe('demo mode — Tela 1 -> Tela 2, no network', () => {
     });
     expect(summary().getByText('96,0 km')).toBeInTheDocument();
 
-    await user.click(panel().getByRole('tab', { name: /pedágios/i }));
+    // Pedágios é a seção aberta por padrão no acordeão (D5).
     const list = within(await screen.findByRole('list', { name: /praças de pedágio/i }));
     expect(list.getAllByRole('listitem').length).toBe(
       getCorridor('sp-campinas-bandeirantes').plazas.length,
     );
 
-    await user.click(panel().getByRole('tab', { name: /combustível/i }));
+    await user.click(panel().getByRole('button', { name: /^combustível$/i }));
     // 96 / 10 * 6 = 57.60
     expect(within(screen.getByTestId('fuel-panel')).getByTestId('fuel-cost')).toHaveTextContent(
       '57,60',
