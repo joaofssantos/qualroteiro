@@ -15,6 +15,7 @@ import {
   DEFAULT_RATE_LIMIT_PLAN_MAX,
   DEFAULT_RATE_LIMIT_PLAN_WINDOW_MS,
   InvalidTrustProxyError,
+  readCorsOrigins,
   loadDotEnvInto,
   readClerkEnv,
   readGooglePlacesEnv,
@@ -22,6 +23,74 @@ import {
   readPlanRateLimitEnv,
   readTrustProxyEnv,
 } from '../src/env.js';
+
+describe('readCorsOrigins', () => {
+  it('leaves CORS unrestricted when no production origin is configured', () => {
+    expect(readCorsOrigins({})).toBeUndefined();
+  });
+
+  it.each(['', '   ', ' , ', ',,'])(
+    'throws at boot when CORS_ORIGIN is set but empty after trimming (%j)',
+    (value) => {
+      expect(() => readCorsOrigins({ CORS_ORIGIN: value })).toThrow(/CORS_ORIGIN/);
+    },
+  );
+
+  it.each([
+    'https://*.vercel.app',
+    'https://*.',
+    'https://*',
+    'https://*-app.vercel.app',
+    'https://*.example.com',
+    'https://q*.vercel.app',
+  ])('rejects wildcard patterns without a literal prefix (%s)', (pattern) => {
+    expect(() => readCorsOrigins({ CORS_ORIGIN: pattern })).toThrow(/CORS_ORIGIN/);
+  });
+
+  it('enforces the eight-character literal prefix boundary for Vercel preview wildcards', () => {
+    expect(() => readCorsOrigins({ CORS_ORIGIN: 'https://sevenxx*.vercel.app' })).toThrow(
+      /CORS_ORIGIN/,
+    );
+    expect(readCorsOrigins({ CORS_ORIGIN: 'https://eightxxx*.vercel.app' })).toHaveLength(1);
+  });
+
+  it.each([
+    'https://qualroteiro-*.vercel.app.evil.com',
+    'https://qualroteiro-*.evil.com',
+  ])('rejects wildcard patterns outside the Vercel app suffix (%s)', (pattern) => {
+    expect(() => readCorsOrigins({ CORS_ORIGIN: pattern })).toThrow(/CORS_ORIGIN/);
+  });
+
+  it('rejects the special opaque-origin literal null', () => {
+    expect(() => readCorsOrigins({ CORS_ORIGIN: 'null' })).toThrow(/CORS_ORIGIN/);
+  });
+
+  it('normalizes trailing slashes and lowercases scheme and host', () => {
+    expect(
+      readCorsOrigins({ CORS_ORIGIN: 'HTTPS://Qualroteiro.Vercel.App/, http://localhost:3000/' }),
+    ).toEqual(['https://qualroteiro.vercel.app', 'http://localhost:3000']);
+  });
+
+  it('normalizes a wildcard pattern with uppercase and trailing slash', () => {
+    const [origin] = readCorsOrigins({ CORS_ORIGIN: 'HTTPS://Qualroteiro-*.Vercel.App/' })!;
+    expect((origin as RegExp).test('https://qualroteiro-git-x.vercel.app')).toBe(true);
+    expect((origin as RegExp).test('https://other-git-x.vercel.app')).toBe(false);
+  });
+
+  it('parses and trims a comma-separated allow-list', () => {
+    expect(
+      readCorsOrigins({
+        CORS_ORIGIN: ' https://qualroteiro.vercel.app, https://preview.vercel.app ',
+      }),
+    ).toEqual(['https://qualroteiro.vercel.app', 'https://preview.vercel.app']);
+  });
+
+  it('converts a one-segment Vercel preview wildcard into an anchored regex', () => {
+    const [origin] = readCorsOrigins({ CORS_ORIGIN: 'https://qualroteiro-*.vercel.app' })!;
+    expect(origin).toBeInstanceOf(RegExp);
+    expect(origin).toMatchObject({ source: '^https:\\/\\/qualroteiro-[a-z0-9-]+\\.vercel\\.app$' });
+  });
+});
 
 describe('readPlanRateLimitEnv', () => {
   it('defaults to an enabled, generous per-minute limit', () => {

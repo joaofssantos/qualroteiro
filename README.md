@@ -58,6 +58,10 @@ pnpm --filter @qualroteiro/api dev
 pnpm --filter @qualroteiro/web dev
 ```
 
+> `DIRECT_DATABASE_URL` (conexão direta, sem pooler) é **exigida pelos comandos
+> `prisma` de migração** (`migrate dev` / `migrate deploy`); `DATABASE_URL` é usada
+> só pela aplicação em runtime.
+
 O `DATABASE_URL` do `.env.example` já aponta para `postgresql://qualroteiro:qualroteiro@localhost:5432/qualroteiro`. O Redis é usado só pelo worker do `data-ingest`; Valhalla e Photon não entram no runtime atual.
 Para o worker contínuo de ingestão, suba também o Redis e execute
 `pnpm --filter @qualroteiro/data-ingest worker`. As importações avulsas não
@@ -75,3 +79,6 @@ um número de hops de proxy ou uma lista de CIDRs separados por vírgula. O padr
 é desligado para que clientes não possam forjar o IP e trocar de balde. O
 limitador mantém os baldes em memória por processo; várias réplicas não
 compartilham a contagem.
+
+Em produção, `CORS_ORIGIN` restringe os origens do navegador (veja
+[`docs/deploy/README.md`](docs/deploy/README.md)); sem ela o CORS fica aberto, só para desenvolvimento.

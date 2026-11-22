@@ -26,7 +26,7 @@ import {
   ValidationError,
 } from './errors.js';
 import type { GooglePlacesProvider } from './providers/google-places.js';
-import type { PlanRateLimitEnv } from './env.js';
+import type { CorsOrigin, PlanRateLimitEnv } from './env.js';
 import { registerAdminPlacesUsageRoute } from './routes/admin-places-usage.js';
 import { registerAdminTollPlazasStatusRoute } from './routes/admin-toll-plazas-status.js';
 import { registerHealthRoute } from './routes/health.js';
@@ -79,6 +79,8 @@ export interface AppDeps {
   readonly googlePlaces?: GooglePlacesProvider;
   readonly apiUsage?: ApiUsageStore;
   readonly placesMonthlyCap?: number;
+  /** Explicit browser origins for a deployed web app; omitted keeps dev open. */
+  readonly corsOrigins?: readonly CorsOrigin[];
   /** Limits anonymous `POST /routes/plan` traffic only. */
   readonly planRateLimit?: PlanRateLimitEnv;
   /** Passed to Fastify — tests silence the logger with `{ logger: false }`. */
@@ -131,8 +133,13 @@ export function buildApp(deps: AppDeps): FastifyInstance {
   );
 
   // The web app is cross-origin; F1 is anonymous, so no credentials are needed.
+  // Deployments pass the Vercel origin(s) through CORS_ORIGIN; tests and local
+  // development keep the permissive behaviour when no origin is configured.
   // Retry-After must be visible to the live-preview client when it receives a 429.
-  void app.register(cors, { exposedHeaders: ['Retry-After'] });
+  void app.register(cors, {
+    ...(deps.corsOrigins === undefined ? {} : { origin: [...deps.corsOrigins] }),
+    exposedHeaders: ['Retry-After'],
+  });
 
   const planRateLimit = deps.planRateLimit;
   if (planRateLimit?.enabled) {

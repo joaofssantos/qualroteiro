@@ -105,6 +105,85 @@ export function readPlanRateLimitEnv(env: NodeJS.ProcessEnv = process.env): Plan
 }
 
 /**
+ * Read the browser origins allowed to call the API.
+ *
+ * `undefined` deliberately keeps the permissive local-development behaviour
+ * of `@fastify/cors`. In production, set `CORS_ORIGIN` to the Vercel origin
+ * (or a comma-separated list of preview/production origins) instead.
+ */
+export type CorsOrigin = string | RegExp;
+
+/** Minimum literal characters required before `*` in a Vercel preview host. */
+const MIN_PREVIEW_PREFIX_LENGTH = 8;
+
+/**
+ * Canonical form of an origin entry: no trailing slash, lowercase scheme and
+ * host (both case-insensitive per RFC 3986), so a CORS_ORIGIN written with a
+ * trailing slash or capitals still matches the browser's real `Origin`.
+ */
+function normalizeOrigin(entry: string): string {
+  const trimmed = entry.replace(/\/+$/, '');
+  const match = /^([^:/]+:\/\/[^/?#]*)(.*)$/.exec(trimmed);
+  return match ? `${match[1]!.toLowerCase()}${match[2]!}` : trimmed;
+}
+
+function previewPattern(origin: string): RegExp {
+  const wildcardCount = [...origin].filter((character) => character === '*').length;
+  let url: URL;
+  try {
+    url = new URL(origin);
+  } catch {
+    throw new Error(`CORS_ORIGIN contains an invalid preview pattern: ${origin}`);
+  }
+
+  const labels = url.hostname.split('.');
+  // The '*' must live in the first host label and follow a non-empty literal
+  // prefix (e.g. `qualroteiro-*`), so `https://*.vercel.app` can never open
+  // the API to every project on the shared domain.
+  const wildcardAt = labels[0]?.indexOf('*') ?? -1;
+  if (
+    wildcardCount !== 1 ||
+    url.protocol !== 'https:' ||
+    url.pathname !== '/' ||
+    url.search ||
+    url.hash ||
+    wildcardAt < MIN_PREVIEW_PREFIX_LENGTH ||
+    labels.length !== 3 ||
+    !url.hostname.endsWith('.vercel.app')
+  ) {
+    throw new Error(
+      `CORS_ORIGIN preview patterns must use the exact .vercel.app suffix and a ${MIN_PREVIEW_PREFIX_LENGTH}-character literal prefix before a single '*' in the first host label (e.g. https://qualroteiro-*.vercel.app): ${origin}`,
+    );
+  }
+
+  // Escape every literal character before replacing the single allowed wildcard.
+  // This keeps a suffix such as `.evil.com` from matching a Vercel preview.
+  const escaped = origin.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  return new RegExp(`^${escaped.replace('\\*', '[a-z0-9-]+')}$`);
+}
+
+export function readCorsOrigins(env: NodeJS.ProcessEnv = process.env): readonly CorsOrigin[] | undefined {
+  const rawValue = env['CORS_ORIGIN'];
+  if (rawValue === undefined) return undefined;
+
+  const origins = rawValue
+    .split(',')
+    .map((origin) => origin.trim())
+    .filter((origin) => origin.length > 0)
+    .map(normalizeOrigin);
+
+  if (origins.length === 0) {
+    throw new Error(
+      'CORS_ORIGIN is set but contains no origins. Unset it for permissive local development or list at least one origin.',
+    );
+  }
+  if (origins.includes('null')) {
+    throw new Error('CORS_ORIGIN must not contain the opaque-origin literal null.');
+  }
+  return origins.map((origin) => (origin.includes('*') ? previewPattern(origin) : origin));
+}
+
+/**
  * Read the OpenRouteService configuration.
  *
  * @throws {Error} at startup if `ORS_API_KEY` is absent — failing loudly in the

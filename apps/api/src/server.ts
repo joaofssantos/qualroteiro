@@ -14,6 +14,7 @@ import { createClerkAuthVerifier } from './auth/clerk.js';
 import {
   loadDotEnvInto,
   readClerkEnv,
+  readCorsOrigins,
   readGooglePlacesEnv,
   readOrsEnv,
   readPlanRateLimitEnv,
@@ -34,6 +35,7 @@ loadDotEnvInto(process.env);
 const ors = readOrsEnv();
 const clerk = readClerkEnv();
 const googlePlaces = readGooglePlacesEnv();
+const corsOrigins = readCorsOrigins();
 const planRateLimit = readPlanRateLimitEnv();
 const trustProxy = readTrustProxyEnv();
 
@@ -49,6 +51,7 @@ const app = buildApp({
   googlePlaces: createGooglePlacesProvider({ apiKey: googlePlaces.apiKey }),
   apiUsage: createPrismaApiUsageStore(prisma),
   placesMonthlyCap: googlePlaces.searchMonthlyCap,
+  corsOrigins,
   planRateLimit,
   fastifyOptions: { logger: true, trustProxy: trustProxy.value },
 });

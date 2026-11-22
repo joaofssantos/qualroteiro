@@ -16,9 +16,13 @@ services:
         sync: false
       - key: ORS_API_KEY
         sync: false
+      - key: ORS_BASE_URL
+        sync: false
       - key: CLERK_SECRET_KEY
         sync: false
       - key: GOOGLE_PLACES_API_KEY
+        sync: false
+      - key: GOOGLE_PLACES_SEARCH_MONTHLY_CAP
         sync: false
       - key: CORS_ORIGIN
         sync: false
@@ -26,3 +30,10 @@ services:
       # the real client IP for POST /routes/plan's rate-limit bucket.
       - key: TRUST_PROXY
         value: 1
+      # Limite de POST /routes/plan por IP (valores padrão do código; ajuste aqui).
+      - key: RATE_LIMIT_PLAN_ENABLED
+        value: "true"
+      - key: RATE_LIMIT_PLAN_MAX
+        value: "120"
+      - key: RATE_LIMIT_PLAN_WINDOW
+        value: "60000"
