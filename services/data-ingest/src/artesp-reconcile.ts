@@ -16,6 +16,7 @@ import { AXLE_CATEGORIES, type TariffByAxleCategory } from '@qualroteiro/tolls';
 import { matchArtespToOsm, type OsmTollPlazaCandidate } from './artesp-match.js';
 import type { ArtespParseResult, ArtespTollRow } from './artesp-pdf.js';
 import { downloadAndParseArtespTarifas } from './artesp-pdf.js';
+import { ARTESP_FREE_FLOW_RECORDS } from './artesp-free-flow.js';
 
 /** Explicit audit findings, kept narrow so a future Free Flow plaza is never
  * silently discarded merely because its name happens to contain "Pórtico". */
@@ -87,6 +88,7 @@ export interface ArtespTariffReconcileClient {
       select: { id: true; concessionaire: true; name: true; lat: true; lng: true; tariff: true };
     }): Promise<readonly { id: string; concessionaire: string; name: string; lat: number; lng: number; tariff: unknown }[]>;
     update(args: { where: { id: string }; data: { tariff: TariffByAxleCategory; ingestedAt: Date } }): Promise<unknown>;
+    upsert(args: { where: { id: string }; create: { id: string; concessionaire: string; name: string; highway: string; uf: string; municipality: string; km: number; lat: number; lng: number; active: boolean; ingestedAt: Date; source: 'artesp'; tariff: TariffByAxleCategory }; update: Omit<{ id: string; concessionaire: string; name: string; highway: string; uf: string; municipality: string; km: number; lat: number; lng: number; active: boolean; ingestedAt: Date; source: 'artesp'; tariff: TariffByAxleCategory }, 'id'> }): Promise<unknown>;
   };
 }
 
@@ -101,6 +103,7 @@ export interface ArtespTariffReconcileSummary {
   readonly overridden: number;
   readonly excludedFreeFlow: number;
   readonly skippedMissingOsmTariff: number;
+  readonly freeFlowUpserts: number;
 }
 
 function asTariff(raw: unknown): TariffByAxleCategory | null {
@@ -131,6 +134,10 @@ export async function reconcileArtespTariffs(
   let excludedFreeFlow = 0;
   let skippedMissingOsmTariff = 0;
   const now = options.now ?? new Date();
+  for (const record of ARTESP_FREE_FLOW_RECORDS) {
+    const { id, ...data } = record;
+    await prisma.tollPlazaRecord.upsert({ where: { id }, create: { id, ...data, uf: 'SP', municipality: 'Não informado (ARTESP)', active: true, ingestedAt: now, source: 'artesp' }, update: { ...data, uf: 'SP', municipality: 'Não informado (ARTESP)', active: true, ingestedAt: now, source: 'artesp' } });
+  }
   for (const match of matches) {
     if (isNonComparableFreeFlow(match.artesp)) {
       excludedFreeFlow++;
@@ -146,5 +153,5 @@ export async function reconcileArtespTariffs(
     });
     overridden++;
   }
-  return { matched: matches.length, overridden, excludedFreeFlow, skippedMissingOsmTariff };
+  return { matched: matches.length, overridden, excludedFreeFlow, skippedMissingOsmTariff, freeFlowUpserts: ARTESP_FREE_FLOW_RECORDS.length };
 }

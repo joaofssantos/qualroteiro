@@ -221,4 +221,5 @@ model TollPlazaRecord {
 enum TollPlazaSource {
   antt
   osm
+  artesp
 }

@@ -93,8 +93,9 @@ describe('ARTESP tariff reconciliation', () => {
     const summary = await reconcileArtespTariffs({ tollPlazaRecord: {
       async findMany() { return rows.map((artesp, index) => ({ id: `osm-${index}`, concessionaire: 'ARTESP', name: artesp.plazaName, lat: -23, lng: -46, tariff })); },
       async update({ where }) { updates.push(where.id); },
+      async upsert() {},
     } }, { artespParseResult: { rows, excludedCatFormatCount: 0 }, now: new Date('2026-11-22T00:00:00Z') });
-    expect(summary).toMatchObject({ matched: 9, overridden: 1, excludedFreeFlow: 8, skippedMissingOsmTariff: 0 });
+    expect(summary).toMatchObject({ matched: 9, overridden: 1, excludedFreeFlow: 8, skippedMissingOsmTariff: 0, freeFlowUpserts: 8 });
     expect(updates).toEqual(['osm-8']);
   });
 });

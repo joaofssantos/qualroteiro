@@ -10,6 +10,8 @@ import {
 } from '../src/index.js';
 import type { TollPlaza } from '../src/index.js';
 
+const artespImigrantes2: TollPlaza = { id: 'artesp-free-flow-sp-021-imigrantes-2', name: 'ARTESP Imigrantes 2', concessionaire: 'Ecovias Imigrantes', highway: 'SP-021', km: 0, lat: -23.7180391, lng: -46.6059124, tariffByAxleCategory: { motorcycle: 2.7, car: 5.4, car_with_trailer: 5.4, truck_2_axle: 10.8, truck_3_axle: 16.2, truck_4_axle: 21.6, truck_5_axle: 27, truck_6_axle: 32.4 } };
+
 const dutra = getCorridor('sp-rj-dutra');
 const dutraPolyline = corridorPolyline('sp-rj-dutra');
 const bandeirantes = getCorridor('sp-campinas-bandeirantes');
@@ -150,6 +152,16 @@ describe('matchTolls — a route that passes nothing', () => {
       plazas: [],
       total: 0,
     });
+  });
+});
+
+describe('matchTolls — ARTESP Free Flow precedence', () => {
+  it('charges the ARTESP pórtico once instead of also charging the adjacent stale OSM record', () => {
+    const staleOsm: TollPlaza = { ...artespImigrantes2, id: 'osm-656016287', name: 'OSM Imigrantes 2', tariffByAxleCategory: { ...artespImigrantes2.tariffByAxleCategory!, car: 6 } };
+    const route: LineString = { type: 'LineString', coordinates: [[-46.6065, -23.7180391], [-46.6052, -23.7180391]] };
+    const result = matchTolls({ routeGeometry: route, axleCategory: 'car', plazas: [staleOsm, artespImigrantes2] });
+    expect(result.plazas.map((plaza) => plaza.id)).toEqual(['artesp-free-flow-sp-021-imigrantes-2']);
+    expect(result.total).toBe(5.4);
   });
 });
 

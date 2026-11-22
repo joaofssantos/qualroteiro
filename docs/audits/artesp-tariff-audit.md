@@ -60,14 +60,16 @@ como tarifa divergente.
 fonte regulatória e 8 falsos pares Free Flow explicitamente não comparáveis;
 portanto não permanece nenhuma divergência tarifária acionável nesse conjunto.
 
-### Limitação conhecida — Free Flow sem tarifa roteável
+### Pórticos Free Flow roteáveis
 
-Os pórticos reais de Free Flow **Santo Antônio de Posse, Engº Coelho PaP,
-Paulínia Jd. Betel, Indaiatuba, Itu 1, Jundiaí 2 e Imigrantes 2 e 3** seguem
-sem tarifa aplicável nas rotas. Eles não recebem registros novos nesta mudança:
-o pareamento OSM existente é incompleto ou representa outra praça/sentido.
-O cadastro e a modelagem tarifária desses pórticos ficam explicitamente para
-uma tarefa posterior.
+Os oito pórticos recebem registros independentes `source: 'artesp'` no mesmo
+pós-processamento da ingestão OSM. A tabela oficial ARTESP fornece nome, km,
+tarifa e vigência de **01/07/2025**; ela não fornece coordenadas. As coordenadas
+foram posicionadas na geometria da via no km oficial usando OpenStreetMap
+(© contribuidores OSM, ODbL 1.0); Santo Antônio de Posse também é conferido
+contra o exemplo público da Maplink. Imigrantes 2/3 preservam o ponto OSM
+co-localizado, mas a deduplicação de 100 m prefere a tarifa ARTESP e não soma
+os valores OSM divergentes R$ 6,00/R$ 9,60.
 
 ## Praças que divergem
 
