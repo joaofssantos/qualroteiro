@@ -24,6 +24,19 @@ export interface StubSource {
 
 type Listener = (...args: unknown[]) => void;
 
+/** A recorded `setPaintProperty` / `setLayoutProperty` call. */
+export interface StubStyleCall {
+  readonly id: string;
+  readonly prop: string;
+  readonly value: unknown;
+}
+
+/** Basemap layers the next constructed map reports from `getStyle()`. */
+let basemapLayers: Record<string, unknown>[] = [];
+export function setStubBasemap(layers: Record<string, unknown>[]): void {
+  basemapLayers = layers;
+}
+
 class Source implements StubSource {
   data: unknown;
 
@@ -97,7 +110,10 @@ export class StubMap {
   }
 
   getLayer(id: string): unknown {
-    return this.layers.find((l) => l.id === id);
+    return (
+      this.layers.find((l) => l.id === id) ??
+      this.styleLayers.find((l) => l['id'] === id)
+    );
   }
 
   removeLayer(id: string): void {
@@ -105,8 +121,19 @@ export class StubMap {
     if (index >= 0) this.layers.splice(index, 1);
   }
 
-  setPaintProperty(): void {}
-  setLayoutProperty(): void {}
+  readonly paintCalls: StubStyleCall[] = [];
+  readonly layoutCalls: StubStyleCall[] = [];
+  readonly styleLayers: Record<string, unknown>[] = structuredClone(basemapLayers);
+
+  setPaintProperty(id: string, prop: string, value: unknown): void {
+    this.paintCalls.push({ id, prop, value });
+  }
+  setLayoutProperty(id: string, prop: string, value: unknown): void {
+    this.layoutCalls.push({ id, prop, value });
+  }
+  getStyle(): { version: 8; sources: Record<string, unknown>; layers: Record<string, unknown>[] } {
+    return { version: 8, sources: {}, layers: this.styleLayers };
+  }
   addControl(): void {}
   resizeCalls = 0;
 
@@ -187,6 +214,7 @@ export function lastMap(): StubMap {
 
 export function resetMapStubs(): void {
   constructedMaps.length = 0;
+  basemapLayers = [];
 }
 
 class TrackedMap extends StubMap {

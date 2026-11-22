@@ -80,7 +80,9 @@
     --map-land: 40 25% 94%;
     --map-park: 110 30% 85%;
     --map-road: 0 0% 100%;
+    --map-road-casing: 40 12% 80%;
     --map-road-major: 38 80% 82%;
+    --map-road-major-casing: 38 45% 62%;
     --map-label: 209 25% 30%;
     --map-label-halo: 40 25% 96%;
     --route: 38 92% 50%;
@@ -155,8 +157,10 @@
     --map-land: 212 16% 18%;
     --map-park: 150 18% 20%;
     --map-road: 212 12% 27%;
+    --map-road-casing: 208 18% 11%;
     --map-road-major: 212 14% 34%;
-    --map-label: 210 16% 72%;
+    --map-road-major-casing: 210 17% 9%;
+    --map-label: 210 16% 82%;
     --map-label-halo: 212 20% 12%;
     --route: 38 95% 58%;
     --route-casing: 212 40% 6%;
@@ -200,10 +204,6 @@
     @apply !rounded-lg !border !border-border !shadow-sm;
   }
 
-  .dark .maplibregl-canvas {
-    filter: brightness(0.78) saturate(0.85);
-  }
-
   @media (min-width: 768px) {
     .map-content-panel {
       container-type: inline-size;
@@ -229,5 +229,37 @@
     .map-content-panel .activity-search-card {
       grid-column: span 1 / span 1 !important;
     }
+  }
+}
+
+/**
+ * Painel flutuante da Direção A. Mesmas compactações do `.map-content-panel`
+ * legado, mas sem `!important`: o seletor de 2 classes já vence as utilidades
+ * (`lg:grid-cols-*`, `px-*`) por especificidade.
+ */
+@layer components {
+  .floating-panel {
+    container-type: inline-size;
+  }
+
+  .floating-panel > * {
+    min-width: 0;
+  }
+
+  .floating-panel .map-panel-content,
+  .floating-panel .route-query-panel {
+    padding: 1rem;
+  }
+
+  .floating-panel .calculator-main-grid,
+  .floating-panel .calculator-form-grid,
+  .floating-panel .calculator-nearby-grid,
+  .floating-panel fieldset,
+  .floating-panel .grid-cols-2 {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .floating-panel .activity-search-card {
+    grid-column: span 1 / span 1;
   }
 }

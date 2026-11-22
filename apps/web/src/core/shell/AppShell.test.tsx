@@ -2,6 +2,7 @@ import { cleanup, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
+import { useLayoutStore } from '@/core/layout/layoutStore';
 import { renderApp, resetApp } from '@/test/renderApp';
 
 import { SIDEBAR_STORAGE_KEY } from './AppShell';
@@ -9,8 +10,10 @@ import { THEME_STORAGE_KEY } from './useTheme';
 
 let systemPrefersDark = false;
 
+// F6: o layout A tem shell próprio (ShellA.test.tsx); estes testes cobrem o LegacyShell, que o layout B ainda usa.
 beforeEach(() => {
   window.localStorage.clear();
+  useLayoutStore.setState({ layout: 'b' });
   document.documentElement.classList.remove('dark');
   systemPrefersDark = false;
   vi.stubGlobal(
