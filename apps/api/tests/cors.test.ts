@@ -7,7 +7,7 @@ import { describe, expect, it } from 'vitest';
 import { buildApp } from '../src/app.js';
 import { fakeGeocodeProvider, fakeRoutingProvider, fakeTollPlazaStore } from './helpers/fakes.js';
 
-function appWith(corsOrigins?: readonly string[]) {
+function appWith(corsOrigins?: readonly (string | RegExp)[]) {
   return buildApp({
     routing: fakeRoutingProvider(),
     geocode: fakeGeocodeProvider(),
@@ -29,6 +29,21 @@ describe('CORS', () => {
   it('does not grant access to an origin outside the allow-list', async () => {
     const app = appWith(['https://qualroteiro.vercel.app']);
     const res = await get(app, 'https://evil.example');
+    expect(res.headers['access-control-allow-origin']).toBeUndefined();
+  });
+
+  it('accepts a Vercel preview through an anchored subdomain pattern', async () => {
+    const app = appWith([/^https:\/\/qualroteiro-[a-z0-9-]+\.vercel\.app$/]);
+    const res = await get(app, 'https://qualroteiro-pr-61.vercel.app');
+    expect(res.headers['access-control-allow-origin']).toBe('https://qualroteiro-pr-61.vercel.app');
+  });
+
+  it.each([
+    'https://qualroteiro-x.vercel.app.evil.com',
+    'https://evil.com/qualroteiro-x.vercel.app',
+  ])('does not grant access when an origin only contains a preview hostname: %s', async (origin) => {
+    const app = appWith([/^https:\/\/qualroteiro-[a-z0-9-]+\.vercel\.app$/]);
+    const res = await get(app, origin);
     expect(res.headers['access-control-allow-origin']).toBeUndefined();
   });
 

@@ -8,7 +8,11 @@ services:
     startCommand: pnpm --filter @qualroteiro/api start
     healthCheckPath: /health
     envVars:
+      - key: NODE_VERSION
+        value: 20.19.0
       - key: DATABASE_URL
+        sync: false
+      - key: DIRECT_DATABASE_URL
         sync: false
       - key: ORS_API_KEY
         sync: false

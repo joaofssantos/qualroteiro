@@ -22,7 +22,40 @@ export const DEFAULT_ORS_BASE_URL = 'https://api.openrouteservice.org';
  * of `@fastify/cors`. In production, set `CORS_ORIGIN` to the Vercel origin
  * (or a comma-separated list of preview/production origins) instead.
  */
-export function readCorsOrigins(env: NodeJS.ProcessEnv = process.env): readonly string[] | undefined {
+export type CorsOrigin = string | RegExp;
+
+function previewPattern(origin: string): RegExp {
+  const wildcardCount = [...origin].filter((character) => character === '*').length;
+  let url: URL;
+  try {
+    url = new URL(origin);
+  } catch {
+    throw new Error(`CORS_ORIGIN contains an invalid preview pattern: ${origin}`);
+  }
+
+  const labels = url.hostname.split('.');
+  const wildcardLabel = labels.findIndex((label) => label.includes('*'));
+  if (
+    wildcardCount !== 1 ||
+    url.protocol !== 'https:' ||
+    url.pathname !== '/' ||
+    url.search ||
+    url.hash ||
+    wildcardLabel < 0 ||
+    wildcardLabel >= labels.length - 2
+  ) {
+    throw new Error(
+      `CORS_ORIGIN preview patterns must contain one '*' in a subdomain segment: ${origin}`,
+    );
+  }
+
+  // Escape every literal character before replacing the single allowed wildcard.
+  // This keeps a suffix such as `.evil.com` from matching a Vercel preview.
+  const escaped = origin.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  return new RegExp(`^${escaped.replace('\\*', '[a-z0-9-]+')}$`);
+}
+
+export function readCorsOrigins(env: NodeJS.ProcessEnv = process.env): readonly CorsOrigin[] | undefined {
   const raw = env['CORS_ORIGIN']?.trim();
   if (!raw) return undefined;
 
@@ -32,7 +65,7 @@ export function readCorsOrigins(env: NodeJS.ProcessEnv = process.env): readonly 
     .filter((origin) => origin.length > 0);
 
   if (origins.length === 0) return undefined;
-  return origins;
+  return origins.map((origin) => (origin.includes('*') ? previewPattern(origin) : origin));
 }
 
 /**

@@ -32,6 +32,12 @@ describe('readCorsOrigins', () => {
       }),
     ).toEqual(['https://qualroteiro.vercel.app', 'https://preview.vercel.app']);
   });
+
+  it('converts a one-segment Vercel preview wildcard into an anchored regex', () => {
+    const [origin] = readCorsOrigins({ CORS_ORIGIN: 'https://qualroteiro-*.vercel.app' })!;
+    expect(origin).toBeInstanceOf(RegExp);
+    expect(origin).toMatchObject({ source: '^https:\\/\\/qualroteiro-[a-z0-9-]+\\.vercel\\.app$' });
+  });
 });
 
 describe('readClerkEnv', () => {

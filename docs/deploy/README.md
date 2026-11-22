@@ -31,13 +31,14 @@ Guarde os valores no cofre antes de colá-los nos provedores, com referências
 
 | Variável | Necessária | Observação |
 | --- | --- | --- |
-| `DATABASE_URL` | Sim | Connection string do Neon, com SSL quando fornecido pelo Neon. |
+| `DATABASE_URL` | Sim | URL **pooled** do Neon (host com `-pooler`) e `?sslmode=require`, usada pela API. |
+| `DIRECT_DATABASE_URL` | Sim | URL direta do Neon, **sem** `-pooler` e com `?sslmode=require`, usada por `prisma migrate deploy` sem advisory-lock no pooler. |
 | `ORS_API_KEY` | Sim | Chave do OpenRouteService, usada somente pela API. |
 | `ORS_BASE_URL` | Não | Normalmente `https://api.openrouteservice.org`. |
 | `CLERK_SECRET_KEY` | Sim | Chave secreta de backend do Clerk. |
 | `GOOGLE_PLACES_API_KEY` | Sim | Chave server-side do Google Places (New). |
 | `GOOGLE_PLACES_SEARCH_MONTHLY_CAP` | Não | Limite mensal; se omitida, a API usa `4500`. |
-| `CORS_ORIGIN` | Sim em produção | URL do Vercel sem barra final; aceita várias URLs separadas por vírgula. |
+| `CORS_ORIGIN` | Sim em produção | URL do Vercel sem barra final; aceita várias URLs separadas por vírgula e um `*` em um único segmento de subdomínio (por exemplo, produção + `https://qualroteiro-*.vercel.app`). |
 | `PORT` | Não configurar | O Render injeta esta variável e a API já a lê. |
 
 `REDIS_URL`, `VALHALLA_URL` e `PHOTON_URL` **não são variáveis de runtime da
@@ -57,7 +58,7 @@ Photon são serviços locais legados e a API usa OpenRouteService em produção.
 
 1. Crie contas no Vercel, Render, Neon e Clerk (se ainda não existirem) e
    conecte todas ao GitHub. No Neon, crie um projeto PostgreSQL na região mais
-   próxima do Render e habilite PostGIS (`CREATE EXTENSION IF NOT EXISTS postgis;`).
+   próxima do Render. Habilitar PostGIS manualmente (`CREATE EXTENSION IF NOT EXISTS postgis;`) é opcional: a migration já executa `CREATE EXTENSION IF NOT EXISTS`.
 2. Guarde cada valor sensível no cofre, por exemplo
    `vault://qualroteiro-database-url`, `vault://qualroteiro-ors-api-key`,
    `vault://qualroteiro-clerk-secret-key` e
@@ -65,8 +66,11 @@ Photon são serviços locais legados e a API usa OpenRouteService em produção.
    nomes; não coloque o valor em issue, commit ou chat.
 3. No Render, crie um Blueprint a partir deste repositório. Ele encontrará
    `render.yaml`. Escolha a branch desejada e informe as variáveis de API da
-   tabela acima. Use a URL externa do Neon em `DATABASE_URL` e defina
-   `CORS_ORIGIN` depois de obter a URL do Vercel.
+   tabela acima. Em `DATABASE_URL`, use a URL pooled do Neon (host `-pooler`)
+   com `?sslmode=require`; em `DIRECT_DATABASE_URL`, a URL direta sem
+   `-pooler`, também com `?sslmode=require`. Defina `CORS_ORIGIN` depois de
+   obter a URL do Vercel, por exemplo
+   `https://qualroteiro.vercel.app,https://qualroteiro-*.vercel.app`.
 4. Faça o primeiro deploy da API no Render. O `buildCommand` compila a API e
    executa `prisma migrate deploy`, portanto as migrations versionadas chegam
    ao Neon antes da nova versão iniciar.
@@ -76,8 +80,9 @@ Photon são serviços locais legados e a API usa OpenRouteService em produção.
    gera `apps/web/dist` e redireciona rotas de SPA para `index.html`. Cadastre
    as variáveis da tabela Web e publique.
 7. Copie a URL final do Vercel para `CORS_ORIGIN` no Render e redeploy a API.
-   Se for validar preview, acrescente explicitamente a origem daquele preview
-   à lista separada por vírgulas; não use curingas.
+   Para previews da PR, inclua também o padrão de um único subdomínio
+   `https://qualroteiro-*.vercel.app`; ele não aceita domínios com sufixos ou
+   caminhos extras.
 8. No Clerk, abra a instância de produção e adicione o domínio Vercel em
    **Allowed origins/redirect URLs**. Configure também as URLs de sign-in e
    sign-up para esse domínio. Use a chave publicável no Vercel e a secreta no

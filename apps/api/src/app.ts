@@ -35,6 +35,7 @@ import { registerTripRoutes } from './routes/trips.js';
 import type { ApiUsageStore } from './store/api-usage.js';
 import type { TollPlazaStore } from './store/toll-plaza-store.js';
 import type { TripStore } from './store/trips.js';
+import type { CorsOrigin } from './env.js';
 
 /** Read a `statusCode` off an unknown thrown value, defaulting to 500. */
 function statusCodeOf(error: unknown): number {
@@ -78,7 +79,7 @@ export interface AppDeps {
   readonly apiUsage?: ApiUsageStore;
   readonly placesMonthlyCap?: number;
   /** Explicit browser origins for a deployed web app; omitted keeps dev open. */
-  readonly corsOrigins?: readonly string[];
+  readonly corsOrigins?: readonly CorsOrigin[];
   /** Passed straight to Fastify — tests silence the logger with `{ logger: false }`. */
   readonly fastifyOptions?: FastifyServerOptions;
 }
