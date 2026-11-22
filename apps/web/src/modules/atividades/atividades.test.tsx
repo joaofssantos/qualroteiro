@@ -61,6 +61,14 @@ const MUSEUM: PlaceResult = {
   lat: -22.8942,
   category: 'atividades',
 };
+const SECOND_MUSEUM: PlaceResult = {
+  id: 'museu-arte-rio',
+  name: 'Museu de Arte do Rio',
+  address: 'Praça Mauá, 5 - Centro, Rio de Janeiro - RJ',
+  lng: -43.1801,
+  lat: -22.8971,
+  category: 'atividades',
+};
 
 function json(body: unknown, status = 200): Response {
   return new Response(JSON.stringify(body), {
@@ -327,6 +335,49 @@ describe('Atividades module', () => {
         'day-1',
         expect.objectContaining({
           payload: expect.objectContaining({ address: 'Rua Nova, 123', lat: null, lng: null }),
+        }),
+      );
+    });
+  });
+
+  it('uses new coordinates when an activity is selected again after manually editing its address', async () => {
+    const user = userEvent.setup();
+    mockNearbyApi(() => json({ places: [MUSEUM, SECOND_MUSEUM] }));
+    const trips = await import('@/core/api/trips');
+
+    renderApp('/atividades');
+    await searchNearRio(user);
+    await user.click(await screen.findByRole('button', {
+      name: /Museu do Amanhã Praça Mauá, Rio de Janeiro - RJ/,
+    }));
+
+    const addressInput = screen.getByLabelText('Endereço');
+    await user.clear(addressInput);
+    await user.type(addressInput, 'Rua Nova, 123');
+
+    const referenceInput = screen.getByRole('combobox', { name: 'Buscar perto de' });
+    await user.clear(referenceInput);
+    await user.type(referenceInput, 'Rio');
+    await user.click(await screen.findByRole('option', { name: /Rio de Janeiro, RJ/ }));
+    await user.click(await screen.findByRole('button', {
+      name: /Museu de Arte do Rio Praça Mauá, 5/,
+    }));
+
+    await user.click(screen.getByRole('button', { name: 'Salvar na viagem' }));
+    const dialog = await screen.findByRole('dialog');
+    await user.click(within(dialog).getByRole('button', { name: 'Salvar' }));
+
+    await waitFor(() => {
+      expect(trips.createTripItem).toHaveBeenCalledWith(
+        getToken,
+        'trip-1',
+        'day-1',
+        expect.objectContaining({
+          payload: expect.objectContaining({
+            address: SECOND_MUSEUM.address,
+            lat: SECOND_MUSEUM.lat,
+            lng: SECOND_MUSEUM.lng,
+          }),
         }),
       );
     });

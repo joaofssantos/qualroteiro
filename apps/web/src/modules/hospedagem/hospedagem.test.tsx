@@ -20,6 +20,14 @@ const HOTEL: PlaceResult = {
   lng: -43.182,
   category: 'hospedagem',
 };
+const SECOND_HOTEL: PlaceResult = {
+  id: 'copacabana-palace',
+  name: 'Copacabana Palace',
+  address: 'Av. Atlântica, 1702 - Copacabana, Rio de Janeiro - RJ',
+  lat: -22.9675,
+  lng: -43.1801,
+  category: 'hospedagem',
+};
 
 const getToken = vi.fn(async () => 'session-token');
 
@@ -278,6 +286,48 @@ describe('Hospedagem module', () => {
         'day-1',
         expect.objectContaining({
           payload: expect.objectContaining({ address: 'Rua Nova, 123', lat: null, lng: null }),
+        }),
+      );
+    });
+  });
+
+  it('uses new coordinates when a stay is selected again after manually editing its address', async () => {
+    const user = userEvent.setup();
+    mockApi({ places: [REFERENCE], nearbyPlaces: [HOTEL, SECOND_HOTEL] });
+    const trips = await import('@/core/api/trips');
+
+    renderApp('/hospedagem');
+    const referenceInput = screen.getByLabelText('Cidade, bairro ou endereço');
+    await user.type(referenceInput, 'Rio');
+    await user.click(await screen.findByRole('option', { name: /Rio de Janeiro/ }));
+    let results = await screen.findByRole('list', { name: 'Hospedagens encontradas' });
+    await user.click(within(results).getByRole('button', { name: /Hotel Atlântico/ }));
+
+    const addressInput = screen.getByLabelText('Endereço');
+    await user.clear(addressInput);
+    await user.type(addressInput, 'Rua Nova, 123');
+
+    await user.clear(referenceInput);
+    await user.type(referenceInput, 'Rio');
+    await user.click(await screen.findByRole('option', { name: /Rio de Janeiro/ }));
+    results = await screen.findByRole('list', { name: 'Hospedagens encontradas' });
+    await user.click(within(results).getByRole('button', { name: /Copacabana Palace/ }));
+
+    await user.click(screen.getByRole('button', { name: 'Salvar na viagem' }));
+    const dialog = await screen.findByRole('dialog');
+    await user.click(within(dialog).getByRole('button', { name: 'Salvar' }));
+
+    await waitFor(() => {
+      expect(trips.createTripItem).toHaveBeenCalledWith(
+        getToken,
+        'trip-1',
+        'day-1',
+        expect.objectContaining({
+          payload: expect.objectContaining({
+            address: SECOND_HOTEL.address,
+            lat: SECOND_HOTEL.lat,
+            lng: SECOND_HOTEL.lng,
+          }),
         }),
       );
     });
