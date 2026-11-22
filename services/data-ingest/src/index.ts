@@ -97,6 +97,17 @@ export {
   type ComparisonCategory,
 } from './artesp-compare.js';
 export {
+  isNonComparableFreeFlow,
+  reconcileArtespTariffs,
+  resolveArtespTariffs,
+  tariffFromArtesp,
+  type ArtespReconciliationCause,
+  type ArtespTariffResolution,
+  type ArtespTariffReconcileClient,
+  type ArtespTariffReconcileOptions,
+  type ArtespTariffReconcileSummary,
+} from './artesp-reconcile.js';
+export {
   runArtespAudit,
   type ArtespAuditOptions,
   type ArtespAuditSummary,
