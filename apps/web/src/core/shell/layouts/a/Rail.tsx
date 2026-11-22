@@ -19,17 +19,15 @@ const ghostOnRail =
   'text-primary-foreground hover:bg-primary-foreground/10 hover:text-primary-foreground';
 
 /**
- * Trilho de navegação (76 px no desktop): um link por módulo, com ícone e rótulo
- * curto, e o rodapé de Ajustes/tema/conta. No mobile (F7 troca por TabBar) vira
- * uma barra horizontal no topo.
+ * Trilho de navegação (76 px, só desktop): um link por módulo, com ícone e rótulo
+ * curto, e o rodapé de Ajustes/tema/conta. No mobile o `TabBar` o substitui.
  */
 export function Rail({ items }: { items: readonly ModuleNavItem[] }) {
   return (
     <nav
       aria-label="Módulos"
       className={cn(
-        'app-sidebar relative z-20 flex shrink-0 items-center gap-2 border-border bg-primary px-3 py-2',
-        'border-b md:absolute md:inset-y-0 md:left-0 md:w-[76px] md:flex-col md:gap-1 md:border-b-0 md:border-r md:px-1.5 md:py-4',
+        'app-sidebar absolute inset-y-0 left-0 z-20 flex w-[76px] flex-col items-center gap-1 border-r border-border bg-primary px-1.5 py-4',
       )}
     >
       <span className="text-sm font-bold leading-none tracking-tight text-primary-foreground md:mb-3 md:text-center md:text-[11px]">
@@ -70,7 +68,7 @@ export function Rail({ items }: { items: readonly ModuleNavItem[] }) {
       <div className="ml-auto flex shrink-0 items-center gap-1 md:ml-0 md:mt-auto md:flex-col">
         <SettingsDialog triggerClassName={ghostOnRail} />
         <ThemeToggle className={ghostOnRail} />
-        <AuthSlot />
+        <AuthSlot compact />
       </div>
     </nav>
   );
