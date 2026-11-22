@@ -12,11 +12,15 @@ estrada (pedágio, combustível, frete ANTT) com o planejamento completo da viag
 apps/
   web/        React + Vite + TS + Tailwind + shadcn/ui + MapLibre GL
   api/        Fastify + Prisma + PostgreSQL/PostGIS
-packages/     módulos de domínio (routing, tolls, fuel, freight, itinerary,
-              places, activities, budget, converters, geo, pois, trips, ...)
+packages/
+  fuel/       cálculo de combustível
+  geo/        tipos e utilitários geográficos
+  routing/    contratos de roteamento
+  tolls/      cálculo de pedágios
+  trips/      planejamento de viagens
 services/
   data-ingest/  workers BullMQ (ANTT, ANP, DNIT, concessionárias, catálogo)
-infra/        docker-compose (postgres+postgis, redis, valhalla, photon)
+infra/        Docker Compose para PostgreSQL/PostGIS e Redis
 ```
 
 ## Liberação faseada
@@ -30,8 +34,8 @@ infra/        docker-compose (postgres+postgis, redis, valhalla, photon)
 Decisões técnicas em [`docs/decisions/0001-stack.md`](docs/decisions/0001-stack.md).
 
 - Monorepo: pnpm workspaces + Turborepo
-- Motor de rota: Valhalla self-hosted sobre extract OSM do Brasil
-- Geocoding: Photon (OSM)
+- Roteamento: OpenRouteService, acessado pela API
+- Geocoding: Google Places, usado pelo web
 
 ## AIPe
 
@@ -42,8 +46,22 @@ O onboarding é conduzido abrindo uma sessão do harness nesta pasta.
 
 ```sh
 pnpm install
-docker compose -f infra/docker-compose.yml up -d
-pnpm dev
+docker compose -f infra/docker-compose.yml up -d postgres
+pnpm --filter @qualroteiro/api prisma:migrate
 ```
 
-Requer Node 20+ e pnpm 9+.
+Em dois terminais, inicie API e web:
+
+```sh
+pnpm --filter @qualroteiro/api dev
+pnpm --filter @qualroteiro/web dev
+```
+
+O banco fica em `postgresql://qualroteiro:qualroteiro@localhost:5432/qualroteiro` por padrão.
+Para o worker contínuo de ingestão, suba também o Redis e execute
+`pnpm --filter @qualroteiro/data-ingest worker`. As importações avulsas não
+precisam do Redis.
+
+Requer Node 20+ e pnpm 9+. Configure as chaves de OpenRouteService, Clerk e
+Google Places conforme os arquivos `.env.example` de cada app antes de usar os
+recursos correspondentes.
