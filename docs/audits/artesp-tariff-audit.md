@@ -71,6 +71,10 @@ contra o exemplo público da Maplink. Imigrantes 2/3 preservam o ponto OSM
 co-localizado, mas a deduplicação de 100 m prefere a tarifa ARTESP e não soma
 os valores OSM divergentes R$ 6,00/R$ 9,60.
 
+Se uma falha de rede/PDF ocorrer após os upserts OSM, execute
+`pnpm --filter @qualroteiro/data-ingest reconcile:artesp:once` para reaplicar
+as tarifas ARTESP e os pórticos sem repetir a ingestão OSM.
+
 ## Praças que divergem
 
 | Praça ARTESP | Categoria | ARTESP | OSM | Diferença | % | Status |

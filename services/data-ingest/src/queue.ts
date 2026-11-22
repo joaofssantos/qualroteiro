@@ -95,8 +95,7 @@ export async function scheduleMonthlyOsmIngest(queue: Queue): Promise<void> {
 }
 
 /**
- * Creates the worker that runs `ingestTollPlazas` (ANTT) or
- * `ingestTollPlazas` (ANTT) or OSM ingestion followed by ARTESP tariff
+ * Creates the worker that runs `ingestTollPlazas` (ANTT) or OSM ingestion followed by ARTESP tariff
  * reconciliation depending on which job fired — dispatched by `Job.name`,
  * the two job names registered above within the one shared `QUEUE_NAME` queue
  * (see this module's doc-comment for why one queue).

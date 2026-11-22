@@ -87,6 +87,18 @@ describe('ARTESP tariff reconciliation', () => {
     expect(tariffFromArtesp(row(2, 'SP-332', 'ENGENHEIRO COELHO', 9.2, 4.6), tariff).motorcycle).toBe(4.6);
   });
 
+  it('uses the final official car values for all twelve conventional audit overrides', () => {
+    const finalValues = [
+      ['SP-191', 'RIO CLARO', 5], ['SP-340', 'JAGUARIÚNA', 17.6], ['SP-340', 'ESTIVA GERBI', 10.5],
+      ['SP-340', 'CASA BRANCA', 9.4], ['SP-350', 'ITOBI', 13.4], ['SP-127', 'RIO CLARO', 8.8],
+      ['SP-127', 'RIO DAS PEDRAS', 14.2], ['SP-150', 'RIACHO GRANDE', 38.7], ['SP-160', 'PIRATININGA', 38.7],
+      ['SP-332', 'ENGENHEIRO COELHO', 9.2], ['SP-308', 'RIO DAS PEDRAS', 11], ['SP-342', 'ESP. SANTO DO PINHAL', 13.1],
+    ] as const;
+    for (const [roadCode, plazaName, car] of finalValues) {
+      expect(tariffFromArtesp(row(0, roadCode, plazaName, car), tariff).car).toBe(car);
+    }
+  });
+
   it('persists only the 12 conventional matches; the eight Free Flow false matches are never overwritten', async () => {
     const rows = [...freeFlow, ['SP-191', 'RIO CLARO'] as const].map(([roadCode, plazaName], index) => row(index, roadCode, plazaName));
     const updates: string[] = [];
