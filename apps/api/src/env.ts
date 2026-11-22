@@ -15,6 +15,48 @@ export interface OrsEnv {
 
 export const DEFAULT_ORS_BASE_URL = 'https://api.openrouteservice.org';
 
+/** Default protection for the anonymous live route preview (120 requests/minute/IP). */
+export const DEFAULT_RATE_LIMIT_PLAN_MAX = 120;
+export const DEFAULT_RATE_LIMIT_PLAN_WINDOW_MS = 60_000;
+
+export interface PlanRateLimitEnv {
+  readonly enabled: boolean;
+  readonly max: number;
+  readonly timeWindow: number;
+}
+
+/**
+ * Read the rate limiter configuration for `POST /routes/plan`.
+ *
+ * The values stay at the composition root so tests can inject a small limit
+ * without mutating process-wide environment state. `RATE_LIMIT_PLAN_ENABLED=false`
+ * is intentionally useful for focused integration tests only; production is
+ * protected by default.
+ */
+export function readPlanRateLimitEnv(env: NodeJS.ProcessEnv = process.env): PlanRateLimitEnv {
+  const enabledValue = env['RATE_LIMIT_PLAN_ENABLED']?.trim().toLowerCase();
+  if (enabledValue !== undefined && enabledValue !== '' && enabledValue !== 'true' && enabledValue !== 'false') {
+    throw new Error('RATE_LIMIT_PLAN_ENABLED must be true or false.');
+  }
+
+  const readPositiveInteger = (name: string, defaultValue: number): number => {
+    const raw = env[name]?.trim();
+    if (raw === undefined || raw === '') return defaultValue;
+
+    const value = Number(raw);
+    if (!Number.isSafeInteger(value) || value <= 0) {
+      throw new Error(`${name} must be a positive integer, got '${raw}'.`);
+    }
+    return value;
+  };
+
+  return {
+    enabled: enabledValue !== 'false',
+    max: readPositiveInteger('RATE_LIMIT_PLAN_MAX', DEFAULT_RATE_LIMIT_PLAN_MAX),
+    timeWindow: readPositiveInteger('RATE_LIMIT_PLAN_WINDOW', DEFAULT_RATE_LIMIT_PLAN_WINDOW_MS),
+  };
+}
+
 /**
  * Read the OpenRouteService configuration.
  *

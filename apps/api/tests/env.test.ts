@@ -12,11 +12,38 @@ import { afterEach, describe, expect, it } from 'vitest';
 import {
   DEFAULT_GOOGLE_PLACES_SEARCH_MONTHLY_CAP,
   DEFAULT_ORS_BASE_URL,
+  DEFAULT_RATE_LIMIT_PLAN_MAX,
+  DEFAULT_RATE_LIMIT_PLAN_WINDOW_MS,
   loadDotEnvInto,
   readClerkEnv,
   readGooglePlacesEnv,
   readOrsEnv,
+  readPlanRateLimitEnv,
 } from '../src/env.js';
+
+describe('readPlanRateLimitEnv', () => {
+  it('defaults to an enabled, generous per-minute limit', () => {
+    expect(readPlanRateLimitEnv({})).toEqual({
+      enabled: true,
+      max: DEFAULT_RATE_LIMIT_PLAN_MAX,
+      timeWindow: DEFAULT_RATE_LIMIT_PLAN_WINDOW_MS,
+    });
+  });
+
+  it('reads overrides and permits disabling the limiter in isolated tests', () => {
+    expect(
+      readPlanRateLimitEnv({
+        RATE_LIMIT_PLAN_ENABLED: 'false',
+        RATE_LIMIT_PLAN_MAX: '3',
+        RATE_LIMIT_PLAN_WINDOW: '1000',
+      }),
+    ).toEqual({ enabled: false, max: 3, timeWindow: 1000 });
+  });
+
+  it.each(['0', '-1', 'nope'])('rejects an invalid request maximum (%s)', (max) => {
+    expect(() => readPlanRateLimitEnv({ RATE_LIMIT_PLAN_MAX: max })).toThrow(/RATE_LIMIT_PLAN_MAX/);
+  });
+});
 
 describe('readClerkEnv', () => {
   it('reads and trims CLERK_SECRET_KEY', () => {
