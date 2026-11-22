@@ -26,3 +26,7 @@ services:
         sync: false
       - key: CORS_ORIGIN
         sync: false
+      # Render is the one trusted reverse-proxy hop. This makes request.ip use
+      # the real client IP for POST /routes/plan's rate-limit bucket.
+      - key: TRUST_PROXY
+        value: 1

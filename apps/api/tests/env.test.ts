@@ -12,11 +12,16 @@ import { afterEach, describe, expect, it } from 'vitest';
 import {
   DEFAULT_GOOGLE_PLACES_SEARCH_MONTHLY_CAP,
   DEFAULT_ORS_BASE_URL,
+  DEFAULT_RATE_LIMIT_PLAN_MAX,
+  DEFAULT_RATE_LIMIT_PLAN_WINDOW_MS,
+  InvalidTrustProxyError,
   readCorsOrigins,
   loadDotEnvInto,
   readClerkEnv,
   readGooglePlacesEnv,
   readOrsEnv,
+  readPlanRateLimitEnv,
+  readTrustProxyEnv,
 } from '../src/env.js';
 
 describe('readCorsOrigins', () => {
@@ -84,6 +89,45 @@ describe('readCorsOrigins', () => {
     const [origin] = readCorsOrigins({ CORS_ORIGIN: 'https://qualroteiro-*.vercel.app' })!;
     expect(origin).toBeInstanceOf(RegExp);
     expect(origin).toMatchObject({ source: '^https:\\/\\/qualroteiro-[a-z0-9-]+\\.vercel\\.app$' });
+  });
+});
+
+describe('readPlanRateLimitEnv', () => {
+  it('defaults to an enabled, generous per-minute limit', () => {
+    expect(readPlanRateLimitEnv({})).toEqual({
+      enabled: true,
+      max: DEFAULT_RATE_LIMIT_PLAN_MAX,
+      timeWindow: DEFAULT_RATE_LIMIT_PLAN_WINDOW_MS,
+    });
+  });
+
+  it('reads overrides and permits disabling the limiter in isolated tests', () => {
+    expect(
+      readPlanRateLimitEnv({
+        RATE_LIMIT_PLAN_ENABLED: 'false',
+        RATE_LIMIT_PLAN_MAX: '3',
+        RATE_LIMIT_PLAN_WINDOW: '1000',
+      }),
+    ).toEqual({ enabled: false, max: 3, timeWindow: 1000 });
+  });
+
+  it.each(['0', '-1', 'nope'])('rejects an invalid request maximum (%s)', (max) => {
+    expect(() => readPlanRateLimitEnv({ RATE_LIMIT_PLAN_MAX: max })).toThrow(/RATE_LIMIT_PLAN_MAX/);
+  });
+});
+
+describe('readTrustProxyEnv', () => {
+  it('defaults to disabled and accepts a proxy hop count or CIDR allow-list', () => {
+    expect(readTrustProxyEnv({})).toEqual({ enabled: false, value: false });
+    expect(readTrustProxyEnv({ TRUST_PROXY: '1' })).toEqual({ enabled: true, value: 1 });
+    expect(readTrustProxyEnv({ TRUST_PROXY: '10.0.0.0/8, 2001:db8::/32' })).toEqual({
+      enabled: true,
+      value: ['10.0.0.0/8', '2001:db8::/32'],
+    });
+  });
+
+  it.each(['-1', '1.5', 'true', '10.0.0.0/99', 'not-a-proxy'])('rejects invalid values at boot (%s)', (value) => {
+    expect(() => readTrustProxyEnv({ TRUST_PROXY: value })).toThrow(InvalidTrustProxyError);
   });
 });
 

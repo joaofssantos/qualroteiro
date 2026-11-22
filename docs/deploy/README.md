@@ -39,6 +39,8 @@ Guarde os valores no cofre antes de colá-los nos provedores, com referências
 | `GOOGLE_PLACES_API_KEY` | Sim | Chave server-side do Google Places (New). |
 | `GOOGLE_PLACES_SEARCH_MONTHLY_CAP` | Não | Limite mensal; se omitida, a API usa `4500`. |
 | `CORS_ORIGIN` | Sim em produção | URL do Vercel sem barra final; aceita várias URLs separadas por vírgula e um `*` em um único segmento de subdomínio (por exemplo, produção + `https://qualroteiro-*.vercel.app`). |
+| `TRUST_PROXY` | Já definida em `render.yaml` (`1`) | Um salto de proxy (Render); veja a seção sobre proxy confiável abaixo. |
+| `RATE_LIMIT_PLAN_ENABLED`, `RATE_LIMIT_PLAN_MAX`, `RATE_LIMIT_PLAN_WINDOW` | Não | Limite de `POST /routes/plan` por IP (padrão: 120 requisições por 60000 ms). |
 | `PORT` | Não configurar | O Render injeta esta variável e a API já a lê. |
 
 `REDIS_URL`, `VALHALLA_URL` e `PHOTON_URL` **não são variáveis de runtime da
@@ -123,3 +125,20 @@ worker não faz parte deste deploy gratuito inicial.
   valores (`sync: false`).
 - `apps/api/package.json`: `prisma:migrate:deploy` para migrations seguras em
   produção.
+
+## Proxy confiável e limite de taxa (`TRUST_PROXY`)
+
+The API runs behind one Render reverse-proxy hop. `render.yaml` therefore sets
+`TRUST_PROXY=1`: Fastify trusts only that immediate proxy when resolving
+`request.ip`, so `POST /routes/plan` rate limits the real client rather than a
+single shared Render IP. Do not set this to `true` or a larger hop count unless
+the network topology is verified: it would let an untrusted `X-Forwarded-For`
+entry select a different rate-limit bucket.
+
+`TRUST_PROXY` is disabled by default outside Render. It accepts a positive hop
+count or a comma-separated CIDR allow-list. The rate-limit store is in memory
+per API process, so separate replicas do not share a bucket.
+
+Keep `DATABASE_URL`, `DIRECT_DATABASE_URL`, `ORS_API_KEY`,
+`CLERK_SECRET_KEY`, `GOOGLE_PLACES_API_KEY`, and `CORS_ORIGIN` as Render secret
+environment variables; do not commit their values.

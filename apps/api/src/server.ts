@@ -17,6 +17,8 @@ import {
   readCorsOrigins,
   readGooglePlacesEnv,
   readOrsEnv,
+  readPlanRateLimitEnv,
+  readTrustProxyEnv,
 } from './env.js';
 import { createGooglePlacesProvider } from './providers/google-places.js';
 import { createOrsGeocodeProvider } from './providers/ors-geocode.js';
@@ -34,6 +36,8 @@ const ors = readOrsEnv();
 const clerk = readClerkEnv();
 const googlePlaces = readGooglePlacesEnv();
 const corsOrigins = readCorsOrigins();
+const planRateLimit = readPlanRateLimitEnv();
+const trustProxy = readTrustProxyEnv();
 
 // Reads DATABASE_URL from the environment itself.
 const prisma = new PrismaClient();
@@ -48,7 +52,8 @@ const app = buildApp({
   apiUsage: createPrismaApiUsageStore(prisma),
   placesMonthlyCap: googlePlaces.searchMonthlyCap,
   corsOrigins,
-  fastifyOptions: { logger: true },
+  planRateLimit,
+  fastifyOptions: { logger: true, trustProxy: trustProxy.value },
 });
 
 // Close the pool on the way out so a restarting container does not leave

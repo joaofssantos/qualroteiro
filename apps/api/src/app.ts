@@ -12,6 +12,7 @@
 
 import Fastify, { type FastifyInstance, type FastifyServerOptions } from 'fastify';
 import cors from '@fastify/cors';
+import rateLimit from '@fastify/rate-limit';
 import type { GeocodeProvider } from '@qualroteiro/geo';
 import type { RoutingProvider } from '@qualroteiro/routing';
 
@@ -25,6 +26,7 @@ import {
   ValidationError,
 } from './errors.js';
 import type { GooglePlacesProvider } from './providers/google-places.js';
+import type { CorsOrigin, PlanRateLimitEnv } from './env.js';
 import { registerAdminPlacesUsageRoute } from './routes/admin-places-usage.js';
 import { registerAdminTollPlazasStatusRoute } from './routes/admin-toll-plazas-status.js';
 import { registerHealthRoute } from './routes/health.js';
@@ -35,7 +37,6 @@ import { registerTripRoutes } from './routes/trips.js';
 import type { ApiUsageStore } from './store/api-usage.js';
 import type { TollPlazaStore } from './store/toll-plaza-store.js';
 import type { TripStore } from './store/trips.js';
-import type { CorsOrigin } from './env.js';
 
 /** Read a `statusCode` off an unknown thrown value, defaulting to 500. */
 function statusCodeOf(error: unknown): number {
@@ -80,8 +81,13 @@ export interface AppDeps {
   readonly placesMonthlyCap?: number;
   /** Explicit browser origins for a deployed web app; omitted keeps dev open. */
   readonly corsOrigins?: readonly CorsOrigin[];
-  /** Passed straight to Fastify — tests silence the logger with `{ logger: false }`. */
-  readonly fastifyOptions?: FastifyServerOptions;
+  /** Limits anonymous `POST /routes/plan` traffic only. */
+  readonly planRateLimit?: PlanRateLimitEnv;
+  /** Passed to Fastify — tests silence the logger with `{ logger: false }`. */
+  readonly fastifyOptions?: Omit<FastifyServerOptions, 'trustProxy'> & {
+    /** Also accepts a hop count, the documented TRUST_PROXY shorthand. */
+    readonly trustProxy?: FastifyServerOptions['trustProxy'] | number;
+  };
 }
 
 /**
@@ -114,14 +120,42 @@ export function buildApp(deps: AppDeps): FastifyInstance {
     );
   }
 
-  const app = Fastify(deps.fastifyOptions ?? { logger: false });
+  const fastifyOptions = deps.fastifyOptions ?? { logger: false };
+  // Fastify 5 deliberately fails a numeric `trustProxy` closed. At the
+  // composition boundary we turn the documented hop-count form into the
+  // equivalent predicate, which trusts only the closest N peers (never every
+  // X-Forwarded-For value). CIDR lists are passed through unchanged.
+  const { trustProxy, ...baseFastifyOptions } = fastifyOptions;
+  const app = Fastify(
+    typeof trustProxy === 'number'
+      ? { ...baseFastifyOptions, trustProxy: (_address: string, index: number) => index < trustProxy }
+      : { ...baseFastifyOptions, ...(trustProxy === undefined ? {} : { trustProxy }) },
+  );
 
-  // The web app is cross-origin. Deployments pass the Vercel origin(s) through
-  // CORS_ORIGIN; tests and local development intentionally retain the previous
-  // permissive behaviour when no origin is configured.
+  // The web app is cross-origin; F1 is anonymous, so no credentials are needed.
+  // Deployments pass the Vercel origin(s) through CORS_ORIGIN; tests and local
+  // development keep the permissive behaviour when no origin is configured.
+  // Retry-After must be visible to the live-preview client when it receives a 429.
   void app.register(cors, {
-    origin: deps.corsOrigins === undefined ? true : [...deps.corsOrigins],
+    ...(deps.corsOrigins === undefined ? {} : { origin: [...deps.corsOrigins] }),
+    exposedHeaders: ['Retry-After'],
   });
+
+  const planRateLimit = deps.planRateLimit;
+  if (planRateLimit?.enabled) {
+    void app.register(rateLimit, {
+      global: false,
+      addHeaders: { 'retry-after': true },
+      errorResponseBuilder: (_request, context) =>
+        Object.assign(new Error('too many route planning requests; retry later'), {
+          statusCode: context.statusCode,
+        }),
+      onExceeded: (request) => {
+        // No metrics sink exists in this API yet; keep a structured, countable log event.
+        request.log.warn({ metric: 'http_rate_limit_429_total', route: '/routes/plan' }, 'rate limit exceeded');
+      },
+    });
+  }
 
   // Declared for every request so the property has a stable shape; only the
   // authenticated `/trips*` scope ever assigns to it.
@@ -161,10 +195,20 @@ export function buildApp(deps: AppDeps): FastifyInstance {
 
   registerHealthRoute(app);
   registerPlacesRoute(app, { geocode: deps.geocode });
-  registerPlanRoute(app, {
-    routing: deps.routing,
-    geocode: deps.geocode,
-    tollPlazas: deps.tollPlazas,
+  // Register after @fastify/rate-limit in Fastify's plugin queue. Its onRoute
+  // hook must be installed before this route is declared; keeping this nested
+  // also preserves buildApp's synchronous factory contract used by every test.
+  void app.register((planApp, _options, done) => {
+    registerPlanRoute(
+      planApp,
+      {
+        routing: deps.routing,
+        geocode: deps.geocode,
+        tollPlazas: deps.tollPlazas,
+      },
+      planRateLimit?.enabled ? planRateLimit : undefined,
+    );
+    done();
   });
   registerAdminTollPlazasStatusRoute(app, { tollPlazas: deps.tollPlazas });
 
