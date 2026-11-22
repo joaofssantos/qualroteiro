@@ -291,7 +291,7 @@ describe('Hospedagem module', () => {
     });
   });
 
-  it('uses new coordinates when a stay is selected again after manually editing its address', async () => {
+  it('clears stale coordinates before using new ones when a stay is selected again after a manual address edit', async () => {
     const user = userEvent.setup();
     mockApi({ places: [REFERENCE], nearbyPlaces: [HOTEL, SECOND_HOTEL] });
     const trips = await import('@/core/api/trips');
@@ -307,6 +307,22 @@ describe('Hospedagem module', () => {
     await user.clear(addressInput);
     await user.type(addressInput, 'Rua Nova, 123');
 
+    await user.click(screen.getByRole('button', { name: 'Salvar na viagem' }));
+    const firstDialog = await screen.findByRole('dialog');
+    await user.click(within(firstDialog).getByRole('button', { name: 'Salvar' }));
+
+    await waitFor(() => {
+      expect(trips.createTripItem).toHaveBeenLastCalledWith(
+        getToken,
+        'trip-1',
+        'day-1',
+        expect.objectContaining({
+          payload: expect.objectContaining({ address: 'Rua Nova, 123', lat: null, lng: null }),
+        }),
+      );
+    });
+    await user.click(within(firstDialog).getAllByRole('button', { name: 'Fechar' })[0]!);
+
     await user.clear(referenceInput);
     await user.type(referenceInput, 'Rio');
     await user.click(await screen.findByRole('option', { name: /Rio de Janeiro/ }));
@@ -318,7 +334,7 @@ describe('Hospedagem module', () => {
     await user.click(within(dialog).getByRole('button', { name: 'Salvar' }));
 
     await waitFor(() => {
-      expect(trips.createTripItem).toHaveBeenCalledWith(
+      expect(trips.createTripItem).toHaveBeenLastCalledWith(
         getToken,
         'trip-1',
         'day-1',
