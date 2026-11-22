@@ -2,9 +2,10 @@
  * `ingest-toll-plazas-osm`'s core logic: download (or accept injected
  * Overpass nodes) -> cluster -> parse tariff -> upsert `source: 'osm'` ->
  * structured log. Same shape as `ingest.ts` (the ANTT job) — no BullMQ/Redis
- * dependency here, so both the on-demand CLI (`cli-osm.ts`) and the
- * scheduled worker (`queue.ts`) call this, and tests exercise it directly
- * against a fake Prisma client and injected Overpass nodes.
+ * dependency here. The on-demand CLI (`cli-osm.ts`) and scheduled worker
+ * (`queue.ts`) invoke this before ARTESP reconciliation; tests exercise the
+ * raw OSM phase directly against a fake Prisma client and injected Overpass
+ * nodes.
  *
  * ## Tag-to-column mapping, and why several columns are honest sentinels
  *

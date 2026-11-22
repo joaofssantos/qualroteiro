@@ -53,6 +53,12 @@ export {
   type OsmTollPlazaUpsertClient,
 } from './osm-toll-plazas.js';
 export {
+  ingestOsmAndReconcileArtesp,
+  type OsmArtespReconcileClient,
+  type OsmArtespReconcileOptions,
+  type OsmArtespReconcileSummary,
+} from './osm-artesp-reconcile.js';
+export {
   QUEUE_NAME,
   JOB_NAME,
   REPEATABLE_JOB_ID,

@@ -1,13 +1,15 @@
 import { describe, expect, it } from 'vitest';
 
 import { reconcileArtespTariffs, resolveArtespTariffs, tariffFromArtesp } from '../src/artesp-reconcile.js';
+import { ingestOsmAndReconcileArtesp, type OsmArtespReconcileClient } from '../src/osm-artesp-reconcile.js';
+import { ingestOsmTollPlazas } from '../src/osm-toll-plazas.js';
 import type { ArtespParseResult, ArtespTollRow } from '../src/artesp-pdf.js';
 import type { OsmTollPlazaCandidate } from '../src/artesp-match.js';
 
 const tariff = { motorcycle: 1, car: 2, car_with_trailer: 2, truck_2_axle: 4, truck_3_axle: 6, truck_4_axle: 8, truck_5_axle: 10, truck_6_axle: 12 } as const;
 
-function row(index: number, roadCode: string, plazaName: string): ArtespTollRow {
-  return { id: `artesp-${index}`, concessionaire: 'ARTESP', roadCode, roadName: 'Rodovia', plazaName, kmRaw: '001+000', km: 1, tariffPasseio: 10 + index, tariffComercialPorEixo: 10 + index, tariffMotos: (10 + index) / 2 };
+function row(index: number, roadCode: string, plazaName: string, tariffPasseio = 5, tariffMotos: number | undefined = 2.5): ArtespTollRow {
+  return { id: `artesp-${index}`, concessionaire: 'ARTESP', roadCode, roadName: 'Rodovia', plazaName, kmRaw: '001+000', km: 1, tariffPasseio, tariffComercialPorEixo: tariffPasseio, tariffMotos };
 }
 
 const freeFlow = [
@@ -18,6 +20,48 @@ const freeFlow = [
 ] as const;
 
 describe('ARTESP tariff reconciliation', () => {
+  it('keeps the ARTESP override after a later OSM ingestion', async () => {
+    const rows = new Map<string, Record<string, unknown>>();
+    const client: OsmArtespReconcileClient = {
+      tollPlazaRecord: {
+        async upsert({ where, create, update }) {
+          rows.set(where.id, { ...(rows.get(where.id) ?? create), ...(rows.has(where.id) ? update : {}) });
+        },
+        async findMany() {
+          return [...rows.values()].map((record) => ({
+            id: record.id as string, concessionaire: record.concessionaire as string,
+            name: record.name as string, lat: record.lat as number, lng: record.lng as number,
+            tariff: record.tariff,
+          }));
+        },
+        async update({ where, data }) {
+          rows.set(where.id, { ...rows.get(where.id), ...data });
+        },
+      },
+    };
+    const nodes = [{
+      type: 'node' as const, id: 191, lat: -22.4, lon: -47.5,
+      tags: { operator: 'ARTESP', name: 'RIO CLARO', charge: '11.60BRL/motorcar;0.00BRL/motorcycle;11.60BRL/hgv/axle' },
+    }];
+    const artespParseResult: ArtespParseResult = {
+      rows: [{
+        id: 'artesp-rio-claro', concessionaire: 'ARTESP', roadCode: 'SP-191', roadName: 'Rodovia',
+        plazaName: 'RIO CLARO', kmRaw: '001+000', km: 1, tariffPasseio: 5, tariffComercialPorEixo: 5,
+      }], excludedCatFormatCount: 0,
+    };
+
+    await ingestOsmTollPlazas(client, { nodes });
+    expect(rows.get('osm-191')?.tariff).toMatchObject({ car: 11.6, motorcycle: 0 });
+
+    await reconcileArtespTariffs(client, { artespParseResult });
+    expect(rows.get('osm-191')?.tariff).toMatchObject({ car: 5, motorcycle: 0 });
+
+    // The production OSM entrypoints use this combined path after every later
+    // OSM upsert, so its ARTESP pass must restore the earlier override.
+    await ingestOsmAndReconcileArtesp(client, { osm: { nodes }, artesp: { artespParseResult } });
+    expect(rows.get('osm-191')?.tariff).toMatchObject({ car: 5, motorcycle: 0 });
+  });
+
   it('classifies all 20 audited divergences: 12 official-tariff overrides and 8 Free Flow false matches', () => {
     const conventional = [
       ['SP-191', 'RIO CLARO'], ['SP-340', 'JAGUARIÚNA'], ['SP-340', 'ESTIVA GERBI'], ['SP-340', 'CASA BRANCA'],
@@ -34,10 +78,13 @@ describe('ARTESP tariff reconciliation', () => {
     expect(resolutions.filter((r) => r.cause === 'free-flow-wrong-osm-match')).toHaveLength(8);
   });
 
-  it('uses ARTESP for car, axle-derived trucks and declared motorcycle fares', () => {
-    expect(tariffFromArtesp(row(0, 'SP-191', 'RIO CLARO'), tariff)).toEqual({
-      motorcycle: 5, car: 10, car_with_trailer: 10, truck_2_axle: 20, truck_3_axle: 30, truck_4_axle: 40, truck_5_axle: 50, truck_6_axle: 60,
+  it('uses audited ARTESP fares for car and axle-derived trucks, preserving motos when ARTESP omits them', () => {
+    const rioClaro = { ...row(0, 'SP-191', 'RIO CLARO', 5), tariffMotos: undefined };
+    expect(tariffFromArtesp(rioClaro, tariff)).toEqual({
+      motorcycle: 1, car: 5, car_with_trailer: 5, truck_2_axle: 10, truck_3_axle: 15, truck_4_axle: 20, truck_5_axle: 25, truck_6_axle: 30,
     });
+    expect(tariffFromArtesp(row(1, 'SP-340', 'JAGUARIÚNA', 17.6, undefined), tariff).car).toBe(17.6);
+    expect(tariffFromArtesp(row(2, 'SP-332', 'ENGENHEIRO COELHO', 9.2, 4.6), tariff).motorcycle).toBe(4.6);
   });
 
   it('persists only the 12 conventional matches; the eight Free Flow false matches are never overwritten', async () => {

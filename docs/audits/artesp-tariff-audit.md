@@ -19,6 +19,13 @@ Limiar de divergência: > R$ 1.00 OU > 10% (o que for mais sensível no valor em
 
 ## Resolução das 20 divergências (2026-11-22)
 
+### Fonte e vigência do reajuste
+
+- PDF usado: [ARTESP — Pedágios concedidos com tarifa quilométrica no Estado de São Paulo — 2025](https://www.artesp.sp.gov.br/dx/api/dam/v1/collections/aa4b6398-685b-4dba-8fab-8dc3a0fe9c27/items/0a8ff7b8-005b-4a04-a152-c69236f1f15d/renditions/53b3922a-a33b-40f6-9e4c-46a6771e681d?binary=true).
+- Vigência do reajuste refletido neste PDF: 1º de julho de 2025. É um
+  snapshot regulatório de 2025, usado para explicar e reproduzir este audit;
+  não deve ser interpretado como a tarifa vigente em uma consulta posterior.
+
 O comparativo acima é o retrato bruto de 2026-09-17. A reconciliação
 `reconcileArtespTariffs` usa o PDF da ARTESP como fonte tarifária para as
 praças estaduais convencionais; OSM continua sendo a fonte de geometria e
@@ -52,6 +59,15 @@ como tarifa divergente.
 **Antes/depois:** 20 divergências brutas → 12 tarifas reconciliadas pela
 fonte regulatória e 8 falsos pares Free Flow explicitamente não comparáveis;
 portanto não permanece nenhuma divergência tarifária acionável nesse conjunto.
+
+### Limitação conhecida — Free Flow sem tarifa roteável
+
+Os pórticos reais de Free Flow **Santo Antônio de Posse, Engº Coelho PaP,
+Paulínia Jd. Betel, Indaiatuba, Itu 1, Jundiaí 2 e Imigrantes 2 e 3** seguem
+sem tarifa aplicável nas rotas. Eles não recebem registros novos nesta mudança:
+o pareamento OSM existente é incompleto ou representa outra praça/sentido.
+O cadastro e a modelagem tarifária desses pórticos ficam explicitamente para
+uma tarefa posterior.
 
 ## Praças que divergem
 
