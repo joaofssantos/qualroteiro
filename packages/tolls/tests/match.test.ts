@@ -44,13 +44,17 @@ describe('matchTolls — SP–RJ (Presidente Dutra) corridor', () => {
 
     expect(duplicatedSourceRows).toHaveLength(70);
 
-    const { plazas } = matchTolls({
+    const { plazas, total } = matchTolls({
       routeGeometry: dutraPolyline,
       axleCategory: 'car',
       plazas: duplicatedSourceRows,
     });
 
     expect(plazas).toHaveLength(6);
+    expect(total).toBeCloseTo(
+      physicalPoints.reduce((sum, plaza) => sum + (plaza.tariffByAxleCategory?.car ?? 0), 0),
+      2,
+    );
   });
 
   it('returns exactly the Dutra plazas for the Dutra reference polyline', () => {
