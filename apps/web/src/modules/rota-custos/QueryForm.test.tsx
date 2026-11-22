@@ -197,6 +197,18 @@ describe('QueryForm', () => {
     expect(last.destination).toEqual({ text: 'Cam', place: null });
   });
 
+  it('controles pequenos têm alvo de toque >= 44 px no mobile (min-h-11/min-w-11)', async () => {
+    const { user } = setup();
+    await user.click(screen.getByRole('button', { name: /adicionar parada/i }));
+    for (const name of [/inverter origem e destino/i, /adicionar parada/i, /remover parada 1/i]) {
+      const button = screen.getByRole('button', { name });
+      expect(button.className, String(name)).toMatch(/\bmin-h-11\b/);
+    }
+    for (const name of [/inverter origem e destino/i, /remover parada 1/i]) {
+      expect(screen.getByRole('button', { name }).className).toMatch(/\bmin-w-11\b/);
+    }
+  });
+
   it('variant só muda a grade: mesmos campos nos dois', () => {
     mockApi();
     const { unmount } = render(<QueryForm variant="hero" onSubmitted={() => undefined} />);

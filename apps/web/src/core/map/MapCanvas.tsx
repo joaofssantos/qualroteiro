@@ -73,6 +73,7 @@ function markerElement(
   const size = numbered ? 24 : 16;
   const button = document.createElement('button');
   button.type = 'button';
+  button.className = 'map-pin';
   button.setAttribute('aria-label', label);
   button.title = label;
   if (numbered) button.textContent = String(index);

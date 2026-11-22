@@ -200,6 +200,23 @@
     @apply !bg-card/80 !text-[10px] !text-muted-foreground;
   }
 
+  /* Alvos de toque de 44 px no mobile: pinos ganham uma área invisível maior; zoom cresce. */
+  @media (max-width: 767px) {
+    .map-pin::after {
+      content: '';
+      position: absolute;
+      left: 50%;
+      top: 50%;
+      width: 44px;
+      height: 44px;
+      transform: translate(-50%, -50%);
+    }
+    .maplibregl-ctrl-group button {
+      width: 44px;
+      height: 44px;
+    }
+  }
+
   .maplibregl-ctrl-group {
     @apply !rounded-lg !border !border-border !shadow-sm;
   }

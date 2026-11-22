@@ -49,4 +49,12 @@ describe('ShellB (integração, MapLibre stub)', () => {
     expect(screen.getAllByRole('region', { name: 'Mapa da rota' })).toHaveLength(1);
     expect(constructedMaps).toHaveLength(1);
   });
+
+  it('a barra superior usa a cor de sidebar (app-sidebar): no escuro o logo não some sobre o primário claro', async () => {
+    useLayoutStore.setState({ layout: 'b' });
+    renderApp('/rota-custos');
+
+    const [topBar] = await screen.findAllByRole('banner', undefined, { timeout: 3000 });
+    expect(topBar).toHaveClass('app-sidebar');
+  });
 });

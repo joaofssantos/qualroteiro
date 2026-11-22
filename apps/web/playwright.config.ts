@@ -2,6 +2,8 @@ import { defineConfig } from '@playwright/test';
 
 export default defineConfig({
   testDir: './e2e',
+  // Os specs de layout (A/B) usam o modo demo e têm configuração própria.
+  testIgnore: /[\\/]e2e[\\/]layout-[^\\/]*\.spec\.ts$/,
   fullyParallel: false,
   reporter: 'line',
   use: {

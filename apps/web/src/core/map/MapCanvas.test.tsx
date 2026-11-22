@@ -1,3 +1,6 @@
+import { readFileSync } from 'node:fs';
+import { join } from 'node:path';
+
 import { act, render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
@@ -72,6 +75,15 @@ describe('MapCanvas', () => {
 
     expect(await screen.findByRole('button', { name: /Pedágio Guararema/ })).toBeInTheDocument();
     expect(await screen.findByRole('button', { name: /Pedágio Viúva Graça/ })).toBeInTheDocument();
+  });
+
+  it('cada pino leva a classe map-pin, que no mobile estende a área de toque a 44 px (index.css)', async () => {
+    render(<MapCanvas trace={TRACE} layers={[tollLayer(true)]} />);
+    const pin = await screen.findByRole('button', { name: /Pedágio Guararema/ });
+    expect(pin).toHaveClass('map-pin');
+    const css = readFileSync(join(__dirname, '..', '..', 'index.css'), 'utf8');
+    expect(css).toMatch(/\.map-pin::after\s*\{[^}]*width:\s*44px[^}]*height:\s*44px/);
+    expect(css).toMatch(/\.maplibregl-ctrl-group button[^{]*\{[^}]*(width|height):\s*44px/);
   });
 
   it('removes those markers when the layer is toggled off, and restores them', async () => {
