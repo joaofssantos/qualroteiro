@@ -53,6 +53,12 @@ export {
   type OsmTollPlazaUpsertClient,
 } from './osm-toll-plazas.js';
 export {
+  ingestOsmAndReconcileArtesp,
+  type OsmArtespReconcileClient,
+  type OsmArtespReconcileOptions,
+  type OsmArtespReconcileSummary,
+} from './osm-artesp-reconcile.js';
+export {
   QUEUE_NAME,
   JOB_NAME,
   REPEATABLE_JOB_ID,
@@ -96,6 +102,17 @@ export {
   type DivergenceThreshold,
   type ComparisonCategory,
 } from './artesp-compare.js';
+export {
+  isNonComparableFreeFlow,
+  reconcileArtespTariffs,
+  resolveArtespTariffs,
+  tariffFromArtesp,
+  type ArtespReconciliationCause,
+  type ArtespTariffResolution,
+  type ArtespTariffReconcileClient,
+  type ArtespTariffReconcileOptions,
+  type ArtespTariffReconcileSummary,
+} from './artesp-reconcile.js';
 export {
   runArtespAudit,
   type ArtespAuditOptions,
