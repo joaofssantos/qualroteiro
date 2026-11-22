@@ -290,14 +290,16 @@ describe('Tela 2 — resultado', () => {
     );
   });
 
-  it('publica o índice de cada praça no marcador (número = índice + 1)', async () => {
+  it('o pino de cada praça mostra o mesmo número da lista (1-based)', async () => {
     await planFromForm({ routes: [DUTRA_ROUTE] });
     await screen.findByRole('heading', { name: /resultado da rota/i });
 
     const tolls = useMapStore.getState().layers.find((layer) => layer.id === 'tolls');
     expect(tolls?.markers.map((marker) => marker.index)).toEqual(
-      DUTRA_ROUTE.points.tolls.map((_, index) => index),
+      DUTRA_ROUTE.points.tolls.map((_, index) => index + 1),
     );
+    const first = map().getByRole('button', { name: new RegExp(firstPlaza.name) });
+    expect(first).toHaveTextContent(/^1$/);
   });
 
   it('avisa tarifa indisponível e trata o total como parcial', async () => {

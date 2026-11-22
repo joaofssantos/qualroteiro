@@ -62,7 +62,9 @@ export function RotaCustosLayout() {
           ...layer,
           markers: route.points.tolls.map((plaza, index) => ({
             id: plaza.id,
-            index,
+            // O mapa mostra o número como recebido (MapMarkerSpec.index): 1-based,
+            // igual ao da lista de praças (TollRow mostra `index + 1`).
+            index: index + 1,
             lng: plaza.lng,
             lat: plaza.lat,
             label: `${plaza.name} - ${
