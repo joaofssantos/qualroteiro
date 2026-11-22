@@ -102,7 +102,7 @@ export function ShellA({ children }: { children: ReactNode }) {
   if (mobile) {
     return (
       <div className="relative h-screen overflow-hidden bg-background">
-        <div className="fixed right-2 top-2 z-30 flex items-center gap-1 rounded-full bg-primary px-1 py-0.5 shadow-md">
+        <div className="fixed left-2 top-2 z-30 flex items-center gap-1 rounded-full bg-primary px-1 py-0.5 shadow-md">
           <DemoBadge />
           <SettingsDialog triggerClassName={cn('min-h-11 min-w-11', ghostOnBar)} />
           <ThemeToggle className={cn('min-h-11 min-w-11', ghostOnBar)} />
