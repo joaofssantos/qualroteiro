@@ -6,7 +6,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { useLayoutStore } from '@/core/layout/layoutStore';
 import { useMapStore } from '@/core/map/mapStore';
 import { useRouteStore } from '@/core/store/routeStore';
-import { clearPreviewCache } from '@/modules/rota-custos/usePlanPreview';
+import { clearPreviewCache } from '../usePlanPreview';
 import { DUTRA_ROUTE, RIO_DE_JANEIRO, SAO_PAULO } from '@/test/fixtures';
 import { mockApi, resetApp } from '@/test/renderApp';
 

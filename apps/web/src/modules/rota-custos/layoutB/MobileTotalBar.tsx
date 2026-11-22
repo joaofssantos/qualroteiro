@@ -1,5 +1,5 @@
 import type { PlannedRoute } from '@/core/api/types';
-import { SaveRouteToTripDialog } from '@/modules/rota-custos/SaveRouteToTripDialog';
+import { SaveRouteToTripDialog } from '../SaveRouteToTripDialog';
 import { formatCurrency } from '@/lib/format';
 
 /** Barra fixa inferior (mobile): total sempre à vista + Salvar. */

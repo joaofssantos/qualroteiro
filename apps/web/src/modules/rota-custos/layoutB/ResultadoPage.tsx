@@ -10,22 +10,22 @@ import {
 import { Button } from '@/components/ui/button';
 import type { TollPlaza } from '@/core/api/types';
 import { selectActiveRoute, useRouteStore } from '@/core/store/routeStore';
-import { deriveAlternativeLabels } from '@/modules/rota-custos/blocks/deriveAlternativeLabels';
+import { deriveAlternativeLabels } from '../blocks/deriveAlternativeLabels';
 import {
   FUEL_STATION_LAYER_ID,
   MODULE_PATH,
   TOLL_LAYER_ID,
-} from '@/modules/rota-custos/module';
-import { FuelPanel } from '@/modules/rota-custos/panels/FuelPanel';
-import { PointsPanel } from '@/modules/rota-custos/panels/PointsPanel';
-import { SummaryRow } from '@/modules/rota-custos/panels/SummaryRow';
-import { TollsPanel } from '@/modules/rota-custos/panels/TollsPanel';
-import { SaveRouteToTripDialog } from '@/modules/rota-custos/SaveRouteToTripDialog';
+} from '../module';
+import { FuelPanel } from '../panels/FuelPanel';
+import { PointsPanel } from '../panels/PointsPanel';
+import { SummaryRow } from '../panels/SummaryRow';
+import { TollsPanel } from '../panels/TollsPanel';
+import { SaveRouteToTripDialog } from '../SaveRouteToTripDialog';
 
-import { CompareTable } from './CompareTable';
-import { MapCard } from './MapCard';
+import { CompareTable } from '@/core/shell/layouts/b/CompareTable';
+import { MapCard } from '@/core/shell/layouts/b/MapCard';
 import { MobileTotalBar } from './MobileTotalBar';
-import { useIsMobile } from './useIsMobile';
+import { useIsMobile } from '@/core/shell/shared/useIsMobile';
 
 /**
  * Resultado como página (layout B): KPIs no topo, mapa em cartão ao lado das

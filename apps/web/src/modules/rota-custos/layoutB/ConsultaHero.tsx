@@ -3,10 +3,10 @@ import { useNavigate } from 'react-router-dom';
 
 import { MapSlot } from '@/core/layout/MapHost';
 import { useMapStore } from '@/core/map/mapStore';
-import { MODULE_PATH } from '@/modules/rota-custos/module';
-import { QueryForm } from '@/modules/rota-custos/QueryForm';
+import { useIsMobile } from '@/core/shell/shared/useIsMobile';
 
-import { useIsMobile } from './useIsMobile';
+import { MODULE_PATH } from '../module';
+import { QueryForm } from '../QueryForm';
 
 /** Largura reservada ao cartão da consulta (px) sobre o mapa, no desktop. */
 const HERO_CARD_PX = 600;

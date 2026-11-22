@@ -1,8 +1,10 @@
 import { Route as RouteIcon } from 'lucide-react';
-import { useEffect } from 'react';
+import { type ComponentType, lazy, useEffect } from 'react';
 import { Route, Routes, useOutletContext } from 'react-router-dom';
 
-import { useLayoutComposition } from '@/core/layout/composition';
+import type { TollPlaza } from '@/core/api/types';
+import type { LayoutId } from '@/core/layout/layoutConfig';
+import { useLayoutStore } from '@/core/layout/layoutStore';
 
 import type { ModuleDefinition } from '@/core/registry/types';
 import { useRouteStore } from '@/core/store/routeStore';
@@ -20,16 +22,46 @@ import { MODULE_PATH, ROTA_CUSTOS_LAYERS } from './module';
  * declares the map layers it contributes, and registers them with the core's
  * layer manager on mount.
  */
-/** Tela de consulta do layout ativo (a padrão, se o shell não oferece outra). */
+/**
+ * Composição por layout (spec §4.4): as telas são composições finas dos mesmos
+ * blocos. O layout B oferece as suas; os demais usam as telas padrão. `lazy`
+ * mantém as telas do B fora do chunk inicial.
+ */
+interface Composition {
+  Consulta: ComponentType;
+  Resultado: ComponentType<{ onSelectPlaza(plaza: TollPlaza | null): void }>;
+}
+
+const DEFAULT_COMPOSITION: Composition = {
+  Consulta: NewQueryScreen,
+  Resultado: () => <ResultScreen />,
+};
+
+const LayoutBConsulta = lazy(() =>
+  import('./layoutB/ConsultaHero').then((m) => ({ default: m.ConsultaHero })),
+);
+const LayoutBResultado = lazy(() =>
+  import('./layoutB/ResultadoPage').then((m) => ({ default: m.ResultadoPage })),
+);
+
+const COMPOSITIONS: Partial<Record<LayoutId, Composition>> = {
+  b: { Consulta: LayoutBConsulta, Resultado: LayoutBResultado },
+};
+
+function useComposition(): Composition {
+  const layout = useLayoutStore((s) => s.layout);
+  return COMPOSITIONS[layout] ?? DEFAULT_COMPOSITION;
+}
+
 function ConsultaRoute() {
-  const { Consulta } = useLayoutComposition();
-  return Consulta ? <Consulta /> : <NewQueryScreen />;
+  const { Consulta } = useComposition();
+  return <Consulta />;
 }
 
 function ResultadoRoute() {
-  const { Resultado } = useLayoutComposition();
+  const { Resultado } = useComposition();
   const { onSelectPlaza } = useOutletContext<RotaCustosOutletContext>();
-  return Resultado ? <Resultado onSelectPlaza={onSelectPlaza} /> : <ResultScreen />;
+  return <Resultado onSelectPlaza={onSelectPlaza} />;
 }
 
 function RotaCustosPanel() {
