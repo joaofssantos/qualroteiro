@@ -1,0 +1,69 @@
+/* Direction B — "Custos em primeiro plano" (página de resultado em grade) */
+.top{display:flex;align-items:center;gap:20px;height:60px;padding:0 24px;background:hsl(var(--surface));border-bottom:1px solid hsl(var(--border));position:sticky;top:0;z-index:20}
+.top .logo{font-weight:800;font-size:18px;color:hsl(var(--brand));text-decoration:none;letter-spacing:-.02em}.top .logo b{color:hsl(var(--accent))}
+.tabs{display:flex;gap:4px;height:100%;overflow-x:auto}
+.tabs a{display:flex;align-items:center;gap:8px;padding:0 12px;height:100%;font-weight:600;color:hsl(var(--text-muted));text-decoration:none;border-bottom:3px solid transparent;white-space:nowrap}
+.tabs a .ic{color:hsl(var(--mod))}
+.tabs a[aria-current=page]{color:hsl(var(--brand));border-bottom-color:hsl(var(--accent))}
+.top .sp{flex:1}
+.wrap{max-width:1240px;margin:0 auto;padding:24px}
+.hero-b{position:relative;overflow:hidden;min-height:calc(100vh - 60px)}
+.hero-b .map{position:absolute}
+.hero-b .map{opacity:.5}
+.hero-b .in{position:relative;max-width:1100px;margin:0 auto;padding:72px 24px}
+.hero-b h1{font-size:36px;letter-spacing:-.03em;line-height:1.1;max-width:640px}
+.hero-b .lead{margin:8px 0 24px;max-width:560px;color:hsl(var(--text-muted));font-size:16px}
+.search{padding:16px;border-radius:var(--r-lg);box-shadow:var(--shadow-3);background:hsl(var(--surface));border:1px solid hsl(var(--border))}
+.search .grid{display:grid;grid-template-columns:minmax(0,1.3fr) 44px minmax(0,1.3fr) minmax(0,.9fr) minmax(0,.7fr) minmax(0,.7fr) auto;gap:12px;align-items:end}
+.search .sub{display:flex;flex-wrap:wrap;gap:12px 20px;align-items:center;margin-top:14px;padding-top:12px;border-top:1px solid hsl(var(--border))}
+.search .sub label{display:flex;gap:8px;align-items:center;font-size:13px}
+.kpis{display:grid;grid-template-columns:1.4fr repeat(3,1fr);gap:16px}
+.kpi{padding:16px 20px;border-radius:var(--r-lg);background:hsl(var(--surface));border:1px solid hsl(var(--border))}
+.kpi .lbl{display:flex;gap:6px;align-items:center}
+.kpi .money{display:block;font-size:28px;margin-top:4px}
+.kpi.main{background:hsl(var(--brand));color:hsl(var(--brand-fg));border-color:transparent}
+.kpi.main .lbl{color:hsl(var(--brand-fg)/.8)}.kpi.main .money{font-size:40px}
+.kpi small{font-size:12px;color:hsl(var(--text-muted))}.kpi.main small{color:hsl(var(--brand-fg)/.8)}
+.grid-b{display:grid;grid-template-columns:minmax(0,1.5fr) minmax(0,1fr);gap:16px;margin-top:16px}
+.mapcard{position:relative;min-height:520px;border-radius:var(--r-lg);overflow:hidden;border:1px solid hsl(var(--border))}
+.sidecard{padding:16px 20px}
+.sidecard h2,.cmp h2{font-size:16px;display:flex;align-items:center;gap:8px;margin-bottom:8px}
+.cmp{margin-top:16px;padding:16px 20px;overflow:auto}
+table.t{width:100%;border-collapse:collapse;font-size:14px}
+table.t th{text-align:left;font-size:12px;color:hsl(var(--text-muted));font-weight:600;padding:8px 10px;border-bottom:1px solid hsl(var(--border))}
+table.t td{padding:12px 10px;border-bottom:1px solid hsl(var(--border));font-variant-numeric:tabular-nums}
+table.t tr.best td{background:hsl(var(--success-soft))}
+table.t tr.sel td{box-shadow:inset 3px 0 0 hsl(var(--accent))}
+table.t td:not(:first-child),table.t th:not(:first-child){text-align:right}
+.qbar{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:16px}
+.qbar .qsum{flex:1;min-width:260px;background:hsl(var(--surface))}
+.qsum{display:flex;align-items:center;gap:10px;padding:10px 12px;border:1px solid hsl(var(--border));border-radius:var(--r-md)}
+.qsum .t{min-width:0;flex:1}.qsum .t b{display:block}
+.stickybar{display:none}
+.note{font-size:12px;color:hsl(var(--text-muted));line-height:1.5;margin-top:8px}
+.mapcard .pop{left:auto;right:64px;top:24px}
+@media (max-width:900px){
+  .search .grid{grid-template-columns:1fr 1fr}.search .grid .full{grid-column:1/-1}
+  .kpis{grid-template-columns:1fr 1fr}.kpi.main{grid-column:1/-1}
+  .grid-b{grid-template-columns:1fr}
+}
+@media (max-width:767px){
+  .top{padding:0 12px;gap:4px 8px;flex-wrap:wrap;height:auto;min-height:52px}.top .tabs{order:5;width:100%;height:44px;margin:0 -4px}
+  .wrap{padding:16px 16px 96px}
+  .hero-b .in{padding:24px 16px 32px}.hero-b h1{font-size:26px}
+  .mapcard{min-height:240px}
+  .stickybar{display:flex;position:fixed;left:0;right:0;bottom:0;z-index:30;align-items:center;gap:12px;padding:10px 16px calc(10px + env(safe-area-inset-bottom));background:hsl(var(--surface));border-top:1px solid hsl(var(--border));box-shadow:var(--shadow-3)}
+  .stickybar .tot{flex:1}.stickybar .tot small{display:block;font-size:11px;color:hsl(var(--text-muted))}.stickybar .money{font-size:22px}
+  table.t.respo thead{display:none}
+  table.t.respo tr{display:grid;grid-template-columns:1fr 1fr;gap:2px 12px;padding:10px 8px;border-bottom:1px solid hsl(var(--border))}
+  table.t.respo td:nth-child(3){display:none}
+  table.t.respo td{border:0;padding:0;text-align:left!important}
+  table.t.respo td:first-child{grid-column:1/-1;margin-bottom:4px}
+  table.t.respo td:nth-child(2)::before{content:'Tempo ';color:hsl(var(--text-muted))}
+  table.t.respo td:nth-child(4)::before{content:'Comb. ';color:hsl(var(--text-muted))}
+  table.t.respo td:nth-child(5)::before{content:'Pedágios ';color:hsl(var(--text-muted))}
+  table.t.respo td:nth-child(6){text-align:right!important;font-size:16px}
+  .kpi .money{font-size:22px}.kpi.main .money{font-size:34px}
+  .kpis{gap:12px}.kpi{padding:14px}
+  .mapcard .pop{right:12px;left:12px;width:auto;top:auto;bottom:12px}
+}
