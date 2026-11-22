@@ -102,11 +102,19 @@ export function matchTolls(input: MatchTollsInput): MatchTollsResult {
   }
 
   // A toll plaza is a physical place, whereas data providers commonly emit
-  // one record for every lane/reader.  Co-located records are folded before
-  // sorting or charging.  The closest record wins; when positions are tied,
-  // prefer the one with a usable tariff (typically the OSM source) and then
-  // the stable lexical id.  This makes the output deterministic regardless
-  // of store query order while retaining the richest available record.
+  // one record for every lane/reader. Co-located records are folded before
+  // sorting or charging. A usable tariff wins before route distance: ANTT
+  // records are commonly unpriced while a nearby OSM record has the actual
+  // charge, so selecting the closer ANTT point would silently turn a real
+  // toll into R$0. Distance then gives a stable geographic representative;
+  // the id is the final deterministic tie-breaker.
+  //
+  // This deliberately is not transitive clustering. A-B-C chains can span
+  // more than 100 m and can represent distinct Free Flow gantries; the
+  // persisted match input has no gantry identity to safely prove otherwise.
+  // Each candidate must therefore be within the radius of the representative
+  // itself. Keep separately identified gantries distinct until the domain
+  // carries that identity as an explicit merge key.
   const representatives: number[] = [];
   for (let candidateIndex = 0; candidateIndex < matched.length; candidateIndex++) {
     const candidate = matched[candidateIndex]!;
@@ -133,11 +141,11 @@ export function matchTolls(input: MatchTollsInput): MatchTollsResult {
     const candidateHasTariff = candidate.plaza.tariffByAxleCategory !== undefined;
     const currentHasTariff = current.plaza.tariffByAxleCategory !== undefined;
     const candidateWins =
-      candidate.distanceMeters < current.distanceMeters ||
-      (candidate.distanceMeters === current.distanceMeters && candidateHasTariff && !currentHasTariff) ||
-      (candidate.distanceMeters === current.distanceMeters &&
-        candidateHasTariff === currentHasTariff &&
-        candidate.plaza.id.localeCompare(current.plaza.id) < 0);
+      (candidateHasTariff && !currentHasTariff) ||
+      (candidateHasTariff === currentHasTariff && candidate.distanceMeters < current.distanceMeters) ||
+      (candidateHasTariff === currentHasTariff &&
+        candidate.distanceMeters === current.distanceMeters &&
+        candidate.plaza.id < current.plaza.id);
 
     if (candidateWins) {
       representatives[representatives.indexOf(matchingRepresentative)] = candidateIndex;
