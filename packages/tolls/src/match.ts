@@ -103,18 +103,35 @@ export function matchTolls(input: MatchTollsInput): MatchTollsResult {
 
   // A toll plaza is a physical place, whereas data providers commonly emit
   // one record for every lane/reader. Co-located records are folded before
-  // sorting or charging. A usable tariff wins before route distance: ANTT
-  // records are commonly unpriced while a nearby OSM record has the actual
-  // charge, so selecting the closer ANTT point would silently turn a real
-  // toll into R$0. Distance then gives a stable geographic representative;
-  // the id is the final deterministic tie-breaker.
+  // sorting or charging. A tariff for the requested vehicle class wins before
+  // route distance: ANTT records are commonly unpriced while a nearby OSM
+  // record has the actual charge, so selecting the closer ANTT point would
+  // silently turn a real toll into R$0. When two tariffed records disagree,
+  // the closer one wins; the id is the final deterministic tie-breaker.
   //
   // This deliberately is not transitive clustering. A-B-C chains can span
   // more than 100 m and can represent distinct Free Flow gantries; the
   // persisted match input has no gantry identity to safely prove otherwise.
   // Each candidate must therefore be within the radius of the representative
-  // itself. Keep separately identified gantries distinct until the domain
-  // carries that identity as an explicit merge key.
+  // itself. Sorting by the selection priority before grouping fixes that
+  // representative for the lifetime of a cluster, making the result
+  // independent of the caller/database input order and preserving this
+  // distance invariant. Keep separately identified gantries distinct until
+  // the domain carries that identity as an explicit merge key.
+  const hasTariffForRequestedCategory = (plaza: TollPlaza) =>
+    plaza.tariffByAxleCategory?.[axleCategory] !== undefined;
+  matched.sort((a, b) => {
+    const tariffPriority =
+      Number(hasTariffForRequestedCategory(b.plaza)) -
+      Number(hasTariffForRequestedCategory(a.plaza));
+    if (tariffPriority !== 0) return tariffPriority;
+
+    const distancePriority = a.distanceMeters - b.distanceMeters;
+    if (distancePriority !== 0) return distancePriority;
+
+    return a.plaza.id < b.plaza.id ? -1 : a.plaza.id > b.plaza.id ? 1 : 0;
+  });
+
   const representatives: number[] = [];
   for (let candidateIndex = 0; candidateIndex < matched.length; candidateIndex++) {
     const candidate = matched[candidateIndex]!;
@@ -137,23 +154,17 @@ export function matchTolls(input: MatchTollsInput): MatchTollsResult {
       continue;
     }
 
-    const current = matched[matchingRepresentative]!;
-    const candidateHasTariff = candidate.plaza.tariffByAxleCategory !== undefined;
-    const currentHasTariff = current.plaza.tariffByAxleCategory !== undefined;
-    const candidateWins =
-      (candidateHasTariff && !currentHasTariff) ||
-      (candidateHasTariff === currentHasTariff && candidate.distanceMeters < current.distanceMeters) ||
-      (candidateHasTariff === currentHasTariff &&
-        candidate.distanceMeters === current.distanceMeters &&
-        candidate.plaza.id < current.plaza.id);
-
-    if (candidateWins) {
-      representatives[representatives.indexOf(matchingRepresentative)] = candidateIndex;
-    }
+    // The representative is deliberately never replaced: candidates are
+    // processed in representative priority order, and replacing it could make
+    // an earlier member farther than the allowed radius from the new point.
   }
 
   const deduplicated = representatives.map((index) => matched[index]!);
-  deduplicated.sort((a, b) => a.fractionAlong - b.fractionAlong);
+  deduplicated.sort(
+    (a, b) =>
+      a.fractionAlong - b.fractionAlong ||
+      (a.plaza.id < b.plaza.id ? -1 : a.plaza.id > b.plaza.id ? 1 : 0),
+  );
 
   const totalCentavos = deduplicated.reduce(
     (sum, { plaza }) =>
