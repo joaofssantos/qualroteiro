@@ -1,0 +1,24 @@
+services:
+  - type: web
+    name: qualroteiro-api
+    runtime: node
+    region: oregon
+    plan: free
+    buildCommand: corepack enable && pnpm install --frozen-lockfile && pnpm turbo run build --filter=@qualroteiro/api && pnpm --filter @qualroteiro/api prisma:migrate:deploy
+    startCommand: pnpm --filter @qualroteiro/api start
+    healthCheckPath: /health
+    envVars:
+      - key: DATABASE_URL
+        sync: false
+      - key: ORS_API_KEY
+        sync: false
+      - key: ORS_BASE_URL
+        sync: false
+      - key: CLERK_SECRET_KEY
+        sync: false
+      - key: GOOGLE_PLACES_API_KEY
+        sync: false
+      - key: GOOGLE_PLACES_SEARCH_MONTHLY_CAP
+        sync: false
+      - key: CORS_ORIGIN
+        sync: false

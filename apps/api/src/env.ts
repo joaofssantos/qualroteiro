@@ -16,6 +16,26 @@ export interface OrsEnv {
 export const DEFAULT_ORS_BASE_URL = 'https://api.openrouteservice.org';
 
 /**
+ * Read the browser origins allowed to call the API.
+ *
+ * `undefined` deliberately keeps the permissive local-development behaviour
+ * of `@fastify/cors`. In production, set `CORS_ORIGIN` to the Vercel origin
+ * (or a comma-separated list of preview/production origins) instead.
+ */
+export function readCorsOrigins(env: NodeJS.ProcessEnv = process.env): readonly string[] | undefined {
+  const raw = env['CORS_ORIGIN']?.trim();
+  if (!raw) return undefined;
+
+  const origins = raw
+    .split(',')
+    .map((origin) => origin.trim())
+    .filter((origin) => origin.length > 0);
+
+  if (origins.length === 0) return undefined;
+  return origins;
+}
+
+/**
  * Read the OpenRouteService configuration.
  *
  * @throws {Error} at startup if `ORS_API_KEY` is absent — failing loudly in the

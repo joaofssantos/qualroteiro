@@ -77,6 +77,8 @@ export interface AppDeps {
   readonly googlePlaces?: GooglePlacesProvider;
   readonly apiUsage?: ApiUsageStore;
   readonly placesMonthlyCap?: number;
+  /** Explicit browser origins for a deployed web app; omitted keeps dev open. */
+  readonly corsOrigins?: readonly string[];
   /** Passed straight to Fastify — tests silence the logger with `{ logger: false }`. */
   readonly fastifyOptions?: FastifyServerOptions;
 }
@@ -113,8 +115,12 @@ export function buildApp(deps: AppDeps): FastifyInstance {
 
   const app = Fastify(deps.fastifyOptions ?? { logger: false });
 
-  // The web app is cross-origin; F1 is anonymous, so no credentials are needed.
-  void app.register(cors);
+  // The web app is cross-origin. Deployments pass the Vercel origin(s) through
+  // CORS_ORIGIN; tests and local development intentionally retain the previous
+  // permissive behaviour when no origin is configured.
+  void app.register(cors, {
+    origin: deps.corsOrigins === undefined ? true : [...deps.corsOrigins],
+  });
 
   // Declared for every request so the property has a stable shape; only the
   // authenticated `/trips*` scope ever assigns to it.

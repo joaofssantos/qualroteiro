@@ -12,11 +12,27 @@ import { afterEach, describe, expect, it } from 'vitest';
 import {
   DEFAULT_GOOGLE_PLACES_SEARCH_MONTHLY_CAP,
   DEFAULT_ORS_BASE_URL,
+  readCorsOrigins,
   loadDotEnvInto,
   readClerkEnv,
   readGooglePlacesEnv,
   readOrsEnv,
 } from '../src/env.js';
+
+describe('readCorsOrigins', () => {
+  it('leaves CORS unrestricted when no production origin is configured', () => {
+    expect(readCorsOrigins({})).toBeUndefined();
+    expect(readCorsOrigins({ CORS_ORIGIN: '   ' })).toBeUndefined();
+  });
+
+  it('parses and trims a comma-separated allow-list', () => {
+    expect(
+      readCorsOrigins({
+        CORS_ORIGIN: ' https://qualroteiro.vercel.app, https://preview.vercel.app ',
+      }),
+    ).toEqual(['https://qualroteiro.vercel.app', 'https://preview.vercel.app']);
+  });
+});
 
 describe('readClerkEnv', () => {
   it('reads and trims CLERK_SECRET_KEY', () => {
