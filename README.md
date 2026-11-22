@@ -20,7 +20,7 @@ packages/
   trips/      planejamento de viagens
 services/
   data-ingest/  workers BullMQ (ANTT, ANP, DNIT, concessionárias, catálogo)
-infra/        Docker Compose para PostgreSQL/PostGIS e Redis
+infra/        Docker Compose (postgres, redis; valhalla e photon existem no compose, mas não são usados em runtime)
 ```
 
 ## Liberação faseada
@@ -35,7 +35,7 @@ Decisões técnicas em [`docs/decisions/0001-stack.md`](docs/decisions/0001-stac
 
 - Monorepo: pnpm workspaces + Turborepo
 - Roteamento: OpenRouteService, acessado pela API
-- Geocoding: Google Places, usado pelo web
+- Geocoding: OpenRouteService (Pelias), via `/places/search` da API; Google Places só para `/places/nearby` na API
 
 ## AIPe
 
@@ -46,6 +46,7 @@ O onboarding é conduzido abrindo uma sessão do harness nesta pasta.
 
 ```sh
 pnpm install
+cp apps/api/.env.example apps/api/.env   # preencha ORS_API_KEY, CLERK_SECRET_KEY, GOOGLE_PLACES_API_KEY
 docker compose -f infra/docker-compose.yml up -d postgres
 pnpm --filter @qualroteiro/api prisma:migrate
 ```
@@ -57,7 +58,7 @@ pnpm --filter @qualroteiro/api dev
 pnpm --filter @qualroteiro/web dev
 ```
 
-O banco fica em `postgresql://qualroteiro:qualroteiro@localhost:5432/qualroteiro` por padrão.
+O `DATABASE_URL` do `.env.example` já aponta para `postgresql://qualroteiro:qualroteiro@localhost:5432/qualroteiro`. O Redis é usado só pelo worker do `data-ingest`; Valhalla e Photon não entram no runtime atual.
 Para o worker contínuo de ingestão, suba também o Redis e execute
 `pnpm --filter @qualroteiro/data-ingest worker`. As importações avulsas não
 precisam do Redis.
