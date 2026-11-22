@@ -1,0 +1,70 @@
+{
+  "generatedAt": "2026-11-22T06:11:00.048Z",
+  "styleUrl": "https://tiles.openfreemap.org/styles/liberty",
+  "layerCount": 111,
+  "roleCount": {
+    "land": 13,
+    "park": 5,
+    "water": 4,
+    "road": 42,
+    "road-major": 18,
+    "ignored": 9,
+    "label": 20
+  },
+  "ignored": [
+    "road_area_pattern",
+    "road_one_way_arrow",
+    "road_one_way_arrow_opposite",
+    "boundary_3",
+    "boundary_2",
+    "boundary_disputed",
+    "highway-shield-non-us",
+    "highway-shield-us-interstate",
+    "road_shield_us"
+  ],
+  "contrast": {
+    "labelVsHalo": 13.17,
+    "labelVsWorstBackground": 4.56,
+    "threshold": 4.5
+  },
+  "leak": {
+    "sp-claro": {
+      "brightFraction": 0.986865234375,
+      "meanLuma": 0.9116150807330939
+    },
+    "rio-claro": {
+      "brightFraction": 0.95617578125,
+      "meanLuma": 0.8351138161156046
+    },
+    "rodovia-claro": {
+      "brightFraction": 0.99123828125,
+      "meanLuma": 0.9274826456167781
+    },
+    "sp-escuro": {
+      "brightFraction": 0.0083662109375,
+      "meanLuma": 0.18897102684691447
+    },
+    "rio-escuro": {
+      "brightFraction": 0.014333984375,
+      "meanLuma": 0.19527943870176567
+    },
+    "rodovia-escuro": {
+      "brightFraction": 0.0060302734375,
+      "meanLuma": 0.14951236178543612
+    }
+  },
+  "palette": {
+    "land": "#1b2127",
+    "landAlt": "#20272e",
+    "park": "#1f2e27",
+    "water": "#0f2433",
+    "road": "#3a444d",
+    "roadCasing": "#161b20",
+    "roadMajor": "#56626c",
+    "roadMajorCasing": "#12161a",
+    "label": "#d7dde2",
+    "labelHalo": "#12171b",
+    "boundary": "#46525c",
+    "building": "#252d34"
+  }
+}
