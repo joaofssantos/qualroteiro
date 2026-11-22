@@ -56,7 +56,7 @@ Regra de dependência: `layouts/a` e `layouts/b` **só importam** de `shared/`, 
 
 - `core/layout/layoutConfig.ts`: `type LayoutId = 'a' | 'b'`; `LAYOUT_STORAGE_KEY = 'qualroteiro:layout'`; `buildDefaultLayout(): LayoutId` lê `import.meta.env.VITE_LAYOUT` (inválido/ausente → `'a'`); `readStoredLayout()` (valor inválido → ignora).
 - `core/layout/layoutStore.ts` (zustand): `{ layout: LayoutId; setLayout(id) }`. Inicial = armazenado ?? padrão do build. `setLayout` grava no `localStorage` e dispara re-render do shell — sem reload. Escuta o evento `storage` (outra aba).
-- `core/layout/layouts.ts` (**o registro**): `LAYOUTS: Record<LayoutId, { id; label; description; Shell: ComponentType<{children}>; livePreview: boolean }>`. Shells por `React.lazy` → a direção não usada nem entra no chunk inicial **[call]**.
+- `core/layout/layouts.ts` (**o registro**): `LAYOUTS: Record<LayoutId, { id; label; description; Shell: ComponentType<{children}>; livePreview: boolean }>`. Shells por `React.lazy` → a direção não usada nem entra no chunk inicial **[call]**. **Invariante:** trocar o tipo do `Shell` não pode ser o dono da árvore da consulta: React desmonta os descendentes ao trocar o wrapper. O rascunho deve morar em `routeDraftStore`/controller acima dos shells, não no `useState` de `NewQueryScreen`.
 - Ajustes: `SettingsDialog` (usa `ui/dialog` existente) aberto por botão "Ajustes" no rodapé do *rail*/barra; grupo de rádios "Layout: Mapa primeiro (A) / Custos primeiro (B)" + o tema. Escolhido em Ajustes → persiste e troca na hora. **[call]** diálogo e não rota/módulo, para não poluir o registry nem a navegação.
 - `VITE_LAYOUT` documentado em `env.d.ts` e `.env.example`.
 
@@ -67,7 +67,7 @@ Regra de dependência: `layouts/a` e `layouts/b` **só importam** de `shared/`, 
 Um módulo que quer layout diferente por direção expõe *blocos*, não telas. Para `rota-custos`: `QueryForm`, `ResultSummary`, `AlternativesList`, `TotalHero`, `CostBar`, `TollList`, `FuelSection`, `PointsSection`. As telas atuais (`NewQueryScreen`, `ResultScreen`) viram **composições finas** desses blocos, e cada shell escolhe a composição via `useLayoutComposition()` (`{ Consulta, Resultado }`), sem ramificação `if (layout==='b')` dentro dos blocos. Os blocos recebem apenas props/estado de store.
 
 ### 4.5 Mapa compartilhado
-- `mapStore` ganha (aditivo): `preview: RouteTrace | null` (traçado de prévia, estilo "tracejado/desbotado"), `padding: {top,right,bottom,left}` (cada shell publica o espaço coberto por painel/sheet), `fitRequest` (enquadrar pinos/traço). `MapCanvas` continua único e montado no shell; **B desktop-resultado** o move para dentro do cartão de mapa via *portal alvo* (`MapHost`) sem recriar o WebGL **[call: o mapa de B-resultado usa o mesmo `MapCanvas`, reposicionado por CSS grid; B nunca monta um segundo mapa]**.
+- `mapStore` ganha (aditivo): `preview: RouteTrace | null` (traçado de prévia, estilo "tracejado/desbotado"), `padding: {top,right,bottom,left}` (cada shell publica o espaço coberto por painel/sheet), `fitRequest` (enquadrar pinos/traço). `AppShell` mantém um único `MapCanvas` fora do componente lazy que troca; os shells recebem um `MapHost`/slot estável para posicionar o mesmo contêiner por CSS. A implementação chama `map.resize()` depois de cada reposicionamento/alteração de tamanho e testa que A↔B não cria outro `maplibregl.Map`; um portal que troca de contêiner, sozinho, não basta.
 - Tokens → mapa: `core/map/theme.ts` lê CSS vars (`--route`, `--pin-*`, …) e reage à troca de tema (`MutationObserver` em `class`), atualizando por `setPaintProperty`, sem recriar o mapa.
 - Estilo escuro: `core/map/mapStyle.ts` busca o estilo base (OpenFreeMap `liberty`) e **recolore** por *id/tipo de camada* com os tokens do mapa (D3-a). Falha de recolor → fallback ao estilo original sem filtro CSS e aviso no console, nunca tela em branco.
 
@@ -75,11 +75,11 @@ Um módulo que quer layout diferente por direção expõe *blocos*, não telas. 
 `usePlanPreview({ origin, destination, stops, vehicle, enabled })` em `modules/rota-custos/usePlanPreview.ts`:
 - só dispara se `enabled` (layout com `livePreview`) **e** origem e destino têm `place` com coordenadas (`{lng,lat}`); texto livre **não** dispara.
 - *debounce* de 700 ms **[call]**; cada nova mudança cancela timer e `AbortController` anterior; desmontar cancela.
-- cache em memória por chave `origem|destino|paradas` (arredondado a 5 casas) — voltar ao mesmo par não refaz a chamada; no máximo **1 chamada em voo**.
-- usa `planRoute(req, signal)` com o **veículo atual** e `vehicle` padrão se inválido; só lê `routes[0].geometry` (+ tempo/km para um chip "≈ 412 km · 5 h 10"); **não** grava em `routeStore.routes` (o resultado oficial continua só do Calcular), nem navega.
+- cache em memória por chave `origem|destino|paradas|veículo|preço` (coordenadas arredondadas a 5 casas) — voltar à mesma consulta não refaz a chamada; guarda também a promessa em voo para impedir duplicata ao alternar A↔B. Cada nova chave aborta a anterior e há no máximo **1 chamada em voo** por aba.
+- usa `planRoute(req, signal)` com o **request completo** (`origin`, `destination`, paradas, veículo e `fuelPricePerL`, obrigatório no contrato atual) e `vehicle` padrão se inválido; só lê `routes[0].geometry` (+ tempo/km para um chip "≈ 412 km · 5 h 10"); **não** grava em `routeStore.routes` (o resultado oficial continua só do Calcular), nem navega.
 - erro/aborto/422 → silencioso (prévia some; o Calcular continua como fonte de erro). Nunca mostra toast.
 - Publica em `mapStore.preview`; limpa ao `clearMap()`, ao apagar um ponto e ao navegar.
-- **Custo/cota [call]:** cada prévia é uma chamada ao `/routes/plan` (OpenRouteService no servidor). Mitigação: debounce, cache, 1 em voo, só B, e chave `VITE_LIVE_PREVIEW=false` para desligar sem remover código. O plano exige que a fase meça quantas chamadas um fluxo típico faz (teste de contagem) e registre no PR.
+- **Custo/cota [call]:** cada prévia é uma chamada ao mesmo `POST /routes/plan` do Calcular (OpenRouteService no servidor), que também resolve/decora custos. Hoje esse handler não tem rate limit nem quota/circuit breaker para routing; debounce no navegador não protege múltiplas abas/usuários. Antes de habilitar fora do demo, a API precisa impor limite por IP/sessão, devolver `429`/`Retry-After` e emitir métrica; a UI trata `429` silenciosamente como qualquer erro de prévia. Mantêm-se debounce, cache, 1 em voo, só B e `VITE_LIVE_PREVIEW=false`.
 
 ## 5. Decisões da seção 9 do README
 
@@ -119,7 +119,10 @@ Fonte: `mockups/assets/tokens.css` da proposta (§7 do README). Camadas: (i) var
 |---|---|
 | Prévia consome cota do ORS | debounce+cache+1 em voo+chave de desligar+teste de contagem (§4.6) |
 | Mapa único reposicionado entre B-página e A-tela cheia | `MapHost` único; teste de que `new maplibregl.Map` é chamado 1× ao trocar layout |
-| Trocar layout no meio de uma consulta perde estado | estado da consulta vive em `routeStore`/`mapStore` (já fora do shell); teste de troca A→B→A preservando origem/destino/resultado |
+| Trocar layout no meio de uma consulta perde estado | o resultado já vive em `routeStore`/`mapStore`; o rascunho precisa ir para `routeDraftStore`; teste de troca A→B→A preservando origem/destino/resultado |
+| Trocar layout desmonta formulário/mapa | hoje `NewQueryScreen` guarda rascunho local e trocar `Shell` pode desmontar os filhos; criar `routeDraftStore` acima dos shells e manter `MapCanvas` fora do lazy shell, com teste de rascunho + `new Map` 1× |
+| Prévia aumenta carga sem proteção no servidor | `POST /routes/plan` atual não limita requisições; adicionar rate limit/`429`/`Retry-After` e métrica antes de habilitar produção |
+| Total parece definitivo com praça sem tarifa | consumir `tolls.unavailablePlazaIds`; quando não vazio, marcar total de pedágios e da viagem como parcial/"tarifa indisponível" e listar as praças afetadas |
 | `.map-content-panel` + `!important` quebram B | removidos em F6; B nunca usa a classe |
 | Testes por nome acessível quebram (Tabs→Accordion) | atualizados na mesma PR (F5), nomes acessíveis preservados quando possível |
 | Bundle maior | shells por `lazy`; medir antes/depois em F11 |
