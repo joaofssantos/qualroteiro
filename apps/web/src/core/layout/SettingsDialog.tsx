@@ -51,7 +51,13 @@ export function SettingsDialog({ triggerClassName }: { triggerClassName?: string
               aria-label="Layout"
               value={resolveLayoutId(layout)}
               onValueChange={(value) => {
-                if (isLayoutId(value)) setLayout(value satisfies LayoutId);
+                if (isLayoutId(value)) {
+                  // O diálogo pertence ao shell atual. Fechá-lo antes de trocar o
+                  // layout evita manter um portal/foco órfão enquanto o shell é
+                  // desmontado e o novo é carregado.
+                  setOpen(false);
+                  setLayout(value satisfies LayoutId);
+                }
               }}
               options={OPTIONS}
             />

@@ -27,6 +27,17 @@ describe('SettingsDialog', () => {
     expect(custos).toBeChecked();
   });
 
+  it('closes before changing the shell layout', async () => {
+    const user = userEvent.setup();
+    render(<SettingsDialog />);
+
+    await user.click(screen.getByRole('button', { name: 'Ajustes' }));
+    await user.click(await screen.findByRole('radio', { name: /Custos primeiro/ }, { timeout: 3000 }));
+
+    expect(useLayoutStore.getState().layout).toBe('b');
+    expect(screen.queryByRole('dialog')).toBeNull();
+  });
+
   it('keeps the choice after closing', async () => {
     const user = userEvent.setup();
     useLayoutStore.setState({ layout: 'b' });
