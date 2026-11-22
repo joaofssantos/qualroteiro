@@ -24,6 +24,9 @@ export const DEFAULT_ORS_BASE_URL = 'https://api.openrouteservice.org';
  */
 export type CorsOrigin = string | RegExp;
 
+/** Minimum literal characters required before `*` in a Vercel preview host. */
+const MIN_PREVIEW_PREFIX_LENGTH = 8;
+
 /**
  * Canonical form of an origin entry: no trailing slash, lowercase scheme and
  * host (both case-insensitive per RFC 3986), so a CORS_ORIGIN written with a
@@ -55,11 +58,12 @@ function previewPattern(origin: string): RegExp {
     url.pathname !== '/' ||
     url.search ||
     url.hash ||
-    wildcardAt < 1 ||
-    labels.length < 3
+    wildcardAt < MIN_PREVIEW_PREFIX_LENGTH ||
+    labels.length !== 3 ||
+    !url.hostname.endsWith('.vercel.app')
   ) {
     throw new Error(
-      `CORS_ORIGIN preview patterns must have a literal prefix before a single '*' in the first host label (e.g. https://qualroteiro-*.vercel.app): ${origin}`,
+      `CORS_ORIGIN preview patterns must use the exact .vercel.app suffix and a ${MIN_PREVIEW_PREFIX_LENGTH}-character literal prefix before a single '*' in the first host label (e.g. https://qualroteiro-*.vercel.app): ${origin}`,
     );
   }
 
@@ -83,6 +87,9 @@ export function readCorsOrigins(env: NodeJS.ProcessEnv = process.env): readonly 
     throw new Error(
       'CORS_ORIGIN is set but contains no origins. Unset it for permissive local development or list at least one origin.',
     );
+  }
+  if (origins.includes('null')) {
+    throw new Error('CORS_ORIGIN must not contain the opaque-origin literal null.');
   }
   return origins.map((origin) => (origin.includes('*') ? previewPattern(origin) : origin));
 }

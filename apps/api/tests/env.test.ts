@@ -37,8 +37,20 @@ describe('readCorsOrigins', () => {
     'https://*',
     'https://*-app.vercel.app',
     'https://*.example.com',
+    'https://q*.vercel.app',
   ])('rejects wildcard patterns without a literal prefix (%s)', (pattern) => {
     expect(() => readCorsOrigins({ CORS_ORIGIN: pattern })).toThrow(/CORS_ORIGIN/);
+  });
+
+  it.each([
+    'https://qualroteiro-*.vercel.app.evil.com',
+    'https://qualroteiro-*.evil.com',
+  ])('rejects wildcard patterns outside the Vercel app suffix (%s)', (pattern) => {
+    expect(() => readCorsOrigins({ CORS_ORIGIN: pattern })).toThrow(/CORS_ORIGIN/);
+  });
+
+  it('rejects the special opaque-origin literal null', () => {
+    expect(() => readCorsOrigins({ CORS_ORIGIN: 'null' })).toThrow(/CORS_ORIGIN/);
   });
 
   it('normalizes trailing slashes and lowercases scheme and host', () => {
