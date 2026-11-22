@@ -214,6 +214,34 @@ export function MapCanvas({
     mapRef.current?.resize();
   }, [resizeKey]);
 
+  // Follow the light/dark switch on <html>.
+  useEffect(() => watchTheme(() => setThemeTick((n) => n + 1)), []);
+
+  // Repaint basemap and route for the current theme — in place, never a new Map.
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map || !ready) return;
+
+    const theme = readMapTheme();
+    const original = originalStyleRef.current;
+    const applied = appliedStyleRef.current;
+    if (original && applied) {
+      try {
+        const next = recolorStyle(original, theme, isDarkMode() ? 'dark' : 'light');
+        applyStyleDiff(map, applied, next);
+        appliedStyleRef.current = next;
+      } catch {
+        // A style we cannot recolour keeps whatever it already shows.
+      }
+    }
+    const paint = (id: string, color: string) => {
+      if (map.getLayer(id)) map.setPaintProperty(id, 'line-color', toMapLibreColor(color));
+    };
+    paint(ROUTE_CASING_LAYER, theme.casing);
+    paint(ROUTE_LINE_LAYER, theme.route);
+    paint(PREVIEW_LAYER, theme.routeAlt);
+  }, [themeTick, ready]);
+
   // Draw (or redraw) the route trace.
   useEffect(() => {
     const map = mapRef.current;
