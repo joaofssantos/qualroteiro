@@ -231,3 +231,35 @@
     }
   }
 }
+
+/**
+ * Painel flutuante da Direção A. Mesmas compactações do `.map-content-panel`
+ * legado, mas sem `!important`: o seletor de 2 classes já vence as utilidades
+ * (`lg:grid-cols-*`, `px-*`) por especificidade.
+ */
+@layer components {
+  .floating-panel {
+    container-type: inline-size;
+  }
+
+  .floating-panel > * {
+    min-width: 0;
+  }
+
+  .floating-panel .map-panel-content,
+  .floating-panel .route-query-panel {
+    padding: 1rem;
+  }
+
+  .floating-panel .calculator-main-grid,
+  .floating-panel .calculator-form-grid,
+  .floating-panel .calculator-nearby-grid,
+  .floating-panel fieldset,
+  .floating-panel .grid-cols-2 {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .floating-panel .activity-search-card {
+    grid-column: span 1 / span 1;
+  }
+}
