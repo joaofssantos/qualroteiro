@@ -108,7 +108,11 @@ export class StubMap {
   setPaintProperty(): void {}
   setLayoutProperty(): void {}
   addControl(): void {}
-  resize(): void {}
+  resizeCalls = 0;
+
+  resize(): void {
+    this.resizeCalls += 1;
+  }
 
   fitBounds(bounds: unknown, options?: unknown): void {
     this.fitBoundsCalls.push({ bounds, options });

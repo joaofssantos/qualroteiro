@@ -60,3 +60,10 @@ Serve the bundle with any static file server, e.g.:
 ```sh
 pnpm --filter @qualroteiro/web preview   # vite preview, after the demo build
 ```
+
+## Layout (`VITE_LAYOUT`)
+
+O app tem dois layouts: `a` (mapa primeiro) e `b` (custos primeiro). O padrão do
+build vem de `VITE_LAYOUT=a|b` (inválido ou ausente → `a`). Em **Ajustes** o
+usuário troca na hora, sem recarregar; a escolha fica em `localStorage`
+(`qualroteiro:layout`) e vence o padrão do build.
