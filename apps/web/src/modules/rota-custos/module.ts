@@ -23,5 +23,5 @@ export const FUEL_STATION_LAYER_ID = 'fuel-stations';
  */
 export const ROTA_CUSTOS_LAYERS: readonly MapLayerDescriptor[] = [
   { id: TOLL_LAYER_ID, label: 'Pedágios', defaultVisible: true },
-  { id: FUEL_STATION_LAYER_ID, label: 'Postos de combustível', defaultVisible: true },
+  { id: FUEL_STATION_LAYER_ID, label: 'Postos de combustível', defaultVisible: false },
 ];
