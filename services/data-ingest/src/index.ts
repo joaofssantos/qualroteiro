@@ -113,6 +113,7 @@ export {
   type ArtespTariffReconcileOptions,
   type ArtespTariffReconcileSummary,
 } from './artesp-reconcile.js';
+export { ARTESP_FREE_FLOW_RECORDS, type ArtespFreeFlowRecord } from './artesp-free-flow.js';
 export {
   runArtespAudit,
   type ArtespAuditOptions,

@@ -285,6 +285,39 @@ describe('POST /routes/plan', () => {
       expect(route.tolls.total).toBeCloseTo(14.5, 2);
     });
 
+    it('accepts a partial persisted tariff and flags the unpublished category as unavailable', async () => {
+      const { motorcycle: _omitted, ...withoutMotorcycle } = OSM_TOLL_PLAZA_RECORD_WITH_TARIFF.tariff as Record<string, number>;
+      const app = buildApp({
+        routing: fakeRoutingProvider(),
+        geocode: fakeGeocodeProvider(),
+        tollPlazas: fakeTollPlazaStore([{ ...OSM_TOLL_PLAZA_RECORD_WITH_TARIFF, tariff: withoutMotorcycle }]),
+      });
+
+      const motoBody = { ...VALID_BODY, vehicle: { type: 'motorcycle', axleCategory: 'motorcycle', consumptionKmPerL: 30 } };
+      const moto = await app.inject({ method: 'POST', url: '/routes/plan', payload: motoBody });
+      expect(moto.statusCode).toBe(200);
+      const motoRoute = moto.json().routes[0];
+      expect(motoRoute.tolls.plazas[0].tariffByAxleCategory).toEqual(withoutMotorcycle);
+      expect(motoRoute.tolls.total).toBe(0);
+      expect(motoRoute.tolls.unavailablePlazaIds).toEqual([OSM_TOLL_PLAZA_RECORD_WITH_TARIFF.id]);
+
+      const car = await app.inject({ method: 'POST', url: '/routes/plan', payload: VALID_BODY });
+      const carRoute = car.json().routes[0];
+      expect(carRoute.tolls.total).toBeCloseTo(14.5, 2);
+      expect(carRoute.tolls.unavailablePlazaIds).toEqual([]);
+    });
+
+    it('rejects a persisted tariff without a car fare (reverting to "all 8 required" or dropping the car guard must fail)', async () => {
+      const { car: _car, ...noCar } = OSM_TOLL_PLAZA_RECORD_WITH_TARIFF.tariff as Record<string, number>;
+      const app = buildApp({
+        routing: fakeRoutingProvider(),
+        geocode: fakeGeocodeProvider(),
+        tollPlazas: fakeTollPlazaStore([{ ...OSM_TOLL_PLAZA_RECORD_WITH_TARIFF, tariff: noCar }]),
+      });
+      const res = await app.inject({ method: 'POST', url: '/routes/plan', payload: VALID_BODY });
+      expect(res.json().routes[0].tolls.plazas[0].tariffByAxleCategory).toBeUndefined();
+    });
+
     it('treats a partially malformed persisted tariff as absent', async () => {
       const app = buildApp({
         routing: fakeRoutingProvider(),

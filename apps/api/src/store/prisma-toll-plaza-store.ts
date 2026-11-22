@@ -35,7 +35,7 @@ export function createPrismaTollPlazaStore(prisma: PrismaClient): TollPlazaStore
       // Always both keys, `0` for a source with no rows yet — see
       // `TollPlazaStatus.bySource`'s doc-comment for why a caller should
       // never have to guard against a missing key.
-      const bySource: Record<TollPlazaSource, number> = { antt: 0, osm: 0 };
+      const bySource: Record<TollPlazaSource, number> = { antt: 0, osm: 0, artesp: 0 };
       for (const group of bySourceGroups) {
         bySource[group.source] = group._count._all;
       }

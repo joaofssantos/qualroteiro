@@ -169,4 +169,5 @@ never writes it.
 - `ingest:once` — one-off run of `ingest-toll-plazas` (ANTT), no Redis required
 - `ingest:osm:once` — one-off run of `ingest-toll-plazas-osm` (OSM), no Redis required
 - `audit:artesp:once` — one-off run of `audit-artesp-tariffs` (read-only, no Redis required)
+- `reconcile:artesp:once` — recovery after an OSM upsert succeeds but the ARTESP PDF/reconciliation fails: reruns the idempotent ARTESP pass (including Free Flow records) without downloading OSM again
 - `worker` — long-running BullMQ worker + both monthly schedule registrations

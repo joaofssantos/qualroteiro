@@ -18,7 +18,7 @@
  * rather than imported from `@prisma/client` so this port stays free of a
  * Prisma dependency, same as the rest of this file.
  */
-export type TollPlazaSource = 'antt' | 'osm';
+export type TollPlazaSource = 'antt' | 'osm' | 'artesp';
 
 /** One row of the persisted, real-world toll plaza table. */
 export interface TollPlazaRecord {

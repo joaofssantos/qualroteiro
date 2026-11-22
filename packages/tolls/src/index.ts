@@ -14,6 +14,7 @@ export type {
   OsmTollBooth,
   TariffByAxleCategory,
   TollPlaza,
+  TollPlazaSource,
   TollPlazaCluster,
 } from './types.js';
 export { AXLE_CATEGORIES } from './types.js';
