@@ -10,7 +10,6 @@ export interface MapContrastReport {
     routeVsBasemapMin: number;
     basemapColors: { rgb: string; share: number; casing: number; route: number; routeVsCasing: number }[];
     routePixels: number;
-    casingPixels: number;
   };
   pins: {
     label: string;
@@ -82,7 +81,6 @@ export async function measureMapContrast(page: Page): Promise<MapContrastReport>
       const near = (a: number[], c: number[], tol = 10) =>
         Math.abs(a[0]! - c[0]!) <= tol && Math.abs(a[1]! - c[1]!) <= tol && Math.abs(a[2]! - c[2]!) <= tol;
 
-      const dist = (a: number[], c: number[]) => Math.abs(a[0]! - c[0]!) + Math.abs(a[1]! - c[1]!) + Math.abs(a[2]! - c[2]!);
       const route = token('--route');
       const casing = token('--route-casing');
 
@@ -156,8 +154,6 @@ export async function measureMapContrast(page: Page): Promise<MapContrastReport>
           route: ratio(route, h.rgb),
           routeVsCasing: ratio(route, effCasing(h.rgb)),
         }));
-      const casingPixels = 0;
-      const casingActual: [number, number, number] = casing;
 
       const pins = pinRects.map((p) => {
         const button = p.el.querySelector('button') ?? p.el;
@@ -197,7 +193,6 @@ export async function measureMapContrast(page: Page): Promise<MapContrastReport>
           outerEdgeMin: basemapColors.length ? Math.min(...basemapColors.map((c) => Math.max(c.casing, c.route))) : -1,
           basemapColors,
           routePixels,
-          casingPixels,
         },
         pins,
       };

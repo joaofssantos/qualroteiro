@@ -70,6 +70,8 @@ export function defineLayoutSuite(layout: LayoutId): void {
         if (layout === 'b') {
           test('pinos e prévia aparecem antes do Calcular', async ({ page }) => {
             await openApp(page, { layout, theme, viewport });
+            await waitMapIdle(page);
+            const before = await countTokenPixels(page, '--route-alt');
             await fillSpToRj(page);
 
             await expect(page.getByRole('button', { name: /^Origem: / })).toBeVisible();
@@ -78,17 +80,21 @@ export function defineLayoutSuite(layout: LayoutId): void {
             await expect(page.getByRole('heading', { name: 'Resultado da rota' })).toHaveCount(0);
 
             await waitMapIdle(page);
-            expect(await countTokenPixels(page, '--route-alt')).toBeGreaterThan(150);
+            expect(await countTokenPixels(page, '--route-alt')).toBeGreaterThan(before + 150);
             await shot(page, `${id}-previa`);
           });
         } else {
           test('sem prévia antes do Calcular', async ({ page }) => {
             await openApp(page, { layout, theme, viewport });
+            await waitMapIdle(page);
+            // A cor da prévia (--route-alt) também aparece em rótulos/estradas do mapa-base:
+            // compara com a captura ANTES de escolher os pontos.
+            const before = await countTokenPixels(page, '--route-alt');
             await fillSpToRj(page);
             await expect(page.getByRole('button', { name: /^Origem: / })).toBeVisible();
             await expect(page.getByText(/≈ \d+ km/)).toHaveCount(0);
-            await waitMapIdle(page);
-            expect(await countTokenPixels(page, '--route-alt')).toBeLessThan(40);
+            await page.waitForTimeout(2000);
+            expect(await countTokenPixels(page, '--route-alt')).toBeLessThan(before + 150);
           });
         }
 

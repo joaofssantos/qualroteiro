@@ -76,8 +76,8 @@ no fim.
    ser `'b'`. `shellLoaders.ts`: remover `a`.
 3. `modules/rota-custos/index.tsx`: a composição do B vira a única (apagar `DEFAULT_COMPOSITION`
    e `NewQueryScreen`/`ResultScreen` **se** ninguém mais os usar — o B usa `QueryForm` e os blocos).
-4. `index.css`: remover `.map-content-panel` e o que for só do painel flutuante do A; o
-   `mapStore.padding` continua sendo usado pelo B (cards sobre o mapa).
+4. `index.css`: remover `.map-content-panel` e o que for só do painel flutuante do A; `mapStore.padding`
+   (publicado pelo painel/sheet do A) pode sair se nada mais o publicar — confira com `grep setMapPadding`.
 5. `test/setup.ts` e os testes/E2E do A, como no B.
 
 ### O que **não** muda
