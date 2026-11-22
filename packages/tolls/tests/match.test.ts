@@ -151,6 +151,7 @@ describe('matchTolls — a route that passes nothing', () => {
     ).toEqual({
       plazas: [],
       total: 0,
+      unavailablePlazaIds: [],
     });
   });
 });
@@ -230,6 +231,55 @@ describe('matchTolls — explicit plazas parameter', () => {
     });
 
     expect(narrowed).toEqual(fromAll);
+  });
+});
+
+describe('matchTolls — partial tariff (category not published)', () => {
+  const gantry = (tariff: TollPlaza['tariffByAxleCategory']): TollPlaza => ({
+    id: 'partial-gantry',
+    name: 'Pórtico sem moto',
+    concessionaire: 'Teste',
+    highway: 'SP-000',
+    km: dutra.plazas[0]!.km,
+    lat: dutra.plazas[0]!.lat,
+    lng: dutra.plazas[0]!.lng,
+    source: 'artesp',
+    tariffByAxleCategory: tariff,
+  });
+  const carOnly = { car: 5.4, truck_2_axle: 10.8 };
+
+  it('flags a plaza lacking the requested category as unavailable instead of silently R$0', () => {
+    const result = matchTolls({
+      routeGeometry: dutraPolyline,
+      axleCategory: 'motorcycle',
+      plazas: [gantry(carOnly)],
+    });
+    expect(result.plazas).toHaveLength(1);
+    expect(result.total).toBe(0);
+    expect(result.unavailablePlazaIds).toEqual(['partial-gantry']);
+  });
+
+  it('does not flag a plaza that publishes the requested category, nor a published R$ 0', () => {
+    expect(
+      matchTolls({ routeGeometry: dutraPolyline, axleCategory: 'car', plazas: [gantry(carOnly)] })
+        .unavailablePlazaIds,
+    ).toEqual([]);
+    expect(
+      matchTolls({
+        routeGeometry: dutraPolyline,
+        axleCategory: 'motorcycle',
+        plazas: [gantry({ ...carOnly, motorcycle: 0 })],
+      }).unavailablePlazaIds,
+    ).toEqual([]);
+  });
+
+  it('flags a plaza with no tariff at all', () => {
+    const result = matchTolls({
+      routeGeometry: dutraPolyline,
+      axleCategory: 'car',
+      plazas: [gantry(undefined)],
+    });
+    expect(result.unavailablePlazaIds).toEqual(['partial-gantry']);
   });
 });
 

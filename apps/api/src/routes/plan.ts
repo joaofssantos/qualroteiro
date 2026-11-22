@@ -36,7 +36,12 @@ export interface PlannedRoute {
   readonly geometry: LineString;
   readonly distanceKm: number;
   readonly durationMin: number;
-  readonly tolls: { readonly plazas: readonly TollPlaza[]; readonly total: number };
+  readonly tolls: {
+    readonly plazas: readonly TollPlaza[];
+    readonly total: number;
+    /** Matched plazas with no published tariff for the requested category ("Valor não disponível"); `total` excludes them. */
+    readonly unavailablePlazaIds: readonly string[];
+  };
   readonly fuel: { readonly liters: number; readonly cost: number };
   readonly points: {
     readonly tolls: readonly TollPlaza[];
@@ -169,7 +174,11 @@ function planOne(
     geometry: alt.geometry,
     distanceKm: alt.distanceKm,
     durationMin: alt.durationMin,
-    tolls: { plazas: tolls.plazas, total: tolls.total },
+    tolls: {
+      plazas: tolls.plazas,
+      total: tolls.total,
+      unavailablePlazaIds: tolls.unavailablePlazaIds,
+    },
     fuel: { liters: fuel.liters, cost: fuel.cost },
     points: { tolls: tolls.plazas, fuelStations: fuelStations.stations },
   };

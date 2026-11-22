@@ -58,6 +58,14 @@ export interface MatchTollsResult {
   readonly plazas: readonly TollPlaza[];
   /** Sum of the matched plazas' tariffs for the requested axle category, in BRL. */
   readonly total: number;
+  /**
+   * Ids of matched plazas that publish no tariff for the requested category
+   * (including plazas with no tariff at all). They contribute R$ 0 to
+   * {@link total} only because the fare is unknown, not because it is free, so
+   * the total is a lower bound whenever this list is non-empty. A published
+   * R$ 0,00 is not listed here.
+   */
+  readonly unavailablePlazaIds: readonly string[];
 }
 
 /**
@@ -186,6 +194,9 @@ export function matchTolls(input: MatchTollsInput): MatchTollsResult {
   return {
     plazas: deduplicated.map(({ plaza }) => plaza),
     total: totalCentavos / 100,
+    unavailablePlazaIds: deduplicated
+      .filter(({ plaza }) => !hasTariffForRequestedCategory(plaza))
+      .map(({ plaza }) => plaza.id),
   };
 }
 
