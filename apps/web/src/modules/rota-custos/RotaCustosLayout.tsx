@@ -60,8 +60,9 @@ export function RotaCustosLayout() {
       if (layer.id === TOLL_LAYER_ID) {
         return {
           ...layer,
-          markers: route.points.tolls.map((plaza) => ({
+          markers: route.points.tolls.map((plaza, index) => ({
             id: plaza.id,
+            index,
             lng: plaza.lng,
             lat: plaza.lat,
             label: `${plaza.name} - ${

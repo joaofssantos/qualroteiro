@@ -1,8 +1,9 @@
-import { ChevronRight } from 'lucide-react';
-
 import { EmptyState } from '@/components/ui/card';
 import type { AxleCategory, PlannedRoute, TollPlaza } from '@/core/api/types';
-import { formatCurrency, formatKmMarker } from '@/lib/format';
+import { formatCurrency } from '@/lib/format';
+
+import { unavailablePlazaIdsOf } from '../blocks/deriveAlternativeLabels';
+import { TollRow } from '../blocks/TollRow';
 
 /**
  * Every plaza on the route, with the fare for the selected axle category.
@@ -30,38 +31,27 @@ export function TollsPanel({
     );
   }
 
+  const unavailable = new Set(unavailablePlazaIdsOf(route, axleCategory));
+
   return (
     <div className="flex flex-col gap-3">
       <ul aria-label="Praças de pedágio" className="flex flex-col gap-1.5">
-        {route.tolls.plazas.map((plaza) => {
-          const tariff = plaza.tariffByAxleCategory?.[axleCategory];
-          return (
-            <li key={plaza.id}>
-            <button
-              type="button"
-              onClick={() => onSelectPlaza(plaza)}
-              className="flex w-full items-center gap-3 rounded-md border border-border bg-card px-3 py-2.5 text-left transition-colors hover:border-primary/40 hover:bg-secondary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-            >
-              <span className="min-w-0 flex-1">
-                <span className="block truncate text-sm font-medium text-foreground">
-                  {plaza.name}
-                </span>
-                <span className="block truncate text-xs text-muted-foreground">
-                  {plaza.concessionaire} · {plaza.highway} · {formatKmMarker(plaza.km)}
-                </span>
-              </span>
-              <span className="shrink-0 text-sm font-semibold tabular-nums text-primary">
-                {tariff === undefined ? 'Valor não disponível' : formatCurrency(tariff)}
-              </span>
-              <ChevronRight aria-hidden className="size-4 shrink-0 text-muted-foreground" />
-            </button>
-          </li>
-          );
-        })}
+        {route.tolls.plazas.map((plaza, index) => (
+          <TollRow
+            key={plaza.id}
+            index={index}
+            plaza={plaza}
+            axleCategory={axleCategory}
+            unavailable={unavailable.has(plaza.id)}
+            onSelect={onSelectPlaza}
+          />
+        ))}
       </ul>
 
       <div className="flex items-center justify-between rounded-md bg-secondary px-3 py-2.5">
-        <span className="text-sm font-medium text-secondary-foreground">Total de pedágios</span>
+        <span className="text-sm font-medium text-secondary-foreground">
+          {unavailable.size > 0 ? 'Total de pedágios (parcial)' : 'Total de pedágios'}
+        </span>
         <span className="text-base font-bold tabular-nums text-primary">
           {formatCurrency(route.tolls.total)}
         </span>

@@ -10,6 +10,7 @@ import { screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
+import { useMapStore } from '@/core/map/mapStore';
 import { constructedMaps, lastMap } from '@/test/maplibre-stub';
 import {
   ALTERNATIVE_ROUTE,
@@ -78,6 +79,15 @@ async function planFromSelectedPlaces(mock: ApiMock) {
 /** The panel region on Tela 2, so queries do not accidentally match the map. */
 function panel() {
   return within(screen.getByRole('complementary', { name: /custos da rota/i }));
+}
+
+/** Opens an accordion section of the result panel (no-op if already open). */
+async function openSection(user: ReturnType<typeof userEvent.setup>, name: RegExp | string) {
+  const trigger = panel()
+    .getAllByRole('button', { name })
+    .find((button) => button.hasAttribute('aria-expanded'));
+  if (!trigger) throw new Error(`Seção "${String(name)}" não encontrada`);
+  if (trigger.getAttribute('aria-expanded') !== 'true') await user.click(trigger);
 }
 
 /**
@@ -200,13 +210,14 @@ describe('Tela 2 — resultado', () => {
     expect(summary().getByText('5 h 43 min')).toBeInTheDocument();
     expect(summary().getByText('R$ 52,90')).toBeInTheDocument();
     expect(summary().getByText('R$ 257,82')).toBeInTheDocument();
+    expect(summary().getByText('R$ 310,72')).toBeInTheDocument();
   });
 
   it('lists every plaza with its tariff for the selected axle category', async () => {
     const { user } = await planFromForm({ routes: [DUTRA_ROUTE] });
     await screen.findByRole('heading', { name: /resultado da rota/i });
 
-    await user.click(panel().getByRole('tab', { name: /pedágios/i }));
+    await openSection(user, /pedágios/i);
 
     const list = within(await screen.findByRole('list', { name: /praças de pedágio/i }));
     expect(list.getAllByRole('listitem')).toHaveLength(DUTRA_PLAZAS.length);
@@ -227,7 +238,7 @@ describe('Tela 2 — resultado', () => {
     const { user } = await planFromForm({ routes: [TARIFFLESS_ROUTE] });
     await screen.findByRole('heading', { name: /resultado da rota/i });
 
-    await user.click(panel().getByRole('tab', { name: /pedágios/i }));
+    await openSection(user, /pedágios/i);
     const list = within(await screen.findByRole('list', { name: /praças de pedágio/i }));
     const item = within(list.getByRole('listitem'));
     expect(item.getByText(TARIFFLESS_PLAZA.name)).toBeInTheDocument();
@@ -246,7 +257,7 @@ describe('Tela 2 — resultado', () => {
     const { user } = await planFromForm({ routes: [EMPTY_TOLLS_ROUTE] });
     await screen.findByRole('heading', { name: /resultado da rota/i });
 
-    await user.click(panel().getByRole('tab', { name: /pedágios/i }));
+    await openSection(user, /pedágios/i);
 
     expect(
       await screen.findByText(
@@ -256,21 +267,57 @@ describe('Tela 2 — resultado', () => {
     expect(screen.queryByText(/três corredores|base de demonstração/i)).not.toBeInTheDocument();
   });
 
-  it('keeps every tab label available without horizontal scrolling', async () => {
-    await planFromForm({ routes: [DUTRA_ROUTE, ALTERNATIVE_ROUTE] });
+  it('abre Pedágios por padrão, abre Combustível ao clicar e deixa Postos desligado', async () => {
+    const { user } = await planFromForm({ routes: [DUTRA_ROUTE, ALTERNATIVE_ROUTE] });
     await screen.findByRole('heading', { name: /resultado da rota/i });
 
-    const alternatives = panel().getByRole('tab', { name: 'Alternativas' });
-    expect(alternatives).toHaveClass('min-w-0', 'basis-[45%]');
-    expect(alternatives).toHaveClass('text-xs');
-    expect(alternatives.parentElement).toHaveClass('flex-wrap', 'overflow-visible');
+    const accordionTrigger = (name: string) =>
+      panel()
+        .getAllByRole('button', { name })
+        .find((button) => button.hasAttribute('aria-expanded'))!;
+    expect(accordionTrigger('Pedágios')).toHaveAttribute('aria-expanded', 'true');
+    expect(accordionTrigger('Combustível')).toHaveAttribute('aria-expanded', 'false');
+    expect(panel().queryByTestId('fuel-panel')).not.toBeInTheDocument();
+
+    await user.click(accordionTrigger('Combustível'));
+    expect(await panel().findByTestId('fuel-panel', undefined, { timeout: 3000 })).toBeInTheDocument();
+    expect(accordionTrigger('Pedágios')).toHaveAttribute('aria-expanded', 'true');
+
+    await user.click(accordionTrigger('Pontos na rota'));
+    expect(await panel().findByRole('switch', { name: /postos/i }, { timeout: 3000 })).toHaveAttribute(
+      'aria-checked',
+      'false',
+    );
+  });
+
+  it('publica o índice de cada praça no marcador (número = índice + 1)', async () => {
+    await planFromForm({ routes: [DUTRA_ROUTE] });
+    await screen.findByRole('heading', { name: /resultado da rota/i });
+
+    const tolls = useMapStore.getState().layers.find((layer) => layer.id === 'tolls');
+    expect(tolls?.markers.map((marker) => marker.index)).toEqual(
+      DUTRA_ROUTE.points.tolls.map((_, index) => index),
+    );
+  });
+
+  it('avisa tarifa indisponível e trata o total como parcial', async () => {
+    const partial: PlannedRoute = {
+      ...TARIFFLESS_ROUTE,
+      tolls: { ...TARIFFLESS_ROUTE.tolls, unavailablePlazaIds: [TARIFFLESS_PLAZA.id] },
+    };
+    await planFromForm({ routes: [partial] });
+    await screen.findByRole('heading', { name: /resultado da rota/i });
+
+    expect(summary().getByText('Tarifa indisponível em 1 praça')).toBeInTheDocument();
+    expect(summary().getByText(/Total parcial:/)).toBeInTheDocument();
+    expect(panel().getByText('Valor não disponível')).toBeInTheDocument();
   });
 
   it('shows litres, price and cost on the fuel tab, and the cost is litres × price', async () => {
     const { user } = await planFromForm({ routes: [DUTRA_ROUTE] });
     await screen.findByRole('heading', { name: /resultado da rota/i });
 
-    await user.click(panel().getByRole('tab', { name: /combustível/i }));
+    await openSection(user, /combustível/i);
 
     const fuel = within(await screen.findByTestId('fuel-panel'));
     expect(fuel.getByText('42,97 L')).toBeInTheDocument();
@@ -284,7 +331,7 @@ describe('Tela 2 — resultado', () => {
     const { user } = await planFromForm({ routes: [DUTRA_ROUTE] });
     await screen.findByRole('heading', { name: /resultado da rota/i });
 
-    await user.click(panel().getByRole('tab', { name: /pontos na rota/i }));
+    await openSection(user, /pontos na rota/i);
 
     expect(await screen.findByText(/sem dados de postos nesta fase/i)).toBeInTheDocument();
   });
@@ -297,7 +344,7 @@ describe('Alternativas', () => {
 
     expect(summary().getByText('429,7 km')).toBeInTheDocument();
 
-    await user.click(panel().getByRole('tab', { name: /alternativas/i }));
+    await openSection(user, /alternativas/i);
     const options = await screen.findAllByRole('radio');
     expect(options).toHaveLength(2);
     await user.click(options[1]!);
@@ -326,7 +373,7 @@ describe('Pontos na rota — layer toggling', () => {
     const { user } = await planFromForm({ routes: [DUTRA_ROUTE] });
     await screen.findByRole('heading', { name: /resultado da rota/i });
 
-    await user.click(panel().getByRole('tab', { name: /pontos na rota/i }));
+    await openSection(user, /pontos na rota/i);
 
     // Markers are on the map by default.
     expect(map().getByRole('button', { name: new RegExp(firstPlaza.name) })).toBeInTheDocument();
@@ -350,7 +397,7 @@ describe('Tela 3 — detalhe da praça', () => {
     const { user } = await planFromForm({ routes: [DUTRA_ROUTE] });
     await screen.findByRole('heading', { name: /resultado da rota/i });
 
-    await user.click(panel().getByRole('tab', { name: /pedágios/i }));
+    await openSection(user, /pedágios/i);
     const list = await screen.findByRole('list', { name: /praças de pedágio/i });
     await user.click(within(list).getAllByRole('button')[0]!);
 

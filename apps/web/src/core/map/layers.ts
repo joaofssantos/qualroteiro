@@ -20,6 +20,8 @@ export interface MapMarkerSpec {
   /** The marker's accessible name — what a screen reader and a test both read. */
   readonly label: string;
   readonly kind?: MarkerKind;
+  /** 0-based position within an ordered list (e.g. the plaza number is `index + 1`). */
+  readonly index?: number;
 }
 
 /** A layer's static identity, declared by a module before any data exists. */
