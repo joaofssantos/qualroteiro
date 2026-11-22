@@ -50,6 +50,19 @@ const IDLE: PlanPreviewState = { status: 'idle', summary: null };
 /** Resultados já obtidos, por chave: voltar à mesma consulta não refaz a chamada. */
 const resultCache = new Map<string, PreviewResult>();
 
+/** Teto do cache: ao passar disso, a entrada mais antiga (ordem de inserção) sai. */
+export const MAX_PREVIEW_CACHE = 50;
+
+function rememberPreview(key: string, result: PreviewResult): void {
+  resultCache.delete(key);
+  resultCache.set(key, result);
+  while (resultCache.size > MAX_PREVIEW_CACHE) {
+    const oldest = resultCache.keys().next().value;
+    if (oldest === undefined) break;
+    resultCache.delete(oldest);
+  }
+}
+
 interface InFlightPreview {
   readonly controller: AbortController;
   readonly promise: Promise<readonly import('@/core/api/types').PlannedRoute[]>;
@@ -214,7 +227,7 @@ export function usePlanPreview(input: PlanPreviewInput): PlanPreviewState {
             trace: { coordinates: first.geometry.coordinates.map(([lng, lat]) => [lng, lat] as const) },
             summary: { km: first.distanceKm, minutes: first.durationMin },
           };
-          resultCache.set(key, result);
+          rememberPreview(key, result);
           publish(result);
         },
         () => {

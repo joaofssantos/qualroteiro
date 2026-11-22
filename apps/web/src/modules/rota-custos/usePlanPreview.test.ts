@@ -12,7 +12,7 @@ import { useMapStore } from '@/core/map/mapStore';
 import { useRouteStore } from '@/core/store/routeStore';
 
 import { DEFAULT_VEHICLE } from './routeDraftStore';
-import { clearPreviewCache, previewKey, usePlanPreview, type PlanPreviewInput } from './usePlanPreview';
+import { MAX_PREVIEW_CACHE, clearPreviewCache, previewKey, usePlanPreview, type PlanPreviewInput } from './usePlanPreview';
 
 vi.mock('@/core/api/client', async (importOriginal) => ({
   ...(await importOriginal<typeof import('@/core/api/client')>()),
@@ -170,6 +170,27 @@ describe('usePlanPreview', () => {
     expect(calls).toHaveLength(1);
     expect(second.result.current.status).toBe('ready');
     expect(useMapStore.getState().preview).not.toBeNull();
+  });
+
+  it('(e) o cache tem teto: passado de MAX_PREVIEW_CACHE descarta a entrada mais antiga', async () => {
+    expect(MAX_PREVIEW_CACHE).toBe(50);
+    const calls = pendingCalls();
+    const dest = (i: number): PlaceInput => ({ lng: -43 + i * 0.01, lat: -22.9 });
+    const hook = setup(input({ destination: dest(0) }));
+    for (let i = 0; i <= MAX_PREVIEW_CACHE; i += 1) {
+      if (i > 0) hook.rerender(input({ destination: dest(i) }));
+      await tick(700);
+      await act(async () => calls[calls.length - 1]?.resolve());
+    }
+    expect(calls).toHaveLength(MAX_PREVIEW_CACHE + 1);
+
+    // A mais recente continua em cache; a mais antiga foi descartada e refaz a chamada.
+    hook.rerender(input({ destination: dest(MAX_PREVIEW_CACHE) }));
+    await tick(1000);
+    expect(calls).toHaveLength(MAX_PREVIEW_CACHE + 1);
+    hook.rerender(input({ destination: dest(0) }));
+    await tick(700);
+    expect(calls).toHaveLength(MAX_PREVIEW_CACHE + 2);
   });
 
   it('(e) remontar com a chamada ainda em voo não duplica a requisição', async () => {

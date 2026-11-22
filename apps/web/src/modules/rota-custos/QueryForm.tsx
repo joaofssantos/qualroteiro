@@ -247,6 +247,7 @@ export function QueryForm({ variant, onSubmitted, onEndpointsChange }: QueryForm
             type="button"
             variant="ghost"
             size="icon"
+            className="min-h-11 min-w-11 md:min-h-9 md:min-w-9"
             aria-label="Inverter origem e destino"
             onClick={swapEndpoints}
           >
@@ -286,6 +287,7 @@ export function QueryForm({ variant, onSubmitted, onEndpointsChange }: QueryForm
                 type="button"
                 variant="ghost"
                 size="icon"
+                className="min-h-11 min-w-11 md:min-h-9 md:min-w-9"
                 aria-label={`Remover parada ${index + 1}`}
                 onClick={() =>
                   setStops((current) => {
@@ -318,7 +320,7 @@ export function QueryForm({ variant, onSubmitted, onEndpointsChange }: QueryForm
             type="button"
             variant="ghost"
             size="sm"
-            className="text-primary"
+            className="min-h-11 text-primary md:min-h-8"
             onClick={() => setStops((current) => [...current, EMPTY_FIELD])}
           >
             <Plus /> Adicionar parada
