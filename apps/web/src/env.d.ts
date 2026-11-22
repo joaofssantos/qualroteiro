@@ -56,6 +56,13 @@ interface ImportMetaEnv {
    */
   readonly VITE_CLERK_PUBLISHABLE_KEY?: string;
 
+  /**
+   * Layout inicial: `"a"` (mapa primeiro) ou `"b"` (custos primeiro). Qualquer
+   * outro valor, ou ausência, cai em `"a"`. A escolha do usuário em Ajustes
+   * (`localStorage` `qualroteiro:layout`) tem prioridade sobre este padrão.
+   */
+  readonly VITE_LAYOUT?: string;
+
   /** Vite built-ins. */
   readonly MODE: string;
   readonly BASE_URL: string;
