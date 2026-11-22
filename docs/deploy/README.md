@@ -4,6 +4,9 @@ Este guia prepara o Qual roteiro para três serviços: web estático no Vercel,
 API Node no Render e banco PostgreSQL com PostGIS no Neon. Não cria contas nem
 publica nada automaticamente.
 
+Veredito: preparação pronta para revisão; a publicação depende das contas e
+variáveis que só o dono pode cadastrar.
+
 ## Escolha do banco
 
 Recomendação: **Neon** para o banco de produção, usando uma `DATABASE_URL`
