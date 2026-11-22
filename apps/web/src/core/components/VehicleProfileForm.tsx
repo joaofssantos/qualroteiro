@@ -1,7 +1,9 @@
 import { AXLE_CATEGORIES, type AxleCategory } from '@qualroteiro/tolls';
 
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Segmented } from '@/components/ui/segmented';
 import { Select } from '@/components/ui/select';
 
 import type { VehicleProfile } from '../api/types';
@@ -29,17 +31,26 @@ const AXLE_LABELS: Record<AxleCategory, string> = {
 };
 
 /**
- * The routing profile sent to the provider.
+ * Veículo = perfil de roteamento (`type`) + classe tarifária inicial.
  *
- * Separate from the axle category on purpose: the tariff class is a *pricing*
- * concept and the routing profile is a *road network* one. A 6-axle truck and a
- * 2-axle truck pay very different tolls but route the same way.
+ * Separados de propósito: a classe de pedágio é um conceito de *preço* e o perfil
+ * é de *malha viária*; um caminhão de 6 eixos e um de 2 roteiam igual mas pagam
+ * pedágios bem diferentes. Escolher o veículo só preenche um ponto de partida —
+ * o ajuste fino fica em "Opções de trajeto".
  */
-const VEHICLE_TYPES = [
-  { value: 'car', label: 'Carro' },
-  { value: 'truck', label: 'Caminhão' },
-  { value: 'motorcycle', label: 'Moto' },
-] as const;
+const VEHICLE_PRESETS = [
+  { value: 'car', label: 'Carro', type: 'car', axleCategory: 'car' },
+  { value: 'motorcycle', label: 'Moto', type: 'motorcycle', axleCategory: 'motorcycle' },
+  { value: 'truck', label: 'Caminhão', type: 'truck', axleCategory: 'truck_2_axle' },
+  { value: 'trailer', label: 'Reboque', type: 'car', axleCategory: 'car_with_trailer' },
+] as const satisfies readonly { value: string; label: string; type: string; axleCategory: AxleCategory }[];
+
+function presetOf(value: { type: string; axleCategory: AxleCategory }): string {
+  if (value.type === 'motorcycle') return 'motorcycle';
+  if (value.type === 'truck') return 'truck';
+  if (value.axleCategory === 'car_with_trailer') return 'trailer';
+  return 'car';
+}
 
 export interface VehicleProfileValue extends VehicleProfile {
   readonly fuelPricePerL: number;
@@ -69,78 +80,82 @@ export function VehicleProfileForm({ value, onChange, errors }: VehicleProfileFo
   }
 
   return (
-    <fieldset className="grid gap-4 sm:grid-cols-2">
+    <fieldset className="flex flex-col gap-4">
       <legend className="sr-only">Perfil do veículo</legend>
 
-      <div className="flex flex-col gap-1.5">
-        <Label htmlFor="vehicle-type">Veículo</Label>
-        <Select
-          id="vehicle-type"
-          value={value.type}
-          onChange={(event) => set('type', event.target.value)}
-        >
-          {VEHICLE_TYPES.map((option) => (
-            <option key={option.value} value={option.value}>
-              {option.label}
-            </option>
-          ))}
-        </Select>
+      <Segmented
+        aria-label="Veículo"
+        value={presetOf(value)}
+        onValueChange={(next) => {
+          const preset = VEHICLE_PRESETS.find((p) => p.value === next);
+          if (preset) onChange({ ...value, type: preset.type, axleCategory: preset.axleCategory });
+        }}
+        options={VEHICLE_PRESETS.map(({ value: v, label }) => ({ value: v, label }))}
+      />
+
+      <div className="grid grid-cols-2 gap-4">
+        <div className="flex flex-col gap-1.5">
+          <Label htmlFor="consumption">Consumo (km/l)</Label>
+          <Input
+            id="consumption"
+            type="number"
+            inputMode="decimal"
+            min={0.1}
+            step={0.1}
+            aria-invalid={errors?.consumptionKmPerL ? true : undefined}
+            aria-describedby={errors?.consumptionKmPerL ? 'consumption-error' : undefined}
+            value={value.consumptionKmPerL === 0 ? '' : String(value.consumptionKmPerL)}
+            onChange={(event) => set('consumptionKmPerL', numberOrZero(event.target.value))}
+          />
+          {errors?.consumptionKmPerL ? (
+            <p id="consumption-error" role="alert" className="text-xs font-medium text-destructive">
+              {errors.consumptionKmPerL}
+            </p>
+          ) : null}
+        </div>
+
+        <div className="flex flex-col gap-1.5">
+          <Label htmlFor="fuel-price">Preço do combustível (R$/l)</Label>
+          <Input
+            id="fuel-price"
+            type="number"
+            inputMode="decimal"
+            min={0}
+            step={0.01}
+            aria-invalid={errors?.fuelPricePerL ? true : undefined}
+            aria-describedby={errors?.fuelPricePerL ? 'fuel-price-error' : undefined}
+            value={value.fuelPricePerL === 0 ? '' : String(value.fuelPricePerL)}
+            onChange={(event) => set('fuelPricePerL', numberOrZero(event.target.value))}
+          />
+          {errors?.fuelPricePerL ? (
+            <p id="fuel-price-error" role="alert" className="text-xs font-medium text-destructive">
+              {errors.fuelPricePerL}
+            </p>
+          ) : null}
+        </div>
       </div>
 
-      <div className="flex flex-col gap-1.5">
-        <Label htmlFor="axle-category">Categoria de pedágio</Label>
-        <Select
-          id="axle-category"
-          value={value.axleCategory}
-          onChange={(event) => set('axleCategory', event.target.value as AxleCategory)}
-        >
-          {AXLE_CATEGORIES.map((category) => (
-            <option key={category} value={category}>
-              {AXLE_LABELS[category]}
-            </option>
-          ))}
-        </Select>
-      </div>
-
-      <div className="flex flex-col gap-1.5">
-        <Label htmlFor="consumption">Consumo (km/l)</Label>
-        <Input
-          id="consumption"
-          type="number"
-          inputMode="decimal"
-          min={0.1}
-          step={0.1}
-          aria-invalid={errors?.consumptionKmPerL ? true : undefined}
-          aria-describedby={errors?.consumptionKmPerL ? 'consumption-error' : undefined}
-          value={value.consumptionKmPerL === 0 ? '' : String(value.consumptionKmPerL)}
-          onChange={(event) => set('consumptionKmPerL', numberOrZero(event.target.value))}
-        />
-        {errors?.consumptionKmPerL ? (
-          <p id="consumption-error" role="alert" className="text-xs font-medium text-destructive">
-            {errors.consumptionKmPerL}
-          </p>
-        ) : null}
-      </div>
-
-      <div className="flex flex-col gap-1.5">
-        <Label htmlFor="fuel-price">Preço do combustível (R$/l)</Label>
-        <Input
-          id="fuel-price"
-          type="number"
-          inputMode="decimal"
-          min={0}
-          step={0.01}
-          aria-invalid={errors?.fuelPricePerL ? true : undefined}
-          aria-describedby={errors?.fuelPricePerL ? 'fuel-price-error' : undefined}
-          value={value.fuelPricePerL === 0 ? '' : String(value.fuelPricePerL)}
-          onChange={(event) => set('fuelPricePerL', numberOrZero(event.target.value))}
-        />
-        {errors?.fuelPricePerL ? (
-          <p id="fuel-price-error" role="alert" className="text-xs font-medium text-destructive">
-            {errors.fuelPricePerL}
-          </p>
-        ) : null}
-      </div>
+      <Accordion type="single" collapsible>
+        <AccordionItem value="route-options" className="border-b-0">
+          <AccordionTrigger>Opções de trajeto</AccordionTrigger>
+          <AccordionContent>
+            <div className="flex flex-col gap-1.5">
+              <Label htmlFor="axle-category">Categoria de pedágio</Label>
+              <Select
+                id="axle-category"
+                value={value.axleCategory}
+                onChange={(event) => set('axleCategory', event.target.value as AxleCategory)}
+              >
+                {AXLE_CATEGORIES.map((category) => (
+                  <option key={category} value={category}>
+                    {AXLE_LABELS[category]}
+                  </option>
+                ))}
+              </Select>
+            </div>
+          </AccordionContent>
+        </AccordionItem>
+      </Accordion>
     </fieldset>
   );
 }
