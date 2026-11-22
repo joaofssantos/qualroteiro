@@ -62,6 +62,8 @@ interface ImportMetaEnv {
    * (`localStorage` `qualroteiro:layout`) tem prioridade sobre este padrão.
    */
   readonly VITE_LAYOUT?: string;
+  /** `"false"` desliga a prévia do traçado (F9) mesmo no layout que a tem. */
+  readonly VITE_LIVE_PREVIEW?: string;
 
   /** Vite built-ins. */
   readonly MODE: string;

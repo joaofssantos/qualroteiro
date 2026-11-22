@@ -6,10 +6,13 @@ import { ApiError, planRoute, userMessage } from '@/core/api/client';
 import type { PlaceInput, PlanRouteRequest } from '@/core/api/types';
 import { PlaceSearch, type PlaceFieldValue } from '@/core/components/PlaceSearch';
 import { VehicleProfileForm, type VehicleProfileValue } from '@/core/components/VehicleProfileForm';
+import { useLayoutDefinition } from '@/core/layout/layouts';
+import { useMapStore } from '@/core/map/mapStore';
 import { cn } from '@/lib/utils';
 import { type EndpointMarker, useRouteStore } from '@/core/store/routeStore';
 
 import { EMPTY_FIELD, useRouteDraftStore } from './routeDraftStore';
+import { usePlanPreview } from './usePlanPreview';
 
 
 /**
@@ -55,6 +58,15 @@ function endpointMarkersOf(
     });
   }
   return markers;
+}
+
+/** "5 h 10" / "45 min". */
+function formatMinutes(total: number): string {
+  const m = Math.round(total);
+  const h = Math.floor(m / 60);
+  const rest = m % 60;
+  if (h === 0) return `${rest} min`;
+  return `${h} h ${String(rest).padStart(2, '0')}`;
 }
 
 export interface QueryFormEndpoints {
@@ -130,6 +142,29 @@ export function QueryForm({ variant, onSubmitted, onEndpointsChange }: QueryForm
   useEffect(() => {
     onEndpointsChangeRef.current?.({ origin, destination, stops, vehicle });
   }, [origin, destination, stops, vehicle]);
+
+  // Prévia do traçado: só em layout com `livePreview` e sem `VITE_LIVE_PREVIEW=false`.
+  const livePreview = useLayoutDefinition().livePreview && import.meta.env.VITE_LIVE_PREVIEW !== 'false';
+  const preview = usePlanPreview({
+    origin: origin.place ? toPlaceInput(origin) : origin.text.trim() === '' ? null : origin.text.trim(),
+    destination: destination.place
+      ? toPlaceInput(destination)
+      : destination.text.trim() === ''
+        ? null
+        : destination.text.trim(),
+    stops: stops.filter((stop) => stop.text.trim() !== '').map(toPlaceInput),
+    vehicle,
+    enabled: livePreview,
+  });
+
+  // Mudou algum pino (coordenada): reenquadra o mapa nos pontos escolhidos.
+  const requestFit = useMapStore((s) => s.requestFit);
+  const pinSignature = [origin, ...stops, destination]
+    .map((f) => (f.place ? `${f.place.lng},${f.place.lat}` : ''))
+    .join('|');
+  useEffect(() => {
+    if (livePreview && pinSignature.replace(/\|/g, '') !== '') requestFit();
+  }, [livePreview, pinSignature, requestFit]);
 
   async function handleSubmit(event: React.FormEvent): Promise<void> {
     event.preventDefault();
@@ -309,6 +344,12 @@ export function QueryForm({ variant, onSubmitted, onEndpointsChange }: QueryForm
           className="rounded-md border border-destructive/30 bg-destructive/5 px-4 py-3 text-sm font-medium text-destructive"
         >
           {formError}
+        </p>
+      ) : null}
+
+      {preview.status === 'ready' && preview.summary ? (
+        <p className="text-sm text-muted-foreground" data-testid="preview-chip">
+          ≈ {Math.round(preview.summary.km)} km · {formatMinutes(preview.summary.minutes)}
         </p>
       ) : null}
 
