@@ -86,11 +86,13 @@ no fim.
 `routeDraftStore`. Se um passo acima exigir mexer num deles, a regra "nenhuma direção importa
 da outra" foi violada — corrija antes de remover.
 
-### Dívida conhecida
+### Dívida quitada
 
-`core/shell/layouts/legacy/LegacyShell.tsx` não é usado por nenhum layout registrado (só pelo
-`AppShell.test.tsx`, que o monta via mock de `shellLoaders`). Pode ser apagado junto com a
-direção que for removida, migrando/descartando esses testes.
+`core/shell/layouts/legacy/LegacyShell.tsx` (e o mock dele em `AppShell.test.tsx`) foi removido:
+nenhum layout registrado o usava. `AppShell.test.tsx` agora exercita os shells reais A e B
+(tema, navegação, foco após trocar o layout em Ajustes). Os testes de markup exclusivos do
+legado (sidebar minimizável, divisão 80/20) foram descartados; o markup de A e B é coberto por
+`ShellA.test.tsx`/`ShellB.test.tsx` e pelos E2E de layout.
 
 ## Consequências
 
